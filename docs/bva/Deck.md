@@ -84,6 +84,14 @@ The seed is a test fixture, not a game setting. Equal fixed seeds must give repe
 | SHUFFLE-05 | shuffle | Empty deck | Remain empty; no exception | Yes - same parameterized test |
 | SHUFFLE-06 | Deck(), shuffle | Default random source | Shuffle without losing or duplicating cards | Yes - `DeckTest.defaultDeckCanBeShuffled` |
 
+## Initial deal integration
+
+| ID | State/input | Expected result | Test implemented? |
+|---|---|---|---|
+| DEAL-SETUP-01 | Shuffled deck; two rounds of one-card draws for six hands | Two cards per hand; 12 distinct dealt cards; 40 remaining; all 52 conserved | Yes - `DeckSetupTest.sixPlayersReceiveTwoUniqueCardsEach` |
+
+This is an integration check of the already-tested deck operations. The setup controller still belongs to Member B; this test does not implement seating, dealer selection, chips, blinds, or the UI. It is not claimed as a new RED/GREEN pair.
+
 ## TDD status
 
 Each implemented behavior has a recorded RED/GREEN pair. Valid dealing: RED `102465a`, GREEN `630deff`. Invalid requests: RED `a1490c5`, GREEN `3a53ede`. Controlled shuffle: RED `8e67799`, followed by this GREEN checkpoint. All 61 cases in the full suite pass. The deck is ready for the initial-deal integration check.
