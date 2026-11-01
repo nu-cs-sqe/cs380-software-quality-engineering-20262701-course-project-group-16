@@ -44,4 +44,4 @@ Equality is based on rank and suit rather than object identity. The cases are ca
 
 ## TDD checkpoint status
 
-Rank/suit storage was completed in GREEN checkpoint `2219068`, and null validation in GREEN checkpoint `acbd186`. This RED checkpoint adds value equality and hash-based duplicate-detection tests before overriding `equals` or `hashCode`. Production code still uses the inherited identity behavior. The existing rank/suit, null-validation, and Deck cases remain part of the full suite.
+Rank/suit storage was completed in GREEN checkpoint `2219068`, and null validation in GREEN checkpoint `acbd186`. Equality RED checkpoint `82175f2` recorded failures for separate same-value cards and hash-based duplicate detection. This GREEN checkpoint overrides `equals` and `hashCode` using rank and suit. All 15 Card cases (CARD-01 through CARD-15) and the existing Deck test pass.
