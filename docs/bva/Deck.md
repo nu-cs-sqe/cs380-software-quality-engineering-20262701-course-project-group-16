@@ -94,4 +94,11 @@ This is an integration check of the already-tested deck operations. The setup co
 
 ## TDD status
 
-Each implemented behavior has a recorded RED/GREEN pair. Valid dealing: RED `102465a`, GREEN `630deff`. Invalid requests: RED `a1490c5`, GREEN `3a53ede`. Controlled shuffle: RED `8e67799`, followed by this GREEN checkpoint. All 61 cases in the full suite pass. The deck is ready for the initial-deal integration check.
+The implemented behaviors have recorded RED/GREEN pairs:
+
+- Valid dealing: RED `102465a`, GREEN `630deff`.
+- Invalid requests: RED `a1490c5`, GREEN `3a53ede`.
+- Controlled shuffle: RED `8e67799`, GREEN `d2ad3b7`.
+- Initial-deal integration check: `9bf1c6e`, after the component behaviors passed.
+
+All 62 full-suite cases pass: 15 Card cases, 46 Deck cases, and one initial-deal integration case. Every row in this Deck analysis has an implemented passing test. Hand evaluation remains a separately documented Week 6 contract.

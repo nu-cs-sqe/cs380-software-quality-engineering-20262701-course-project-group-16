@@ -1,43 +1,103 @@
-# Week 3 (10/12/2026-10/18/2026)
-**Planning and Progress Tracking**:
-1. [done] Person: Task (Links to PR)
-2. [not started] Person: Task (Links to PR)
-3. [80% done] Person: Task (Links to PR)
-4. etc.
+# Weekly Reports
 
-# Week 4 (10/19/2026-10/25/2026)
-**Planning and Progress Tracking**:
-1. [done] Person: Task (Links to PR)
-2. [not started] Person: Task (Links to PR)
-3. [80% done] Person: Task (Links to PR)
-4. etc.
+Reporting starts at Week 5. Add one report each week through the final week of
+class, recording actual progress, remaining work, and links to supporting issues
+or PRs when available.
 
-# Week 5 (10/26/2026-11/01/2026)
+## Week 5 (10/26/2026-11/01/2026)
 
-**Weekly goal:** Complete game setup so the application is initialized and ready for the first preflop turn.
+### Goal
 
-**Planning and Progress Tracking**:
+Initialize the game so it is ready for the first turn. Complete Member A's card/deck components and prepare the interfaces needed for Member B and shared setup integration.
 
-1. [in progress] Kevin Wang (Member A): Implement cards, deck creation, shuffling, and two-card initial dealing using BVA and TDD. Track work in [issue #2](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/issues/2).
-   - Completed the first RED/GREEN cycle for `Deck.remainingCards()` on a new deck. The current implementation returns 52; actual card storage and uniqueness are still pending.
-   - Added [Deck BVA analysis](bva/Deck.md), with implemented cases linked to `DeckTest.newDeckHas52Cards()` and remaining cases marked pending.
-   - Local checkpoints: `7d89634` (failing size test) and `3d10c55` (passing initial-size behavior and BVA).
-2. [done locally] Kevin Wang: Updated the README with the project title, contributors, Java 11 requirements, and Gradle build/test commands in commit `4efc050`. This status does not imply the change has been reviewed or merged into `main`.
-3. [draft for team review] Kevin Wang: Documented the proposed classes, shared interfaces, and initialization flow in [the setup design](design/game-setup.md). Chip/blind values, dealer policy, and Member B interfaces still need confirmation.
-4. [planned; progress to be confirmed] Member B: Implement seats, human/bot assignment, chips, blinds, dealer selection, and the first actor. Track work in [issue #3](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/issues/3).
-5. [planned; progress to be confirmed] Shared: Integrate setup and the basic Swing interface, including private-card handling and first-turn readiness. Track work in [issue #4](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/issues/4).
+### Completed work
 
-**Verification recorded so far:** The initial-size JUnit test passed, and the Gradle build succeeded. These checks do not yet verify a real 52-card deck or full game setup.
+| Owner | Work completed | Evidence |
+| --- | --- | --- |
+| Estella | Cloned the course repository using HTTPS. | Successful clone in the local terminal. |
+| Estella | Installed JDK 11 and JDK 25 and verified the local Gradle build. | `java_home -V` lists both JDKs; `bash ./gradlew clean build` reported `BUILD SUCCESSFUL`. |
+| Estella | Recorded the proposed Texas Hold'em scope and contributor names. | [Project overview](../README.md): six seats, 1-6 humans, bots, virtual chips, and shared-computer play. |
+| Estella | Reviewed the rubric and simplified the README to the required project information. | [README](../README.md) includes dependencies, build/test commands, documentation links, and exceptions. |
+| Kevin | Completed immutable Card values, null validation, equality, and hashing through RED/GREEN checkpoints. | [Card BVA](bva/Card.md); GREEN commits `2219068`, `acbd186`, `a35669d`. |
+| Kevin | Implemented the full deck, validated stateful dealing, immutable returned hands, and controlled shuffling through RED/GREEN checkpoints. | [Deck BVA](bva/Deck.md); GREEN commits `630deff`, `3a53ede`, `d2ad3b7`. |
+| Kevin | Verified two dealing rounds for six hands and defined the Week 6 evaluator interface. | `9bf1c6e`; [setup design](design/game-setup.md); [planned evaluator cases](bva/HandEvaluator.md). |
 
-**Pull requests:** No PR link has been recorded in this report yet. Add the Draft PR link after opening it, then record review/merge progress.
+Work is committed locally on `feature/cards-and-deck` and `docs/project-setup`.
+No PR links have been recorded here yet. Add the Draft PR links when the branches
+are pushed and reviewed; this report does not claim the work is merged into main.
 
-**Next steps:** Review the setup design together; record PR links; continue Member A's next BVA/TDD checkpoint; confirm Member B progress; complete CI/review-rule setup tracked in [issue #5](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/issues/5).
+### Setup work remaining
 
-# One section per week until the last week of class (the week before the Finals week)
+Kevin is Member A; Estella is Member B. Track their tasks on the project board.
+Unchecked items remain planned, partially complete, or in need of team verification.
 
+- [ ] **Shared toolchain:** agree on the Gradle version and document the JDKs
+  used to run Gradle and compile/test the project; verify both contributors can
+  build the project.
+- [ ] **Requirements:** complete the [game rules](requirements/game-rules.md),
+  including the authoritative rule source, chosen variants, starting chips,
+  blinds, match progression, and expected behavior for invalid actions.
+- [ ] **UI and languages:** use Java Swing; confirm two languages and specify
+  language selection, locale extension, and private-card handoffs on the shared
+  computer.
+- [ ] **Initial design:** document responsibilities and interfaces for game
+  rules, bot logic, and the UI in the [design document](design/README.md).
+- [ ] **Project board:** keep the existing Team 02 tasks current with actual
+  assignees, acceptance criteria, status, and links to related work.
+- [ ] **Review workflow:** agree on branch/PR conventions and a merge strategy
+  that preserves TDD/BDD evidence; verify protection of `main`, required reviews,
+  and required CI checks on GitHub.
+- [ ] **CI:** configure builds and tests for PRs and `main`; report whether tests
+  actually execute, and verify failure detection once tests are available.
+- [ ] **Quality setup:** agree on Clean Code standards and a definition of done;
+  prepare coverage and mutation-testing configuration, report locations, and
+  justified exclusions using the course's required metrics.
+- [ ] **First feature integration:** Member A's components and BVA are complete;
+  integrate them with Member B's setup state, turn order, chips, blinds, and the
+  shared interface before declaring game setup complete.
 
-# Week X (XX/XX/2026-XX/XX/2026) TEMPLATE (You can change the format to whatever the team likes better)
-**Planning and Progress Tracking**:
-1. [done] Person: Task (Links to PR)
-2. [not started] Person: Task (Links to PR)
-3. [80% done] Person: Task (Links to PR)
+### Progress evaluation
+
+- Estella verified her starter build locally. Kevin verified Java 11 and Gradle
+  8.10 for the implemented components.
+- Member A's Week 5 code has 62 passing cases: 15 Card, 46 Deck, and one
+  six-player initial-deal check. The recorded RED/GREEN commits show tests
+  failing for missing behavior before the implementations passed.
+- Boundary cases include fresh, partially used, one-card, and empty decks;
+  zero/full/near-full draws; negative and extreme integer requests; rejection
+  without changing remaining card order; returned-hand ownership; and repeatable
+  shuffles that preserve only the remaining cards.
+- An independent read-only review found no Week 5 code/test/BVA issues.
+  `sh gradlew --no-daemon clean build` passed with Java 11: all 62 cases ran,
+  with zero failures, errors, or skipped cases.
+- The evaluator is an interface for Week 6 only. Evaluation, pot settlement,
+  and equity estimation have not been implemented.
+- Game settings and rules were committed on `docs/project-setup`; they still
+  need integration with this branch. Swing is selected. CI, protection settings,
+  language choices, and actual setup/UI integration still need team verification.
+- The full game is not yet playable. Do not check off overall game setup until
+  players, chips, blinds, first actor, and interface readiness are integrated.
+
+### Next week's priorities
+
+Review and combine the branches through PRs, add their links to this report,
+and integrate the completed deck with Estella's setup classes. Continue Week 6
+hand evaluation and betting using BVA and TDD after the shared interfaces are
+confirmed.
+
+## Future weekly report template
+
+Copy this template for each subsequent week and replace the placeholders.
+
+### Week N (MM/DD/YYYY-MM/DD/YYYY)
+
+**Goal:** State the week's intended outcome.
+
+| Status | Owner | Task and acceptance criteria | Evidence / issue / PR |
+| --- | --- | --- | --- |
+| Planned / In progress / Done / Blocked | Name | Concrete task and completion condition | Link or local verification result |
+
+**Progress evaluation:** Compare the plan with actual outcomes, record checks
+and results, explain blockers, and identify work to carry forward.
+
+**Next week's priorities:** List the next tasks and their owners.
