@@ -2,6 +2,7 @@ package domain.model;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 /** A standard deck that owns the cards not yet dealt. */
 public final class Deck {
@@ -15,6 +16,14 @@ public final class Deck {
                 cards.add(new Card(rank, suit));
             }
         }
+    }
+
+    // Compilation stubs for the controlled-shuffle RED checkpoint.
+    public Deck(Random random) {
+        this();
+    }
+
+    public void shuffle() {
     }
 
     public int remainingCards() {

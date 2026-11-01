@@ -5,7 +5,8 @@
 - `Deck()` starts with all 52 different rank/suit combinations, unshuffled.
 - `remainingCards()` returns the current remaining count, including zero.
 - `deal(int count)` returns an immutable, independent list and removes those cards. Zero is allowed. Negative counts and counts above the remaining size must throw `IllegalArgumentException` before changing state.
-- `shuffle()` will reorder only remaining cards. Controlled randomness will be added in a later checkpoint.
+- `Deck(Random random)` creates the same unshuffled deck with a supplied random source; null must throw `NullPointerException`.
+- `shuffle()` reorders only remaining cards, preserving count and membership. Default and injected random sources are supported.
 
 ## Constructor and remainingCards()
 
@@ -68,6 +69,21 @@ The test compares the count and the entire remaining card sequence with an untou
 | DEAL-I19 | 52 | 1 | IllegalArgumentException; deck unchanged | Yes - `DeckTest.rejectsInvalidDealWithoutChangingState` |
 | DEAL-I20 | 52 | Integer.MAX_VALUE | IllegalArgumentException; deck unchanged | Yes - `DeckTest.rejectsInvalidDealWithoutChangingState` |
 
+## Deck(Random random) and shuffle()
+
+The seed is a test fixture, not a game setting. Equal fixed seeds must give repeatable results. The fixed 7/8 fixtures also detect a shuffle stub that does nothing or ignores the supplied source; this does not require every possible random shuffle to change order. Membership checks shuffle twice and verify that already-dealt cards are not reintroduced.
+
+| ID | Method(s) | State/input | Expected result | Test implemented? |
+|---|---|---|---|---|
+| RANDOM-01 | Deck(Random) | null source | NullPointerException | Yes - `DeckTest.rejectsNullRandomSource` (RED) |
+| RANDOM-02 | Deck(Random), shuffle | Two sources seeded 7 and another seeded 8 | Same seed repeats the order; fixed different fixtures differ from each other and the unshuffled deck | Yes - `DeckTest.shuffleUsesProvidedRandom` (RED) |
+| SHUFFLE-01 | shuffle | 52 remaining | Preserve the 52 remaining cards | Yes - `DeckTest.shuffleOnlyChangesRemainingCardOrder` |
+| SHUFFLE-02 | shuffle | 51 remaining | Preserve the 51 remaining cards | Yes - same parameterized test |
+| SHUFFLE-03 | shuffle | 40 remaining | Preserve the 40 remaining cards | Yes - same parameterized test |
+| SHUFFLE-04 | shuffle | One remaining | Preserve the single card | Yes - same parameterized test |
+| SHUFFLE-05 | shuffle | Empty deck | Remain empty; no exception | Yes - same parameterized test |
+| SHUFFLE-06 | Deck(), shuffle | Default random source | Shuffle without losing or duplicating cards | Yes - `DeckTest.defaultDeckCanBeShuffled` |
+
 ## TDD status
 
-Valid-dealing RED commit `102465a` was followed by GREEN commit `630deff`. Invalid-request RED commit `a1490c5` exposed the wrong exception for oversized requests. The current GREEN checkpoint validates counts before accessing or changing the card list. All 53 full-suite cases pass, including all 20 invalid-request cases with unchanged-state checks. Shuffling is next.
+Valid-dealing RED commit `102465a` was followed by GREEN commit `630deff`. Invalid-request RED commit `a1490c5` exposed the wrong exception for oversized requests. The current GREEN checkpoint validates counts before accessing or changing the card list. All 53 full-suite cases pass, including all 20 invalid-request cases with unchanged-state checks. The current RED checkpoint adds controlled-shuffle tests against a constructor and shuffle stub.

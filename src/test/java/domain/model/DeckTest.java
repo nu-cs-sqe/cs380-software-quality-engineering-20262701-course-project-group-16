@@ -9,6 +9,9 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Collections;
+import java.util.Random;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -110,5 +113,56 @@ class DeckTest {
             }
         }
         return cases.build();
+    }
+
+    @Test
+    void rejectsNullRandomSource() {
+        assertThrows(NullPointerException.class, () -> new Deck(null));
+    }
+
+    @Test
+    void shuffleUsesProvidedRandom() {
+        List<Card> unshuffled = new Deck().deal(52);
+        Deck first = new Deck(new Random(7));
+        Deck sameSeed = new Deck(new Random(7));
+        Deck otherSeed = new Deck(new Random(8));
+        first.shuffle();
+        sameSeed.shuffle();
+        otherSeed.shuffle();
+        List<Card> firstOrder = first.deal(52);
+        List<Card> sameOrder = sameSeed.deal(52);
+        List<Card> otherOrder = otherSeed.deal(52);
+        assertAll(
+            () -> assertEquals(firstOrder, sameOrder),
+            () -> assertNotEquals(unshuffled, firstOrder),
+            () -> assertNotEquals(firstOrder, otherOrder)
+        );
+    }
+
+    @ParameterizedTest
+    @CsvSource({"0, 52", "1, 51", "12, 40", "51, 1", "52, 0"})
+    void shuffleOnlyChangesRemainingCardOrder(int consumed, int remaining) {
+        Deck deck = new Deck(new Random(7));
+        Deck control = new Deck();
+        List<Card> dealt = deck.deal(consumed);
+        control.deal(consumed);
+        Set<Card> expected = new HashSet<>(control.deal(remaining));
+        deck.shuffle();
+        deck.shuffle();
+        assertEquals(remaining, deck.remainingCards());
+        List<Card> after = deck.deal(remaining);
+        assertAll(
+            () -> assertEquals(remaining, after.size()),
+            () -> assertEquals(expected, new HashSet<>(after)),
+            () -> assertTrue(Collections.disjoint(dealt, after))
+        );
+    }
+
+    @Test
+    void defaultDeckCanBeShuffled() {
+        Deck deck = new Deck();
+        deck.shuffle();
+        assertEquals(52, deck.remainingCards());
+        assertEquals(new HashSet<>(new Deck().deal(52)), new HashSet<>(deck.deal(52)));
     }
 }
