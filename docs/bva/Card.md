@@ -27,6 +27,21 @@ The constructor rejects null rank/suit values with `NullPointerException`. All t
 | CARD-06 | Construct with ACE and null suit | Reject with NullPointerException | Yes - `CardTest.cardRejectsNullRankOrSuit` (passing) |
 | CARD-07 | Construct with null rank and null suit | Reject with NullPointerException | Yes - `CardTest.cardRejectsNullRankOrSuit` (passing) |
 
+## Methods: equals(Object other), hashCode()
+
+Equality is based on rank and suit rather than object identity. The cases are categorical boundaries, not numeric ranges. Compare both directions when both objects are cards. Equal card values must have equal hash codes so sets can detect duplicates; unequal cards are allowed to share a hash code.
+
+| ID | Method(s) | State/input | Expected output | Test implemented? |
+|---|---|---|---|---|
+| CARD-08 | equals | A card compared with itself | true | Yes - `CardTest.cardEqualityUsesRankAndSuit` |
+| CARD-09 | equals | Separate cards with ACE/SPADES | true in both directions | Yes - same parameterized test |
+| CARD-10 | equals | ACE/SPADES versus KING/SPADES | false in both directions | Yes - same parameterized test |
+| CARD-11 | equals | ACE/SPADES versus ACE/HEARTS | false in both directions | Yes - same parameterized test |
+| CARD-12 | equals | ACE/SPADES versus KING/HEARTS | false in both directions | Yes - same parameterized test |
+| CARD-13 | equals | ACE/SPADES versus null | false | Yes - same parameterized test |
+| CARD-14 | equals | ACE/SPADES versus a String | false | Yes - same parameterized test |
+| CARD-15 | hashCode, equals | A set receives two separate ACE/SPADES cards and one ACE/HEARTS | Equal cards have equal hashes; set contains two distinct card values | Yes - `CardTest.equalCardsHaveSameHashAndDeduplicateInASet` |
+
 ## TDD checkpoint status
 
-The rank/suit RED checkpoint (`efb8581`) was followed by GREEN checkpoint `2219068`, which stores the supplied values in private final fields. Null-input RED checkpoint `0e19657` recorded three failures because no exception was thrown. This GREEN checkpoint rejects null inputs using `Objects.requireNonNull`. All seven Card cases and the existing Deck test pass. Value equality is planned for a later checkpoint.
+Rank/suit storage was completed in GREEN checkpoint `2219068`, and null validation in GREEN checkpoint `acbd186`. This RED checkpoint adds value equality and hash-based duplicate-detection tests before overriding `equals` or `hashCode`. Production code still uses the inherited identity behavior. The existing rank/suit, null-validation, and Deck cases remain part of the full suite.
