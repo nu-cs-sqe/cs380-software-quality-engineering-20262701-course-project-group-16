@@ -3,10 +3,13 @@ package domain.model;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -80,5 +83,32 @@ class DeckTest {
         deck.deal(50);
         assertEquals(originalHand, hand);
         assertEquals(0, deck.remainingCards());
+    }
+
+    @ParameterizedTest(name = "{0}: consumed {1}, invalid request {2}")
+    @MethodSource("invalidDeals")
+    void rejectsInvalidDealWithoutChangingState(String caseId, int consumed, int count) {
+        Deck deck = new Deck();
+        Deck control = new Deck();
+        deck.deal(consumed);
+        control.deal(consumed);
+        int remaining = control.remainingCards();
+        List<Card> expectedCards = control.deal(remaining);
+
+        assertThrows(IllegalArgumentException.class, () -> deck.deal(count));
+        assertEquals(remaining, deck.remainingCards());
+        assertEquals(expectedCards, deck.deal(remaining));
+    }
+
+    static Stream<Arguments> invalidDeals() {
+        Stream.Builder<Arguments> cases = Stream.builder();
+        int id = 1;
+        for (int consumed : new int[] {0, 1, 12, 51, 52}) {
+            int remaining = 52 - consumed;
+            for (int count : new int[] {-1, Integer.MIN_VALUE, remaining + 1, Integer.MAX_VALUE}) {
+                cases.add(Arguments.of(String.format("DEAL-I%02d", id++), consumed, count));
+            }
+        }
+        return cases.build();
     }
 }

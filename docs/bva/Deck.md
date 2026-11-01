@@ -41,10 +41,33 @@ Each case starts with a fresh deck, consumes the stated prefix, and requests the
 |---|---|---|---|
 | DEAL-OWN-01 | A two-card returned hand, followed by drawing the rest | Caller cannot clear the hand; later dealing does not change it | Yes - `DeckTest.dealtHandIsReadOnlyAndIndependent` (passing) |
 
-## Invalid requests planned next
+## deal(int count): invalid boundaries
 
-For remaining sizes 52, 51, 40, 1, and 0, test -1, `Integer.MIN_VALUE`, remaining + 1, and `Integer.MAX_VALUE`. Each must reject the request without changing count, cards, or order. Tests are not implemented yet.
+The test compares the count and the entire remaining card sequence with an untouched control deck after rejection. This includes the empty-deck boundary and extreme integer values.
+
+| ID | Already dealt | Request | Expected result | Test implemented? |
+|---|---|---|---|---|
+| DEAL-I01 | 0 | -1 | IllegalArgumentException; deck unchanged | Yes - `DeckTest.rejectsInvalidDealWithoutChangingState` |
+| DEAL-I02 | 0 | Integer.MIN_VALUE | IllegalArgumentException; deck unchanged | Yes - `DeckTest.rejectsInvalidDealWithoutChangingState` |
+| DEAL-I03 | 0 | 53 | IllegalArgumentException; deck unchanged | Yes - `DeckTest.rejectsInvalidDealWithoutChangingState` |
+| DEAL-I04 | 0 | Integer.MAX_VALUE | IllegalArgumentException; deck unchanged | Yes - `DeckTest.rejectsInvalidDealWithoutChangingState` |
+| DEAL-I05 | 1 | -1 | IllegalArgumentException; deck unchanged | Yes - `DeckTest.rejectsInvalidDealWithoutChangingState` |
+| DEAL-I06 | 1 | Integer.MIN_VALUE | IllegalArgumentException; deck unchanged | Yes - `DeckTest.rejectsInvalidDealWithoutChangingState` |
+| DEAL-I07 | 1 | 52 | IllegalArgumentException; deck unchanged | Yes - `DeckTest.rejectsInvalidDealWithoutChangingState` |
+| DEAL-I08 | 1 | Integer.MAX_VALUE | IllegalArgumentException; deck unchanged | Yes - `DeckTest.rejectsInvalidDealWithoutChangingState` |
+| DEAL-I09 | 12 | -1 | IllegalArgumentException; deck unchanged | Yes - `DeckTest.rejectsInvalidDealWithoutChangingState` |
+| DEAL-I10 | 12 | Integer.MIN_VALUE | IllegalArgumentException; deck unchanged | Yes - `DeckTest.rejectsInvalidDealWithoutChangingState` |
+| DEAL-I11 | 12 | 41 | IllegalArgumentException; deck unchanged | Yes - `DeckTest.rejectsInvalidDealWithoutChangingState` |
+| DEAL-I12 | 12 | Integer.MAX_VALUE | IllegalArgumentException; deck unchanged | Yes - `DeckTest.rejectsInvalidDealWithoutChangingState` |
+| DEAL-I13 | 51 | -1 | IllegalArgumentException; deck unchanged | Yes - `DeckTest.rejectsInvalidDealWithoutChangingState` |
+| DEAL-I14 | 51 | Integer.MIN_VALUE | IllegalArgumentException; deck unchanged | Yes - `DeckTest.rejectsInvalidDealWithoutChangingState` |
+| DEAL-I15 | 51 | 2 | IllegalArgumentException; deck unchanged | Yes - `DeckTest.rejectsInvalidDealWithoutChangingState` |
+| DEAL-I16 | 51 | Integer.MAX_VALUE | IllegalArgumentException; deck unchanged | Yes - `DeckTest.rejectsInvalidDealWithoutChangingState` |
+| DEAL-I17 | 52 | -1 | IllegalArgumentException; deck unchanged | Yes - `DeckTest.rejectsInvalidDealWithoutChangingState` |
+| DEAL-I18 | 52 | Integer.MIN_VALUE | IllegalArgumentException; deck unchanged | Yes - `DeckTest.rejectsInvalidDealWithoutChangingState` |
+| DEAL-I19 | 52 | 1 | IllegalArgumentException; deck unchanged | Yes - `DeckTest.rejectsInvalidDealWithoutChangingState` |
+| DEAL-I20 | 52 | Integer.MAX_VALUE | IllegalArgumentException; deck unchanged | Yes - `DeckTest.rejectsInvalidDealWithoutChangingState` |
 
 ## TDD status
 
-RED commit `102465a` recorded the missing card storage and dealing behavior. This GREEN checkpoint stores all 52 cards, removes successful draws, and returns immutable independent hands. All 33 cases in the full suite pass. Invalid-request validation is the next checkpoint.
+RED commit `102465a` recorded the missing card storage and dealing behavior. This GREEN checkpoint stores all 52 cards, removes successful draws, and returns immutable independent hands. All 33 cases in the full suite pass. The current RED checkpoint checks the required exception type and unchanged deck for all invalid boundaries; explicit validation is not implemented yet.
