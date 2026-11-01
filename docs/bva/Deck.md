@@ -12,8 +12,8 @@
 | ID | State | Expected result | Test implemented? |
 |---|---|---|---|
 | DECK-01 | New deck | 52 remaining cards | Yes - `DeckTest.newDeckHas52Cards` |
-| DECK-02 | New deck, deal all cards | Exactly one of each rank/suit combination; zero remain | Yes - `DeckTest.newDeckContainsEveryCardOnce` (RED) |
-| REMAIN-01 | Fresh, partially used, one remaining, or empty | Count follows each successful draw | Yes - `DeckTest.dealsValidNumberOfCards` (RED) |
+| DECK-02 | New deck, deal all cards | Exactly one of each rank/suit combination; zero remain | Yes - `DeckTest.newDeckContainsEveryCardOnce` (passing) |
+| REMAIN-01 | Fresh, partially used, one remaining, or empty | Count follows each successful draw | Yes - `DeckTest.dealsValidNumberOfCards` (passing) |
 
 ## deal(int count): valid boundaries
 
@@ -21,25 +21,25 @@ Each case starts with a fresh deck, consumes the stated prefix, and requests the
 
 | ID | Already dealt | Request | Expected result | Test implemented? |
 |---|---|---|---|---|
-| DEAL-V01 | 0 | 0 | Return 0; 52 remain | Yes - `DeckTest.dealsValidNumberOfCards` (RED) |
-| DEAL-V02 | 0 | 1 | Return 1; 51 remain | Yes - `DeckTest.dealsValidNumberOfCards` (RED) |
-| DEAL-V03 | 0 | 51 | Return 51; 1 remain | Yes - `DeckTest.dealsValidNumberOfCards` (RED) |
-| DEAL-V04 | 0 | 52 | Return 52; 0 remain | Yes - `DeckTest.dealsValidNumberOfCards` (RED) |
-| DEAL-V05 | 1 | 0 | Return 0; 51 remain | Yes - `DeckTest.dealsValidNumberOfCards` (RED) |
-| DEAL-V06 | 1 | 1 | Return 1; 50 remain | Yes - `DeckTest.dealsValidNumberOfCards` (RED) |
-| DEAL-V07 | 1 | 50 | Return 50; 1 remain | Yes - `DeckTest.dealsValidNumberOfCards` (RED) |
-| DEAL-V08 | 1 | 51 | Return 51; 0 remain | Yes - `DeckTest.dealsValidNumberOfCards` (RED) |
-| DEAL-V09 | 12 | 0 | Return 0; 40 remain | Yes - `DeckTest.dealsValidNumberOfCards` (RED) |
-| DEAL-V10 | 12 | 1 | Return 1; 39 remain | Yes - `DeckTest.dealsValidNumberOfCards` (RED) |
-| DEAL-V11 | 12 | 39 | Return 39; 1 remain | Yes - `DeckTest.dealsValidNumberOfCards` (RED) |
-| DEAL-V12 | 12 | 40 | Return 40; 0 remain | Yes - `DeckTest.dealsValidNumberOfCards` (RED) |
-| DEAL-V13 | 51 | 0 | Return 0; 1 remain | Yes - `DeckTest.dealsValidNumberOfCards` (RED) |
-| DEAL-V14 | 51 | 1 | Return 1; 0 remain | Yes - `DeckTest.dealsValidNumberOfCards` (RED) |
-| DEAL-V15 | 52 | 0 | Return 0; 0 remain | Yes - `DeckTest.dealsValidNumberOfCards` (RED) |
+| DEAL-V01 | 0 | 0 | Return 0; 52 remain | Yes - `DeckTest.dealsValidNumberOfCards` (passing) |
+| DEAL-V02 | 0 | 1 | Return 1; 51 remain | Yes - `DeckTest.dealsValidNumberOfCards` (passing) |
+| DEAL-V03 | 0 | 51 | Return 51; 1 remain | Yes - `DeckTest.dealsValidNumberOfCards` (passing) |
+| DEAL-V04 | 0 | 52 | Return 52; 0 remain | Yes - `DeckTest.dealsValidNumberOfCards` (passing) |
+| DEAL-V05 | 1 | 0 | Return 0; 51 remain | Yes - `DeckTest.dealsValidNumberOfCards` (passing) |
+| DEAL-V06 | 1 | 1 | Return 1; 50 remain | Yes - `DeckTest.dealsValidNumberOfCards` (passing) |
+| DEAL-V07 | 1 | 50 | Return 50; 1 remain | Yes - `DeckTest.dealsValidNumberOfCards` (passing) |
+| DEAL-V08 | 1 | 51 | Return 51; 0 remain | Yes - `DeckTest.dealsValidNumberOfCards` (passing) |
+| DEAL-V09 | 12 | 0 | Return 0; 40 remain | Yes - `DeckTest.dealsValidNumberOfCards` (passing) |
+| DEAL-V10 | 12 | 1 | Return 1; 39 remain | Yes - `DeckTest.dealsValidNumberOfCards` (passing) |
+| DEAL-V11 | 12 | 39 | Return 39; 1 remain | Yes - `DeckTest.dealsValidNumberOfCards` (passing) |
+| DEAL-V12 | 12 | 40 | Return 40; 0 remain | Yes - `DeckTest.dealsValidNumberOfCards` (passing) |
+| DEAL-V13 | 51 | 0 | Return 0; 1 remain | Yes - `DeckTest.dealsValidNumberOfCards` (passing) |
+| DEAL-V14 | 51 | 1 | Return 1; 0 remain | Yes - `DeckTest.dealsValidNumberOfCards` (passing) |
+| DEAL-V15 | 52 | 0 | Return 0; 0 remain | Yes - `DeckTest.dealsValidNumberOfCards` (passing) |
 
 | ID | State | Expected result | Test implemented? |
 |---|---|---|---|
-| DEAL-OWN-01 | A two-card returned hand, followed by drawing the rest | Caller cannot clear the hand; later dealing does not change it | Yes - `DeckTest.dealtHandIsReadOnlyAndIndependent` (RED) |
+| DEAL-OWN-01 | A two-card returned hand, followed by drawing the rest | Caller cannot clear the hand; later dealing does not change it | Yes - `DeckTest.dealtHandIsReadOnlyAndIndependent` (passing) |
 
 ## Invalid requests planned next
 
@@ -47,4 +47,4 @@ For remaining sizes 52, 51, 40, 1, and 0, test -1, `Integer.MIN_VALUE`, remainin
 
 ## TDD status
 
-The initial count-only behavior already passes. This RED checkpoint adds real-card and valid-dealing tests before replacing the fixed count and the `deal` compilation stub.
+RED commit `102465a` recorded the missing card storage and dealing behavior. This GREEN checkpoint stores all 52 cards, removes successful draws, and returns immutable independent hands. All 33 cases in the full suite pass. Invalid-request validation is the next checkpoint.
