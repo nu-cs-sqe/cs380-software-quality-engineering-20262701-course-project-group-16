@@ -17,16 +17,16 @@ Each case constructs a new card, then reads its rank and suit. A getter must ret
 | CARD-03 | Construct with KING, HEARTS | getRank() returns KING; getSuit() returns HEARTS | Yes - same passing parameterized test |
 | CARD-04 | Construct with ACE, SPADES | getRank() returns ACE; getSuit() returns SPADES | Yes - same passing parameterized test |
 
-## Constructor validation cases planned for a later checkpoint
+## Constructor validation: Card(Rank rank, Suit suit)
 
-The planned contract rejects null rank/suit values with `NullPointerException`. These validation cases are not yet implemented or verified.
+The required contract rejects null rank/suit values with `NullPointerException`. The cases below are implemented as tests for the RED checkpoint; constructor validation is not implemented yet.
 
 | ID | State/input | Expected output | Test implemented? |
 |---|---|---|---|
-| CARD-05 | Construct with null rank and SPADES | Reject with NullPointerException | No |
-| CARD-06 | Construct with ACE and null suit | Reject with NullPointerException | No |
-| CARD-07 | Construct with null rank and null suit | Reject with NullPointerException | No |
+| CARD-05 | Construct with null rank and SPADES | Reject with NullPointerException | Yes - `CardTest.cardRejectsNullRankOrSuit` (RED checkpoint) |
+| CARD-06 | Construct with ACE and null suit | Reject with NullPointerException | Yes - `CardTest.cardRejectsNullRankOrSuit` (RED checkpoint) |
+| CARD-07 | Construct with null rank and null suit | Reject with NullPointerException | Yes - `CardTest.cardRejectsNullRankOrSuit` (RED checkpoint) |
 
 ## TDD checkpoint status
 
-The RED checkpoint (`efb8581`) recorded four failing rank/suit cases against the getter stubs. In this GREEN checkpoint, `Card` stores the supplied values in private final fields and returns them through its getters. All four Card cases and the existing Deck test pass. Null validation and value equality remain pending for later checkpoints.
+The rank/suit RED checkpoint (`efb8581`) was followed by GREEN checkpoint `2219068`, which stores the supplied values in private final fields. The current RED checkpoint adds the three null-input cases before implementing constructor validation. The four valid-card cases and existing Deck test remain passing. Value equality is planned for a later checkpoint.
