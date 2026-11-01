@@ -21,8 +21,16 @@ public final class Deck {
         return cards.size();
     }
 
-    /** Removes the next cards and returns an immutable independent hand. */
+    /**
+     * Removes the next cards and returns an immutable independent hand.
+     *
+     * @throws IllegalArgumentException if count is negative or exceeds the remaining size
+     */
     public List<Card> deal(int count) {
+        if (count < 0 || count > cards.size()) {
+            throw new IllegalArgumentException(
+                "Cannot deal " + count + " cards from " + cards.size() + " remaining");
+        }
         List<Card> hand = List.copyOf(cards.subList(0, count));
         cards.subList(0, count).clear();
         return hand;

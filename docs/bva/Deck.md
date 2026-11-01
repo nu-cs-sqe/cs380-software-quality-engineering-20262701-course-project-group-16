@@ -70,4 +70,4 @@ The test compares the count and the entire remaining card sequence with an untou
 
 ## TDD status
 
-RED commit `102465a` recorded the missing card storage and dealing behavior. This GREEN checkpoint stores all 52 cards, removes successful draws, and returns immutable independent hands. All 33 cases in the full suite pass. The current RED checkpoint checks the required exception type and unchanged deck for all invalid boundaries; explicit validation is not implemented yet.
+Valid-dealing RED commit `102465a` was followed by GREEN commit `630deff`. Invalid-request RED commit `a1490c5` exposed the wrong exception for oversized requests. The current GREEN checkpoint validates counts before accessing or changing the card list. All 53 full-suite cases pass, including all 20 invalid-request cases with unchanged-state checks. Shuffling is next.
