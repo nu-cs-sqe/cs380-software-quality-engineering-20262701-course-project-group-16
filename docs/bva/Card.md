@@ -12,10 +12,10 @@ Each case constructs a new card, then reads its rank and suit. A getter must ret
 
 | ID | State/input | Expected output | Test implemented? |
 |---|---|---|---|
-| CARD-01 | Construct with TWO, CLUBS | getRank() returns TWO; getSuit() returns CLUBS | Yes - `CardTest.cardRetainsRankAndSuit` (RED checkpoint) |
-| CARD-02 | Construct with THREE, DIAMONDS | getRank() returns THREE; getSuit() returns DIAMONDS | Yes - same parameterized test |
-| CARD-03 | Construct with KING, HEARTS | getRank() returns KING; getSuit() returns HEARTS | Yes - same parameterized test |
-| CARD-04 | Construct with ACE, SPADES | getRank() returns ACE; getSuit() returns SPADES | Yes - same parameterized test |
+| CARD-01 | Construct with TWO, CLUBS | getRank() returns TWO; getSuit() returns CLUBS | Yes - `CardTest.cardRetainsRankAndSuit` (passing) |
+| CARD-02 | Construct with THREE, DIAMONDS | getRank() returns THREE; getSuit() returns DIAMONDS | Yes - same passing parameterized test |
+| CARD-03 | Construct with KING, HEARTS | getRank() returns KING; getSuit() returns HEARTS | Yes - same passing parameterized test |
+| CARD-04 | Construct with ACE, SPADES | getRank() returns ACE; getSuit() returns SPADES | Yes - same passing parameterized test |
 
 ## Constructor validation cases planned for a later checkpoint
 
@@ -29,4 +29,4 @@ The planned contract rejects null rank/suit values with `NullPointerException`. 
 
 ## TDD checkpoint status
 
-The rank/suit test is written before the storage behavior. `Card` currently has only the constructor and getter stubs required to compile the test. Passing behavior and value equality will be implemented in later checkpoints.
+The RED checkpoint (`efb8581`) recorded four failing rank/suit cases against the getter stubs. In this GREEN checkpoint, `Card` stores the supplied values in private final fields and returns them through its getters. All four Card cases and the existing Deck test pass. Null validation and value equality remain pending for later checkpoints.

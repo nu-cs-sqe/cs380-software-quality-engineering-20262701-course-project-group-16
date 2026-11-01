@@ -2,15 +2,19 @@ package domain.model;
 
 public final class Card {
 
-    // Minimal stubs for the RED checkpoint; storage is not implemented yet.
+    private final Rank rank;
+    private final Suit suit;
+
     public Card(Rank rank, Suit suit) {
+        this.rank = rank;
+        this.suit = suit;
     }
 
     public Rank getRank() {
-        return null;
+        return rank;
     }
 
     public Suit getSuit() {
-        return null;
+        return suit;
     }
 }
