@@ -1,16 +1,29 @@
 package domain.model;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Random;
 
 /** A standard deck that owns the cards not yet dealt. */
 public final class Deck {
 
     private final List<Card> cards = new ArrayList<>();
+    private final Random random;
 
-    /** Creates an unshuffled deck containing each rank/suit pair once. */
+    /** Creates an unshuffled deck with its own random source. */
     public Deck() {
+        this(new Random());
+    }
+
+    /**
+     * Creates an unshuffled deck with a source used by later shuffle calls.
+     *
+     * @throws NullPointerException if random is null
+     */
+    public Deck(Random random) {
+        this.random = Objects.requireNonNull(random, "random");
         for (Suit suit : Suit.values()) {
             for (Rank rank : Rank.values()) {
                 cards.add(new Card(rank, suit));
@@ -18,12 +31,9 @@ public final class Deck {
         }
     }
 
-    // Compilation stubs for the controlled-shuffle RED checkpoint.
-    public Deck(Random random) {
-        this();
-    }
-
+    /** Reorders only the cards still in this deck. */
     public void shuffle() {
+        Collections.shuffle(cards, random);
     }
 
     public int remainingCards() {

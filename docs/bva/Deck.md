@@ -75,8 +75,8 @@ The seed is a test fixture, not a game setting. Equal fixed seeds must give repe
 
 | ID | Method(s) | State/input | Expected result | Test implemented? |
 |---|---|---|---|---|
-| RANDOM-01 | Deck(Random) | null source | NullPointerException | Yes - `DeckTest.rejectsNullRandomSource` (RED) |
-| RANDOM-02 | Deck(Random), shuffle | Two sources seeded 7 and another seeded 8 | Same seed repeats the order; fixed different fixtures differ from each other and the unshuffled deck | Yes - `DeckTest.shuffleUsesProvidedRandom` (RED) |
+| RANDOM-01 | Deck(Random) | null source | NullPointerException | Yes - `DeckTest.rejectsNullRandomSource` (passing) |
+| RANDOM-02 | Deck(Random), shuffle | Two sources seeded 7 and another seeded 8 | Same seed repeats the order; fixed different fixtures differ from each other and the unshuffled deck | Yes - `DeckTest.shuffleUsesProvidedRandom` (passing) |
 | SHUFFLE-01 | shuffle | 52 remaining | Preserve the 52 remaining cards | Yes - `DeckTest.shuffleOnlyChangesRemainingCardOrder` |
 | SHUFFLE-02 | shuffle | 51 remaining | Preserve the 51 remaining cards | Yes - same parameterized test |
 | SHUFFLE-03 | shuffle | 40 remaining | Preserve the 40 remaining cards | Yes - same parameterized test |
@@ -86,4 +86,4 @@ The seed is a test fixture, not a game setting. Equal fixed seeds must give repe
 
 ## TDD status
 
-Valid-dealing RED commit `102465a` was followed by GREEN commit `630deff`. Invalid-request RED commit `a1490c5` exposed the wrong exception for oversized requests. The current GREEN checkpoint validates counts before accessing or changing the card list. All 53 full-suite cases pass, including all 20 invalid-request cases with unchanged-state checks. The current RED checkpoint adds controlled-shuffle tests against a constructor and shuffle stub.
+Each implemented behavior has a recorded RED/GREEN pair. Valid dealing: RED `102465a`, GREEN `630deff`. Invalid requests: RED `a1490c5`, GREEN `3a53ede`. Controlled shuffle: RED `8e67799`, followed by this GREEN checkpoint. All 61 cases in the full suite pass. The deck is ready for the initial-deal integration check.
