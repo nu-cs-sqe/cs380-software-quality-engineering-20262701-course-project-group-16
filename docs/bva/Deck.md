@@ -71,12 +71,14 @@ The test compares the count and the entire remaining card sequence with an untou
 
 ## Deck(Random random) and shuffle()
 
-The seed is a test fixture, not a game setting. Equal fixed seeds must give repeatable results. The fixed 7/8 fixtures also detect a shuffle stub that does nothing or ignores the supplied source; this does not require every possible random shuffle to change order. Membership checks shuffle twice and verify that already-dealt cards are not reintroduced.
+The seed is a test fixture, not a game setting. Equal fixed seeds must give repeatable results. The fixed 7/8 fixtures also detect a shuffle stub that does nothing or ignores the supplied source; this does not require every possible random shuffle to change order. A small test-only `Random` stub supplies the lowest and highest valid choices for a two-card shuffle. The real Deck and shuffle code still run; no mocking library is needed. Membership checks shuffle twice and verify that already-dealt cards are not reintroduced.
 
 | ID | Method(s) | State/input | Expected result | Test implemented? |
 |---|---|---|---|---|
 | RANDOM-01 | Deck(Random) | null source | NullPointerException | Yes - `DeckTest.rejectsNullRandomSource` (passing) |
 | RANDOM-02 | Deck(Random), shuffle | Two sources seeded 7 and another seeded 8 | Same seed repeats the order; fixed different fixtures differ from each other and the unshuffled deck | Yes - `DeckTest.shuffleUsesProvidedRandom` (passing) |
+| RANDOM-03 | Deck(Random), shuffle | Two cards remaining; stub returns 0 (lowest valid choice) | The two remaining cards exchange positions; no cards lost | Yes - `DeckTest.shuffleUsesBoundaryRandomChoices(false)` |
+| RANDOM-04 | Deck(Random), shuffle | Two cards remaining; stub returns bound - 1 (highest valid choice) | The two remaining cards retain their order; no cards lost | Yes - `DeckTest.shuffleUsesBoundaryRandomChoices(true)` |
 | SHUFFLE-01 | shuffle | 52 remaining | Preserve the 52 remaining cards | Yes - `DeckTest.shuffleOnlyChangesRemainingCardOrder` |
 | SHUFFLE-02 | shuffle | 51 remaining | Preserve the 51 remaining cards | Yes - same parameterized test |
 | SHUFFLE-03 | shuffle | 40 remaining | Preserve the 40 remaining cards | Yes - same parameterized test |
@@ -101,4 +103,6 @@ The implemented behaviors have recorded RED/GREEN pairs:
 - Controlled shuffle: RED `8e67799`, GREEN `d2ad3b7`.
 - Initial-deal integration check: `9bf1c6e`, after the component behaviors passed.
 
-All 62 full-suite cases pass: 15 Card cases, 46 Deck cases, and one initial-deal integration case. Every row in this Deck analysis has an implemented passing test. Hand evaluation remains a separately documented Week 6 contract.
+All 64 full-suite cases pass: 15 Card cases, 48 Deck cases, and one initial-deal integration case. Every row in this Deck analysis has an implemented passing test. Hand evaluation remains a separately documented Week 6 contract.
+
+The two random-stub cases extend coverage of existing behavior, rather than introducing a new feature. A temporary mutation that ignored the injected source caused one of these cases to fail; the original production code was then restored.

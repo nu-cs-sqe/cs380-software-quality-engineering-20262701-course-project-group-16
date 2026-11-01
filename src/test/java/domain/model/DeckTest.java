@@ -143,6 +143,41 @@ class DeckTest {
         );
     }
 
+    @ParameterizedTest(name = "use upper random boundary: {0}")
+    @CsvSource({"false", "true"})
+    void shuffleUsesBoundaryRandomChoices(boolean useUpperBoundary) {
+        Deck deck = new Deck(new BoundaryRandomStub(useUpperBoundary));
+        deck.deal(50);
+        List<Card> expected = new ArrayList<>(new Deck().deal(52).subList(50, 52));
+        // With two cards, choice 0 swaps them; choice 1 keeps their order.
+        if (!useUpperBoundary) {
+            Collections.reverse(expected);
+        }
+
+        deck.shuffle();
+
+        assertEquals(2, deck.remainingCards());
+        assertEquals(expected, deck.deal(2));
+        assertEquals(0, deck.remainingCards());
+    }
+
+    private static final class BoundaryRandomStub extends Random {
+        private static final long serialVersionUID = 1L;
+        private final boolean useUpperBoundary;
+
+        private BoundaryRandomStub(boolean useUpperBoundary) {
+            this.useUpperBoundary = useUpperBoundary;
+        }
+
+        @Override
+        public int nextInt(int bound) {
+            if (bound <= 0) {
+                throw new IllegalArgumentException("bound must be positive");
+            }
+            return useUpperBoundary ? bound - 1 : 0;
+        }
+    }
+
     @ParameterizedTest
     @CsvSource({"0, 52", "1, 51", "12, 40", "51, 1", "52, 0"})
     void shuffleOnlyChangesRemainingCardOrder(int consumed, int remaining) {

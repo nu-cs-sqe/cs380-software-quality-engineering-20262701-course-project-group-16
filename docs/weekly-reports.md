@@ -60,7 +60,7 @@ Unchecked items remain planned, partially complete, or in need of team verificat
 
 - Estella verified her starter build locally. Kevin verified Java 11 and Gradle
   8.10 for the implemented components.
-- Member A's Week 5 code has 62 passing cases: 15 Card, 46 Deck, and one
+- Member A's Week 5 code has 64 passing cases: 15 Card, 48 Deck, and one
   six-player initial-deal check. The recorded RED/GREEN commits show tests
   failing for missing behavior before the implementations passed.
 - Boundary cases include fresh, partially used, one-card, and empty decks;
@@ -68,8 +68,12 @@ Unchecked items remain planned, partially complete, or in need of team verificat
   without changing remaining card order; returned-hand ownership; and repeatable
   shuffles that preserve only the remaining cards.
 - An independent read-only review found no Week 5 code/test/BVA issues.
-  `sh gradlew --no-daemon clean build` passed with Java 11: all 62 cases ran,
+  The earlier 62-case independent review preceded the added random-stub tests.
+  `sh gradlew --no-daemon clean build` passed with Java 11: all 64 cases ran,
   with zero failures, errors, or skipped cases.
+- Added two test-only random-stub cases for the lowest and highest valid
+  choices in a two-card shuffle. They check actual card order; a temporary
+  ignored-source mutation was detected and restored. Production code is unchanged.
 - The evaluator is an interface for Week 6 only. Evaluation, pot settlement,
   and equity estimation have not been implemented.
 - Game settings and rules were committed on `docs/project-setup`; they still
