@@ -19,14 +19,14 @@ Each case constructs a new card, then reads its rank and suit. A getter must ret
 
 ## Constructor validation: Card(Rank rank, Suit suit)
 
-The required contract rejects null rank/suit values with `NullPointerException`. The cases below are implemented as tests for the RED checkpoint; constructor validation is not implemented yet.
+The constructor rejects null rank/suit values with `NullPointerException`. All three validation cases below pass.
 
 | ID | State/input | Expected output | Test implemented? |
 |---|---|---|---|
-| CARD-05 | Construct with null rank and SPADES | Reject with NullPointerException | Yes - `CardTest.cardRejectsNullRankOrSuit` (RED checkpoint) |
-| CARD-06 | Construct with ACE and null suit | Reject with NullPointerException | Yes - `CardTest.cardRejectsNullRankOrSuit` (RED checkpoint) |
-| CARD-07 | Construct with null rank and null suit | Reject with NullPointerException | Yes - `CardTest.cardRejectsNullRankOrSuit` (RED checkpoint) |
+| CARD-05 | Construct with null rank and SPADES | Reject with NullPointerException | Yes - `CardTest.cardRejectsNullRankOrSuit` (passing) |
+| CARD-06 | Construct with ACE and null suit | Reject with NullPointerException | Yes - `CardTest.cardRejectsNullRankOrSuit` (passing) |
+| CARD-07 | Construct with null rank and null suit | Reject with NullPointerException | Yes - `CardTest.cardRejectsNullRankOrSuit` (passing) |
 
 ## TDD checkpoint status
 
-The rank/suit RED checkpoint (`efb8581`) was followed by GREEN checkpoint `2219068`, which stores the supplied values in private final fields. The current RED checkpoint adds the three null-input cases before implementing constructor validation. The four valid-card cases and existing Deck test remain passing. Value equality is planned for a later checkpoint.
+The rank/suit RED checkpoint (`efb8581`) was followed by GREEN checkpoint `2219068`, which stores the supplied values in private final fields. Null-input RED checkpoint `0e19657` recorded three failures because no exception was thrown. This GREEN checkpoint rejects null inputs using `Objects.requireNonNull`. All seven Card cases and the existing Deck test pass. Value equality is planned for a later checkpoint.
