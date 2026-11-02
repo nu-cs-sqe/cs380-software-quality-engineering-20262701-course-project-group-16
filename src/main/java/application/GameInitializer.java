@@ -1,10 +1,10 @@
 package application;
 
-import domain.GameConfig;
-import domain.GamePhase;
-import domain.GameSetup;
-import domain.GameState;
-import domain.PlayerState;
+import domain.model.GameConfig;
+import domain.model.GamePhase;
+import domain.model.GameSetup;
+import domain.model.GameState;
+import domain.model.PlayerState;
 import domain.model.Card;
 import domain.model.Deck;
 import java.util.ArrayList;

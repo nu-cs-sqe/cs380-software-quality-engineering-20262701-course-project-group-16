@@ -19,7 +19,7 @@ The setup user story and acceptance criteria are tracked in [issue #1](https://g
 
 ## Classes and responsibilities
 
-The project uses Java 11. The shared card/deck model belongs in `domain.model`; setup, state and statistics are in `domain`. Tests use matching packages under `src/test/java`. All components use the same `domain.model.Card` value class.
+The project uses Java 11. The shared card/deck model belongs in `domain.model`; setup, state and statistics also belong in `domain.model`. Tests use matching packages under `src/test/java`. All components use the same `domain.model.Card` value class.
 
 | Class or enum | Responsibility | Planned owner |
 |---|---|---|
