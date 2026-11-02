@@ -1,5 +1,6 @@
 plugins {
     id("java")
+    id("application")
 }
 
 group = "nu.csse.sqe"
@@ -25,6 +26,15 @@ tasks.compileJava {
     options.release = 11
 }
 
+tasks.withType<JavaCompile>().configureEach {
+    options.encoding = "UTF-8"
+}
+
 tasks.test {
     useJUnitPlatform()
+    systemProperty("java.awt.headless", "true")
+}
+
+application {
+    mainClass.set("ui.Main")
 }

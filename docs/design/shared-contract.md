@@ -2,7 +2,7 @@
 
 This contract covers immutable state, match initialization, seat order, action messages and
 player-specific views. `GameSetup` prepares the table; Member A supplies the shared card/deck model and shuffling/dealing primitives.
-Hand evaluation and the setup/controller wiring remain later work. The betting engine will validate actions, produce
+The application initializer and Swing setup session now connect setup and dealing. Hand evaluation remains later work. The betting engine will validate actions, produce
 accepted results, advance streets, handle pots and settle hands. CI builds and tests pushes and pull requests.
 
 ## Settings and seats
@@ -60,8 +60,13 @@ and amounts owed to decide whether a betting round is finished.
 
 `GameSetup` returns `SETUP`: blinds are posted and the future first actor is identified,
 but hole cards, community cards and remaining-deck contents are empty. No betting may be
-accepted yet. Member A's dealing integration constructs a new `PREFLOP` snapshot with two
-hole cards for each dealt-in player and an immutable remaining deck in deal order.
+accepted yet. The application's `application.GameInitializer.start(humanCount)` calls this
+setup operation, creates and shuffles a fresh Deck, and deals two rounds clockwise
+after the dealer. It returns a `PREFLOP` snapshot with two hole cards per player
+and the immutable 40-card remainder in deal order, preserving the table's chips,
+statuses, positions and actor. Its injected constructor accepts GameConfig and
+separate dealer/deck Random sources; see the [initializer BVA](../bva/GameInitializer.md).
+The Swing interface still needs to call this coordinator.
 
 ## Current state and chip accounting
 
