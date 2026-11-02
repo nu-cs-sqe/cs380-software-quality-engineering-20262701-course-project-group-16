@@ -1,3 +1,29 @@
+# BVA index
+
+Every listed case identifies methods, input/system state, expected output and implementation
+status. JUnit method names use the same IDs with underscores. Enums are excluded under
+the course rule; view models also have privacy and immutability cases.
+
+| Class | Analysis |
+| --- | --- |
+| `Player` | [Player.md](Player.md) |
+| `GameConfig` | [GameConfig.md](GameConfig.md) |
+| `ActionRequest` | [ActionRequest.md](ActionRequest.md) |
+| `AcceptedAction` | [AcceptedAction.md](AcceptedAction.md) |
+| `PlayerState` | [PlayerState.md](PlayerState.md) |
+| `BettingProgress` | [BettingProgress.md](BettingProgress.md) |
+| `HandPositions` | [HandPositions.md](HandPositions.md) |
+| `SeatOrder` | [SeatOrder.md](SeatOrder.md) |
+| `GameState` | [GameState.md](GameState.md) |
+| `GameSetup` | [GameSetup.md](GameSetup.md) |
+| `GameView` | [GameView.md](GameView.md) |
+| `PlayerView` | [PlayerView.md](PlayerView.md) |
+| `PlayStats` | [PlayStats.md](PlayStats.md) |
+| `StatsAction` | [StatsAction.md](StatsAction.md) |
+| `StatsContext` | [StatsContext.md](StatsContext.md) |
+
+---
+
 # Overall Rule
 This folder should contain the BVA analysis. There should be one .md for each non-view and non-enum class, and there should be BVA analysis for each public method.
 
