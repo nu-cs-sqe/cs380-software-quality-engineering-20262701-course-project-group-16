@@ -18,13 +18,16 @@ Initialize the game so it is ready for the first turn. Complete Member A's card/
 | Estella | Installed JDK 11 and JDK 25 and verified the local Gradle build. | `java_home -V` lists both JDKs; `bash ./gradlew clean build` reported `BUILD SUCCESSFUL`. |
 | Estella | Recorded the proposed Texas Hold'em scope and contributor names. | [Project overview](../README.md): six seats, 1-6 humans, bots, virtual chips, and shared-computer play. |
 | Estella | Reviewed the rubric and simplified the README to the required project information. | [README](../README.md) includes dependencies, build/test commands, documentation links, and exceptions. |
+| Estella | Implemented player identity, six-seat setup, immutable hand state, action contracts, filtered views and poker statistics with tests and BVA. | [Shared contract](design/shared-contract.md); [BVA index](bva/README.md); source branch `feature/game-state-and-stats`. |
+| Estella | Added CI to build and test pushes and PRs using JDK 25 and the JDK 11 toolchain. | [Workflow](../.github/workflows/ci.yml). |
 | Kevin | Completed immutable Card values, null validation, equality, and hashing through RED/GREEN checkpoints. | [Card BVA](bva/Card.md); GREEN commits `2219068`, `acbd186`, `a35669d`. |
 | Kevin | Implemented the full deck, validated stateful dealing, immutable returned hands, and controlled shuffling through RED/GREEN checkpoints. | [Deck BVA](bva/Deck.md); GREEN commits `630deff`, `3a53ede`, `d2ad3b7`. |
 | Kevin | Verified two dealing rounds for six hands and defined the Week 6 evaluator interface. | `9bf1c6e`; [setup design](design/game-setup.md); [planned evaluator cases](bva/HandEvaluator.md). |
 
-Work is committed locally on `feature/cards-and-deck` and `docs/project-setup`.
-No PR links have been recorded here yet. Add the Draft PR links when the branches
-are pushed and reviewed; this report does not claim the work is merged into main.
+Both contributors' work is pushed. The integration branch combines
+`docs/project-setup`, `feature/cards-and-deck`, and `feature/game-state-and-stats`
+without squashing their TDD commits. Member A's original [PR #6](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/pull/6)
+provides its review context; the combined PR records final verification.
 
 ### Setup work remaining
 
@@ -32,8 +35,9 @@ Kevin is Member A; Estella is Member B. Track their tasks on the project board.
 Unchecked items remain planned, partially complete, or in need of team verification.
 
 - [ ] **Shared toolchain:** agree on the Gradle version and document the JDKs
-  used to run Gradle and compile/test the project; verify both contributors can
-  build the project.
+  used to run Gradle and compile/test the project. The combined build uses JDK
+  25, a JDK 11 toolchain and Gradle 9.7.1; Kevin still needs to verify this
+  updated setup locally.
 - [ ] **Requirements:** complete the [game rules](requirements/game-rules.md),
   including the authoritative rule source, chosen variants, starting chips,
   blinds, match progression, and expected behavior for invalid actions.
@@ -42,21 +46,29 @@ Unchecked items remain planned, partially complete, or in need of team verificat
   computer.
 - [ ] **Initial design:** document responsibilities and interfaces for game
   rules, bot logic, and the UI in the [design document](design/README.md).
-- [ ] **Project board:** keep the existing Team 02 tasks current with actual
+- [ ] **Project board:** keep the project tasks current with actual
   assignees, acceptance criteria, status, and links to related work.
 - [ ] **Review workflow:** agree on branch/PR conventions and a merge strategy
   that preserves TDD/BDD evidence; verify protection of `main`, required reviews,
   and required CI checks on GitHub.
-- [ ] **CI:** configure builds and tests for PRs and `main`; report whether tests
-  actually execute, and verify failure detection once tests are available.
+- [ ] **CI:** the build/test workflow is implemented. Record the combined PR's
+  GitHub result and verify required status checks and failure detection.
 - [ ] **Quality setup:** agree on Clean Code standards and a definition of done;
   prepare coverage and mutation-testing configuration, report locations, and
   justified exclusions using the course's required metrics.
-- [ ] **First feature integration:** Member A's components and BVA are complete;
-  integrate them with Member B's setup state, turn order, chips, blinds, and the
-  shared interface before declaring game setup complete.
+- [ ] **First feature integration:** use Member A's Card/Rank/Suit model throughout
+  state and views, verify deck-to-state composition, then connect the setup
+  coordinator and Swing interface before declaring the full setup story complete.
 
 ### Progress evaluation
+
+- The combined integration checkout passes **554 tests**: 488 Member B cases,
+  64 Member A cases and two new cross-component integration cases. The new
+  tests first failed to compile against the two incompatible Card types; the
+  passing implementation uses Member A's immutable value class throughout.
+  The checks verify 12 unique hole cards, 40 remaining cards, actor seat 3,
+  10/20 blinds, 6,000 conserved chips, value-based duplicate rejection and
+  filtered human/bot views. This does not claim a playable setup interface.
 
 - Estella verified her starter build locally. Kevin verified Java 11 and Gradle
   8.10 for the implemented components.
@@ -76,9 +88,12 @@ Unchecked items remain planned, partially complete, or in need of team verificat
   ignored-source mutation was detected and restored. Production code is unchanged.
 - The evaluator is an interface for Week 6 only. Evaluation, pot settlement,
   and equity estimation have not been implemented.
-- Game settings and rules were committed on `docs/project-setup`; they still
-  need integration with this branch. Swing is selected. CI, protection settings,
-  language choices, and actual setup/UI integration still need team verification.
+- The combined contract uses 1,000 starting chips, fixed 10/20 blinds, a random
+  initial dealer, stable seats and no antes/blind increases. The shared Card
+  value class is Member A's `domain.model.Card`; the duplicate enum is removed.
+- Swing is selected. The CI workflow is present; required review/status-check
+  settings, language choices, complete game rules and setup/UI integration
+  remain to be completed or verified.
 - The full game is not yet playable. Do not check off overall game setup until
   players, chips, blinds, first actor, and interface readiness are integrated.
 

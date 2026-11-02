@@ -19,7 +19,7 @@ The setup user story and acceptance criteria are tracked in [issue #1](https://g
 
 ## Classes and responsibilities
 
-The project uses Java 11. Core model classes belong in `domain.model`; their tests use the matching package under `src/test/java`.
+The project uses Java 11. The shared card/deck model belongs in `domain.model`; setup, state and statistics are in `domain`. Tests use matching packages under `src/test/java`. All components use the same `domain.model.Card` value class.
 
 | Class or enum | Responsibility | Planned owner |
 |---|---|---|
@@ -27,12 +27,12 @@ The project uses Java 11. Core model classes belong in `domain.model`; their tes
 | `Card` | Immutable rank/suit value; equality and hashing identify the same card | Kevin (Member A) |
 | `Deck` | Own the remaining cards, shuffle them, and remove cards when dealing | Kevin (Member A) |
 | `HandEvaluator` (interface only) | Define the Week 6 comparison contract | Kevin (Member A) |
-| `Player` | Hold seat, human/bot identity, chips, and hole cards | Member B |
+| `Player` / `PlayerState` | Hold identity, seat, chips, per-hand status, cards and contributions | Estella (Member B) |
 | `GameState` | Hold players, dealer/blind positions, contributions, and current actor | Member B |
 | `GameSetup` | Validate configuration and coordinate initialization using the model | Member B, integrated together |
 | Swing views | Read input and display setup state and private cards | Shared |
 
-`Player`, `GameState`, and `GameSetup` are proposed names and responsibilities to review with Member B before implementation. Game rules and validation stay in Java application/model code rather than in Swing event handlers.
+`Player`, `PlayerState`, `GameState`, and `GameSetup` are implemented. The [shared contract](shared-contract.md) defines their APIs; the combined integration cases verify card/deck interoperability. The controller/UI still needs wiring. Game rules and validation stay in Java application/model code rather than in Swing event handlers.
 
 ## Member A interface
 
@@ -59,10 +59,10 @@ For the six-player initial deal, the setup coordinator requests one card per sea
 
 ## Decisions still to confirm together
 
-The team selected 1,000 starting chips per player, fixed 5/10 blinds, a random first dealer, and no rebuys. The detailed rules are committed on `docs/project-setup` and still need to be combined with this branch.
+The team selected 1,000 starting chips per player, fixed 10/20 blinds, a random first dealer, and no rebuys. These initialization settings are in `GameConfig` and the shared contract. Complete game-rule documentation remains to be finished.
 
-- Confirm the representation of chip contributions with Member B.
-- Member B's final class/method interfaces and the handoff of dealt cards.
+- `handContribution` includes `roundContribution`; the pot is derived from whole-hand contributions.
+- Use the implemented shared state APIs and transfer dealt cards/remaining order into a new PREFLOP snapshot; finish controller wiring.
 - How the Swing interface hides/reveals cards when humans share a computer and starts the turn if the first actor is a bot.
 
 Full betting rounds and hand evaluation are later work. `HandEvaluator.compare(List<Card>, List<Card>)` is an interface only: each input has seven non-null distinct cards, shared community cards may occur in both lists, and the result is positive/zero/negative for first stronger/tied/second stronger. Neither input may be modified. Invalid-size/duplicate inputs require `IllegalArgumentException`; null lists/cards require `NullPointerException`. Its planned BVA cases are in `docs/bva/HandEvaluator.md`; no evaluator behavior is implemented or claimed tested yet.

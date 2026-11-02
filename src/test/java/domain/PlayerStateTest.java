@@ -1,5 +1,9 @@
 package domain;
 
+import domain.model.Card;
+import domain.model.Rank;
+import domain.model.Suit;
+
 import static org.junit.jupiter.api.Assertions.*;
 import java.util.*;
 import org.junit.jupiter.api.Test;
@@ -11,7 +15,7 @@ class PlayerStateTest {
     }
     @Test
     void PS_01() {
-        Player p = player(970); List<Card> cards = List.of(Card.ACE_OF_SPADES, Card.KING_OF_SPADES);
+        Player p = player(970); List<Card> cards = List.of(new Card(Rank.ACE, Suit.SPADES), new Card(Rank.KING, Suit.SPADES));
         PlayerState s = new PlayerState(p, PlayerStatus.ACTIVE, cards, 10, 30);
         assertSame(p, s.getPlayer()); assertEquals(PlayerStatus.ACTIVE, s.getStatus()); assertEquals(cards, s.getHoleCards());
         assertEquals(10, s.getRoundContribution()); assertEquals(30, s.getHandContribution());
@@ -40,22 +44,22 @@ class PlayerStateTest {
 
     @Test
     void PS_06() {
-        assertThrows(IllegalArgumentException.class, () -> state(1000, PlayerStatus.ACTIVE, Arrays.asList(Card.ACE_OF_SPADES, null), 0, 0));
+        assertThrows(IllegalArgumentException.class, () -> state(1000, PlayerStatus.ACTIVE, Arrays.asList(new Card(Rank.ACE, Suit.SPADES), null), 0, 0));
     }
 
     @Test
     void PS_07() {
-        assertThrows(IllegalArgumentException.class, () -> state(1000, PlayerStatus.ACTIVE, List.of(Card.ACE_OF_SPADES), 0, 0));
+        assertThrows(IllegalArgumentException.class, () -> state(1000, PlayerStatus.ACTIVE, List.of(new Card(Rank.ACE, Suit.SPADES)), 0, 0));
     }
 
     @Test
     void PS_08() {
-        assertThrows(IllegalArgumentException.class, () -> state(1000, PlayerStatus.ACTIVE, List.of(Card.ACE_OF_SPADES, Card.KING_OF_SPADES, Card.QUEEN_OF_SPADES), 0, 0));
+        assertThrows(IllegalArgumentException.class, () -> state(1000, PlayerStatus.ACTIVE, List.of(new Card(Rank.ACE, Suit.SPADES), new Card(Rank.KING, Suit.SPADES), new Card(Rank.QUEEN, Suit.SPADES)), 0, 0));
     }
 
     @Test
     void PS_09() {
-        assertThrows(IllegalArgumentException.class, () -> state(1000, PlayerStatus.ACTIVE, List.of(Card.ACE_OF_SPADES, Card.ACE_OF_SPADES), 0, 0));
+        assertThrows(IllegalArgumentException.class, () -> state(1000, PlayerStatus.ACTIVE, List.of(new Card(Rank.ACE, Suit.SPADES), new Card(Rank.ACE, Suit.SPADES)), 0, 0));
     }
 
     @Test
@@ -123,7 +127,7 @@ class PlayerStateTest {
 
     @Test
     void PS_22() {
-        assertThrows(IllegalArgumentException.class, () -> state(0, PlayerStatus.ELIMINATED, List.of(Card.ACE_OF_SPADES, Card.KING_OF_SPADES), 0, 0));
+        assertThrows(IllegalArgumentException.class, () -> state(0, PlayerStatus.ELIMINATED, List.of(new Card(Rank.ACE, Suit.SPADES), new Card(Rank.KING, Suit.SPADES)), 0, 0));
     }
 
     @Test
@@ -148,14 +152,14 @@ class PlayerStateTest {
 
     @Test
     void PS_27() {
-        List<Card> cards = new ArrayList<>(List.of(Card.ACE_OF_SPADES, Card.KING_OF_SPADES));
+        List<Card> cards = new ArrayList<>(List.of(new Card(Rank.ACE, Suit.SPADES), new Card(Rank.KING, Suit.SPADES)));
         PlayerState s = state(1000, PlayerStatus.ACTIVE, cards, 0, 0); cards.clear();
         assertEquals(2, s.getHoleCards().size());
     }
 
     @Test
     void PS_28() {
-        PlayerState s = state(1000, PlayerStatus.ACTIVE, List.of(Card.ACE_OF_SPADES, Card.KING_OF_SPADES), 0, 0);
+        PlayerState s = state(1000, PlayerStatus.ACTIVE, List.of(new Card(Rank.ACE, Suit.SPADES), new Card(Rank.KING, Suit.SPADES)), 0, 0);
         assertThrows(UnsupportedOperationException.class, () -> s.getHoleCards().clear());
     }
 

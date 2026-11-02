@@ -22,10 +22,11 @@ classDiagram
     PlayStats --> StatsAction
 ```
 
-Member A supplies deck creation, shuffling, dealing and hand evaluation using the shared
-card values. The engine accepts `ActionRequest`, validates it against current state,
+Member A supplies the shared `domain.model.Card`, rank/suit enums, deck creation,
+shuffling and dealing primitives. Hand evaluation remains an interface for later work. The engine accepts `ActionRequest`, validates it against current state,
 then produces a new snapshot and `AcceptedAction`. Bots and the interface receive
 `GameView`; profiles and saved statistics stay separate from live match state.
 
 Implemented here: initialization and immutable contracts. Betting execution, street
-advancement, pot settlement, bot strategy, profile storage, interface and CI follow later.
+advancement, pot settlement, bot strategy, profile storage and interface follow later.
+CI builds and tests pushes and pull requests.

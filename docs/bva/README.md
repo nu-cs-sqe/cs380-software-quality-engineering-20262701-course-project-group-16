@@ -6,6 +6,9 @@ the course rule; view models also have privacy and immutability cases.
 
 | Class | Analysis |
 | --- | --- |
+| `Card` | [Card.md](Card.md) |
+| `Deck` | [Deck.md](Deck.md) |
+| `HandEvaluator` (planned interface) | [HandEvaluator.md](HandEvaluator.md) |
 | `Player` | [Player.md](Player.md) |
 | `GameConfig` | [GameConfig.md](GameConfig.md) |
 | `ActionRequest` | [ActionRequest.md](ActionRequest.md) |
@@ -21,6 +24,8 @@ the course rule; view models also have privacy and immutability cases.
 | `PlayStats` | [PlayStats.md](PlayStats.md) |
 | `StatsAction` | [StatsAction.md](StatsAction.md) |
 | `StatsContext` | [StatsContext.md](StatsContext.md) |
+
+[Combined setup integration cases](setup-integration.md) cover the card/deck-to-state boundary.
 
 ---
 

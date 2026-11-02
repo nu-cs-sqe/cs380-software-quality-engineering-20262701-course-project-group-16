@@ -1,8 +1,12 @@
 package domain;
+
+import domain.model.Card;
+import domain.model.Deck;
 import java.util.*;
 
 /** Test inputs describe explicit snapshots; expected values stay in individual tests. */
 final class FoundationFixtures {
+    static Card[] cards() { return new Deck().deal(52).toArray(new Card[0]); }
     static final class Fixture {
         GameConfig config = new GameConfig();
         String hand = "h1";
@@ -29,10 +33,10 @@ final class FoundationFixtures {
                 PlayerState old = players.get(seat);
                 if (old.getStatus() != PlayerStatus.ELIMINATED) {
                     players.set(seat, new PlayerState(old.getPlayer(), old.getStatus(),
-                        List.of(Card.values()[seat*2], Card.values()[seat*2+1]), old.getRoundContribution(), old.getHandContribution()));
+                        List.of(FoundationFixtures.cards()[seat*2], FoundationFixtures.cards()[seat*2+1]), old.getRoundContribution(), old.getHandContribution()));
                 }
             }
-            deck = new ArrayList<>(Arrays.asList(Card.values()).subList(12,52));
+            deck = new ArrayList<>(Arrays.asList(FoundationFixtures.cards()).subList(12,52));
             phase = GamePhase.PREFLOP;
         }
         void board(GamePhase target, int size) {
