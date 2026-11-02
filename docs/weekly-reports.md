@@ -8,9 +8,8 @@ or PRs when available.
 
 ### Goal
 
-Initialize the game so it is ready for the first turn. Member A supplies cards,
-a deck, shuffling and dealing; Member B supplies players and setup state. The
-team still needs to connect these components to the application and interface.
+Build the card/deck and player/setup foundations, document BVA, and integrate
+them toward a game ready for its first turn.
 
 ### Completed work
 
@@ -29,131 +28,55 @@ team still needs to connect these components to the application and interface.
 | Kevin | Verified two rounds of dealing for six hands: two cards per hand, 12 distinct dealt cards and 40 remaining. Defined the hand-evaluation interface for later work. | `9bf1c6e`; `DeckSetupTest`; [setup design](design/game-setup.md); [planned evaluator cases](bva/HandEvaluator.md). |
 | Kevin | Documented Member A's contracts and BVA, updated project documentation, and pushed the cards-and-deck branch for integration. | [Member A PR #6](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/pull/6), merged into `main`; component commits preserve the RED/GREEN history. |
 
-The Week 5 component work is merged. Estella completed the combined merge into
-`main` on November 2, 2026, preserving the branches' TDD commits. The integration
-uses Member A's `domain.model.Card` throughout state and views and removes the
-incompatible duplicate card enum. See [merge commit `881ad79`](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/commit/881ad796c1a3894d35da9667025a75bf6f85fa06)
-and [Member B PR #8](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/pull/8).
-This merge status is a November 2 follow-up to the Week 5 report.
+**Branches:** Kevin: `feature/cards-and-deck`; Estella: `feature/game-state-and-stats`;
+shared documentation: `docs/project-setup`. The November 2 initialization
+follow-up is on local branch `feature/setup-dealing` (details in Week 6).
 
-### Setup work remaining
+Estella combined the Week 5 work into `main` on November 2, preserving the TDD
+history and reusing `domain.model.Card` throughout state and views. The duplicate
+card enum was removed. Evidence: [Member A PR #6](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/pull/6),
+[Member B PR #8](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/pull/8), and
+[merge `881ad79`](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/commit/881ad796c1a3894d35da9667025a75bf6f85fa06).
 
-Kevin is Member A; Estella is Member B. Track their tasks on the project board.
-Checked items have supporting implementation or merge evidence. Unchecked items
-are planned, partially complete, or still need team verification. Status was
-updated on November 2; the application-initialization follow-up is currently
-local to `feature/setup-dealing`, pending push and teammate review.
+### Setup checklist
 
-- [x] **Member A components:** complete cards, deck, shuffling, dealing and BVA;
-  verify 64 component test cases.
-- [x] **Shared card model:** combine the branches and use Member A's card values
-  throughout state and views; add deck-to-state integration tests.
-- [x] **CI workflow:** add automatic builds and tests for pushes and PRs.
-- [x] **Shared toolchain:** Kevin verified Gradle 9.7.1 locally with JDK 17
-  as its runtime and JDK 11 for compilation/tests on November 2. The merged
-  suite passed 554 tests; the initializer branch passed 570. CI uses JDK 25
-  as its Gradle runtime and JDK 11 for compilation/tests.
-- [ ] **Requirements:** complete the [game rules](requirements/game-rules.md),
-  including the authoritative rule source, chosen variants, starting chips,
-  blinds, match progression and expected behavior for invalid actions. The
-  merged setup currently defaults to 1,000 chips and 10/20 blinds; reconcile
-  the earlier 5/10 rules draft with the current shared contract.
-- [ ] **UI and languages:** build the Swing setup/first-turn interface, confirm
-  two languages, and implement private-card handoffs on the shared computer.
-- [x] **Initial model/setup design:** document the card/deck, setup/state and
-  application-initializer responsibilities and APIs in the
-  [design documents](design/README.md). Keep these current as betting, bots
-  and interface components are implemented.
-- [ ] **Project board:** update assignees, acceptance criteria, status and links
-  to merged work.
-- [ ] **Review workflow:** verify required reviews and passing CI checks on
-  `main`; confirm CI failure detection and record the workflow run link.
-- [ ] **Later project quality work:** configure coverage and mutation testing, document
-  justified exclusions and evaluate the course's required metrics. The manual
-  shuffle mutation check is not a full mutation-testing report.
-- [x] **Application initialization:** connect GameSetup and Deck through
-  GameInitializer and verify its dealt PREFLOP state with 16 new cases.
-  Completed November 2 on `feature/setup-dealing`; not merged yet.
-- [ ] **First-turn readiness:** connect the Swing interface and implement/verify
-  usable actions for the first human or bot before declaring setup complete.
+Status updated November 2. Checked means implemented/verified, not necessarily
+merged; the GameInitializer follow-up still needs push and teammate review.
+
+- [x] **Member A components:** cards, deck, shuffling, dealing and BVA; 64 passing cases.
+- [x] **Shared card model:** one Card model across deck/state/views, with integration tests.
+- [x] **CI workflow:** automatic build/tests on pushes and PRs.
+- [x] **Shared toolchain:** Gradle 9.7.1 runs locally on JDK 17 and in CI on JDK 25; compilation/tests use JDK 11.
+- [ ] **Requirements:** complete the [game rules](requirements/game-rules.md), currently a placeholder; reconcile 5/10 versus 10/20 blinds and the button policy.
+- [ ] **UI and languages:** add the Swing setup screen and localization structure, confirm languages, and implement private-card handoffs.
+- [x] **Initial model/setup design:** document responsibilities and APIs in the [design documents](design/README.md).
+- [ ] **Project board:** confirm assignees, status and PR links; record instructor-meeting evidence.
+- [ ] **Review workflow:** verify required reviews/CI enforcement and failure detection; add the workflow run link.
+- [ ] **Later project quality work:** configure coverage/mutation testing, measure required metrics and justify exclusions; the manual shuffle check is not a full mutation report.
+- [x] **Application initialization:** GameInitializer returns a dealt PREFLOP state; 16 cases pass. Completed November 2 on `feature/setup-dealing`, not merged yet.
+- [ ] **First-turn readiness:** connect the interface and verify usable first-turn actions.
 
 ### Progress evaluation
 
-**Week 5 result: Member A's planned components are complete, but the team's
-full setup deliverable is not complete yet.** The initialization logic is ready
-on the local integration branch; there is still no launchable game interface.
+**Member A's planned Week 5 components are complete; the team's full setup
+feature remains incomplete.** The merged suite passed **554 tests**: 64 Member A,
+488 Member B and two integration cases. Different scopes explain the counts;
+they are not individual targets. The November 2 initializer adds 16 cases for
+**570 passing tests**, with zero failures, errors or skips. Kevin verified both
+runs locally with Gradle 9.7.1 on JDK 17 and the JDK 11 toolchain.
 
-The test counts describe different component scopes, not a target each person
-must match:
-
-| Scope | Executed test cases |
-| --- | ---: |
-| Member A cards/deck and dealing check | 64 |
-| Member B player/setup/state/action/view/statistics components | 488 |
-| Original cross-component integration | 2 |
-| Combined merged suite before the initializer | **554** |
-| New application initializer | 16 |
-| Current initializer branch total | **570** |
-
-Estella's 488 cases span 15 test classes, including 129 statistics cases and 73
-game-state cases. The original Member A scope has three test classes: Card (15),
-Deck (48) and initial dealing (1). Different responsibilities need different
-numbers of cases. The smaller count alone does not indicate missing work;
-requirements and boundary/failure coverage matter. Coverage and mutation scores
-have not been measured, so test counts do not establish those quality metrics.
-
-- Kevin's Member A work has **64 verified passing component cases**: 15 Card,
-  48 Deck and one six-player dealing check. The last local clean build before
-  integration used Java 11 and Gradle 8.10, with zero failures, errors or skips.
-  The recorded RED/GREEN checkpoints show tests failing before the related
-  behavior was implemented.
-- Estella's [integration merge record](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/commit/881ad796c1a3894d35da9667025a75bf6f85fa06)
-  reports **554 passing tests** and successful GitHub CI: 488 Member B cases,
-  64 Member A cases and two cross-component cases. On November 2, Kevin
-  also verified this 554-test suite locally, then verified 570 cases after
-  adding the application initializer. Both local runs used Gradle 9.7.1
-  on JDK 17 with JDK 11 compilation/tests.
-- The integration tests check 12 unique hole cards, 40 remaining cards, first
-  actor seat 3, 10/20 blinds, 6,000 conserved chips, duplicate-card rejection
-  by value and private human/bot views. They compose the components in test
-  code; `GameSetup.create` itself still returns `SETUP` with no hole cards.
-- The evaluator is an interface only. Hand evaluation, betting execution,
-  pot settlement and equity estimation are not implemented yet.
-- The full game is not yet playable. The setup goal is only partially met:
-  the components and composition tests are ready. The November 2 follow-up
-  adds the application coordinator on `feature/setup-dealing`; the first-turn
-  interface and action execution remain unfinished.
-
-### Week 5 completion review (November 2 follow-up)
-
-This review compares the team's original Week 5 plan, the revised setup scope
-and the provided course guidance against the repository. It does not treat
-later hand evaluation, complete betting, pot settlement, equity bots or full
-translation work as completed Week 5 requirements.
-
-| Planned work | Status | Evidence / remaining action |
-| --- | --- | --- |
-| Member A: cards, deck behavior, evaluator interface, BVA and TDD | Complete | Card/Deck, interface-only HandEvaluator, BVA documents and 64 passing cases. |
-| Member B: player/seat/action/state foundations, setup validation and bot assignment | Implemented | Shared model and setup classes, BVA and component tests; statistics extend beyond the original minimal foundation scope. |
-| Build and initial CI | Implemented | Wrapper and CI workflow exist; local full-suite build verified. Required GitHub checks remain a separate verification item. |
-| Shared card/deck/state initialization | Implemented locally | GameInitializer and 16 new cases pass; branch `feature/setup-dealing` still needs push, teammate review and merge. |
-| Final rules and shared agreements | Incomplete | Game rules file is still a placeholder. Reconcile the older 5/10 and current 10/20 blind settings and document the agreed button policy. |
-| Minimal launchable interface and localization structure | Incomplete | `ui/Main.java` is empty; no Swing setup/table screen or localization resources are implemented. Full translation remains later work. |
-| Project board, PR protections and required instructor meeting | Needs external verification | Local files cannot establish current board assignments, enforced GitHub rules or meeting completion. Confirm these and record supporting links/evidence. |
-| Weekly planning and evaluation | Updated | Contributions, test-count breakdown, merged work, remaining tasks and branch status are recorded here. |
-
-The main outstanding Week 5 implementation task is the minimal launchable
-setup/first-turn interface. Finish the rules and verify the board/repository
-workflow alongside it. Keep overall setup unchecked until its acceptance
-criteria are demonstrated; adding tests merely to match a teammate's count
-will not complete those missing behaviors.
+Setup/dealing tests verify two cards per player, 40 remaining, correct positions,
+10/20 blinds, 6,000 conserved chips and private views. The initializer now does
+this in application code, but there is no launchable Swing game yet. Finish the
+rules/interface and verify board/review settings. Hand evaluation is still an
+interface; full betting, settlement, equity bots and complete translations are
+later milestones. Coverage and mutation scores have not been measured.
 
 ### Next week's priorities
 
-Push and review the initialization checkpoint, connect it to the Swing
-interface, finish the agreed game rules, and update the board and review/check
-settings. Begin the Week 6 hand evaluator
-and betting work with BVA and TDD after the shared interfaces are confirmed.
+Push/review the initializer, connect the Swing setup screen, and finish the
+rules and workflow follow-ups. Begin hand evaluation and basic betting with
+BVA and TDD after confirming shared interfaces.
 
 ## Week 6 (11/02/2026-11/08/2026)
 
