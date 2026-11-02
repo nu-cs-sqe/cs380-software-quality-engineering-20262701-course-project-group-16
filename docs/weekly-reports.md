@@ -105,13 +105,25 @@ and betting work with BVA and TDD after the shared interfaces are confirmed.
 Connect the tested deck-to-state composition to an application method, then
 prepare to call it from the Swing interface.
 
+**Branch:** `feature/setup-dealing`
+
 ### Completed work
 
 | Owner | Work completed | Evidence |
 | --- | --- | --- |
 | Kevin | Added `GameInitializer.start(humanCount)` to combine existing GameSetup and Deck operations. It deals two clockwise rounds and returns the first PREFLOP state. | [Setup design](design/game-setup.md); [initializer BVA](bva/GameInitializer.md). |
-| Kevin | Added 16 TDD/BVA cases for constructor nulls, human-count boundaries, all six dealer positions, all-in blinds, repeated games and recovery after invalid input. | RED commit `2ae10c9`: 12 expected failures; GREEN implementation: all 16 pass. |
+| Kevin | Added 16 TDD/BVA cases for constructor nulls, human-count boundaries, all six dealer positions, all-in blinds, repeated games and recovery after invalid input. | RED commit `2ae10c9`: 12 expected failures; GREEN commit `600ad38`: all 16 pass. |
 | Kevin | Verified the merged project and new coordinator on this computer using JDK 17 for Gradle 9.7.1 and JDK 11 for compilation/tests. Updated README build instructions. | Clean build: 570 tests, zero failures, errors or skips. |
+
+### Integration checklist
+
+- [x] Connect GameSetup and Deck through GameInitializer to produce a dealt PREFLOP state.
+- [x] Preserve dealer, blinds, first actor, chip totals and private player views.
+- [x] Document BVA and complete the RED/GREEN cycle for 16 coordinator cases.
+- [x] Verify the full clean build: 570 tests pass.
+- [ ] Push `feature/setup-dealing`, open a PR and complete teammate review before merging.
+- [ ] Connect the Swing setup screen and private-card handoffs to the initializer.
+- [ ] Implement and verify usable first-turn actions before marking the full setup feature complete.
 
 ### Progress evaluation
 
