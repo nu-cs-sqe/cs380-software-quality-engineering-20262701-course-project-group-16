@@ -1,160 +1,214 @@
 package domain;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
- * Immutable six-seat table snapshot with per-hand chip commitments.
- * Role selection, action legality, and chip transfers belong to game logic.
+ * Immutable internal hand snapshot. Only the engine receives this object: interfaces and bots
+ * receive viewFor(playerId). Chip transfers, legality checks and phase transitions belong to
+ * engine operations which construct the next snapshot.
  */
 public final class GameState {
-
-    private static final int SEAT_COUNT = 6;
-
-    private final List<Player> players;
-    private final int dealerSeat;
-    private final int smallBlindSeat;
-    private final int bigBlindSeat;
-    private final int currentActorSeat;
-    private final long[] committedChips;
-    private final long pot;
-    private final long totalChips;
+    private final GameConfig config;
+    private final String handId;
+    private final GamePhase phase;
+    private final List<PlayerState> players;
+    private final HandPositions positions;
+    private final String currentActorId;
+    private final List<Card> communityCards;
+    private final List<Card> remainingDeck;
+    private final BettingProgress betting;
 
     /**
-     * Creates a snapshot without changing the supplied players or commitments.
-     *
-     * @param players six non-null players with unique IDs and seats, in any order
-     * @param dealerSeat recorded dealer seat, from 0 through 5
-     * @param smallBlindSeat recorded small-blind seat, from 0 through 5
-     * @param bigBlindSeat recorded big-blind seat, different from the small blind
-     * @param currentActorSeat recorded current actor's seat, from 0 through 5
-     * @param committedChips six nonnegative hand commitments indexed by seat
-     * @throws IllegalArgumentException if the snapshot is structurally invalid
-     *         or its chip totals exceed the supported long range
+     * Creates a validated snapshot. A null actor means there are no pending decisions.
+     * The remaining deck is in deal order; burned/discarded cards need not appear in it.
+     * All six seats remain after elimination. Contributions hold unawarded chips only.
+     * @throws IllegalArgumentException for missing/inconsistent state or unsafe chip totals
      */
-    public GameState(List<Player> players, int dealerSeat, int smallBlindSeat,
-            int bigBlindSeat, int currentActorSeat, long[] committedChips) {
+    public GameState(GameConfig config, String handId, GamePhase phase, List<PlayerState> players,
+            HandPositions positions, String currentActorId, List<Card> communityCards,
+            List<Card> remainingDeck, BettingProgress betting) {
+        if (config == null || handId == null || handId.isBlank() || phase == null
+                || positions == null || betting == null) {
+            throw new IllegalArgumentException("Settings, hand identity, phase, positions and betting are required.");
+        }
+        this.config = config;
+        this.handId = handId;
+        this.phase = phase;
         this.players = copyPlayers(players);
-        requireValidSeat(dealerSeat);
-        requireValidSeat(smallBlindSeat);
-        requireValidSeat(bigBlindSeat);
-        requireValidSeat(currentActorSeat);
-        if (smallBlindSeat == bigBlindSeat) {
-            throw new IllegalArgumentException("Small and big blinds must use different seats.");
+        this.positions = positions;
+        this.currentActorId = currentActorId;
+        this.communityCards = copyCards(communityCards);
+        this.remainingDeck = copyCards(remainingDeck);
+        this.betting = betting;
+        validatePositions();
+        validateCards();
+        validateChipTotal();
+        validateBetting();
+    }
+
+    private static List<PlayerState> copyPlayers(List<PlayerState> players) {
+        new SeatOrder(players);
+        List<PlayerState> sorted = new ArrayList<>(players);
+        sorted.sort(Comparator.comparingInt(state -> state.getPlayer().getSeat()));
+        return List.copyOf(sorted);
+    }
+
+    private static List<Card> copyCards(List<Card> cards) {
+        if (cards == null || cards.stream().anyMatch(card -> card == null)) {
+            throw new IllegalArgumentException("Card collections and elements must be non-null.");
         }
-        this.dealerSeat = dealerSeat;
-        this.smallBlindSeat = smallBlindSeat;
-        this.bigBlindSeat = bigBlindSeat;
-        this.currentActorSeat = currentActorSeat;
-        this.committedChips = copyCommitments(committedChips);
+        return List.copyOf(cards);
+    }
+
+    private void validatePositions() {
+        if (phase == GamePhase.COMPLETION) {
+            return; // Last hand's positions remain historical after elimination and payout.
+        }
+        HandPositions expected;
         try {
-            this.pot = calculatePot(this.committedChips);
-            this.totalChips = calculateTotalChips(this.players, this.pot);
-        } catch (ArithmeticException exception) {
-            throw new IllegalArgumentException("Chip totals exceed the supported long range.",
-                    exception);
+            expected = new SeatOrder(players).positionsFor(positions.getDealerSeat());
+        } catch (IllegalStateException exception) {
+            throw new IllegalArgumentException("An unfinished hand requires two remaining players.", exception);
+        }
+        if (positions.getSmallBlindSeat() != expected.getSmallBlindSeat()
+                || positions.getBigBlindSeat() != expected.getBigBlindSeat()) {
+            throw new IllegalArgumentException("Positions must follow clockwise and heads-up rules.");
         }
     }
 
-    /** @return an unmodifiable list of immutable players in seat order */
+    private void validateCards() {
+        int count = communityCards.size();
+        boolean validBoard;
+        switch (phase) {
+            case SETUP:
+            case PREFLOP: validBoard = count == 0; break;
+            case FLOP: validBoard = count == 3; break;
+            case TURN: validBoard = count == 4; break;
+            case RIVER:
+            case SHOWDOWN: validBoard = count == 5; break;
+            case COMPLETION: validBoard = count == 0 || count == 3 || count == 4 || count == 5; break;
+            default: throw new IllegalArgumentException("Unknown phase.");
+        }
+        if (!validBoard) {
+            throw new IllegalArgumentException("Community card count does not match the phase.");
+        }
+        Set<Card> seen = new HashSet<>();
+        addDistinct(seen, communityCards);
+        addDistinct(seen, remainingDeck);
+        for (PlayerState state : players) {
+            List<Card> cards = state.getHoleCards();
+            if ((phase == GamePhase.SETUP && !cards.isEmpty())
+                    || (phase != GamePhase.SETUP && phase != GamePhase.COMPLETION
+                    && state.getStatus() != PlayerStatus.ELIMINATED && cards.size() != 2)) {
+                throw new IllegalArgumentException("Hole cards must match setup or dealt-hand status.");
+            }
+            addDistinct(seen, cards);
+        }
+    }
+
+    private static void addDistinct(Set<Card> seen, List<Card> cards) {
+        for (Card card : cards) {
+            if (!seen.add(card)) {
+                throw new IllegalArgumentException("A physical card cannot occur in two locations.");
+            }
+        }
+    }
+
+    private void validateBetting() {
+        long maximum = players.stream().mapToLong(PlayerState::getRoundContribution).max().orElseThrow();
+        if (betting.getCurrentBet() != maximum || betting.getLastFullRaiseSize() < config.getBigBlind()) {
+            throw new IllegalArgumentException("Current bet or last full raise is inconsistent.");
+        }
+        Set<String> eligible = players.stream().filter(PlayerState::canAct)
+                .map(state -> state.getPlayer().getId()).collect(Collectors.toSet());
+        if (!eligible.containsAll(betting.getPlayersToAct())
+                || !eligible.containsAll(betting.getPlayersAllowedToRaise())) {
+            throw new IllegalArgumentException("Only active players may have pending decisions or raise rights.");
+        }
+        boolean pending = !betting.getPlayersToAct().isEmpty();
+        if ((currentActorId == null && pending) || (currentActorId != null
+                && (!pending || !betting.getPlayersToAct().contains(currentActorId)))) {
+            throw new IllegalArgumentException("The current actor must be a pending active player.");
+        }
+        if ((phase == GamePhase.SHOWDOWN || phase == GamePhase.COMPLETION)
+                && (pending || currentActorId != null || !betting.getPlayersAllowedToRaise().isEmpty())) {
+            throw new IllegalArgumentException("A terminal phase has no betting decisions.");
+        }
+        if (phase == GamePhase.COMPLETION && getPot() != 0) {
+            throw new IllegalArgumentException("Completed hands must have awarded all committed chips.");
+        }
+    }
+
+    private void validateChipTotal() {
+        try {
+            if (getTotalChips() != config.getInitialTotalChips()) {
+                throw new IllegalArgumentException("Stacks plus commitments must conserve match chips.");
+            }
+        } catch (ArithmeticException exception) {
+            throw new IllegalArgumentException("Chip totals exceed the supported long range.", exception);
+        }
+    }
+
+    public GameConfig getConfig() { return config; }
+    public String getHandId() { return handId; }
+    public GamePhase getPhase() { return phase; }
     public List<Player> getPlayers() {
-        return players;
+        return players.stream().map(PlayerState::getPlayer).collect(Collectors.toUnmodifiableList());
     }
-
-    /** @return the recorded dealer seat */
-    public int getDealerSeat() {
-        return dealerSeat;
+    public List<PlayerState> getPlayerStates() { return players; }
+    public HandPositions getPositions() { return positions; }
+    public int getDealerSeat() { return positions.getDealerSeat(); }
+    public int getSmallBlindSeat() { return positions.getSmallBlindSeat(); }
+    public int getBigBlindSeat() { return positions.getBigBlindSeat(); }
+    public Optional<String> getCurrentActorId() { return Optional.ofNullable(currentActorId); }
+    public OptionalInt getCurrentActorSeat() {
+        return currentActorId == null ? OptionalInt.empty() : OptionalInt.of(players.stream()
+                .filter(state -> state.getPlayer().getId().equals(currentActorId))
+                .findFirst().orElseThrow().getPlayer().getSeat());
     }
+    public List<Card> getCommunityCards() { return communityCards; }
+    public List<Card> getRemainingDeck() { return remainingDeck; }
+    public BettingProgress getBettingProgress() { return betting; }
+    public long getCurrentBet() { return betting.getCurrentBet(); }
+    public long getLastFullRaiseSize() { return betting.getLastFullRaiseSize(); }
 
-    /** @return the recorded small-blind seat */
-    public int getSmallBlindSeat() {
-        return smallBlindSeat;
-    }
-
-    /** @return the recorded big-blind seat */
-    public int getBigBlindSeat() {
-        return bigBlindSeat;
-    }
-
-    /** @return the recorded current actor's seat */
-    public int getCurrentActorSeat() {
-        return currentActorSeat;
-    }
-
-    /**
-     * Returns a seat's commitment for the current hand.
-     *
-     * @param seat seat number, from 0 through 5
-     * @return the nonnegative commitment at that seat
-     * @throws IllegalArgumentException if the seat is outside 0 through 5
-     */
+    /** @throws IllegalArgumentException for seats outside 0-5 */
     public long getCommittedChips(int seat) {
-        requireValidSeat(seat);
-        return committedChips[seat];
+        if (seat < 0 || seat >= players.size()) {
+            throw new IllegalArgumentException("Seat must be between zero and five.");
+        }
+        return players.get(seat).getHandContribution();
     }
 
-    /** @return the sum of hand commitments, excluding remaining player stacks */
+    /** Derived from whole-hand contributions, which include the current round. */
     public long getPot() {
+        long pot = 0;
+        for (PlayerState state : players) {
+            pot = Math.addExact(pot, state.getHandContribution());
+        }
         return pot;
     }
 
-    /** @return remaining player stacks plus the pot, counting commitments once */
     public long getTotalChips() {
-        return totalChips;
-    }
-
-    private static List<Player> copyPlayers(List<Player> players) {
-        if (players == null || players.size() != SEAT_COUNT) {
-            throw new IllegalArgumentException("Exactly six players are required.");
-        }
-        Player[] playersBySeat = new Player[SEAT_COUNT];
-        Set<String> playerIds = new HashSet<>();
-        for (Player player : players) {
-            if (player == null) {
-                throw new IllegalArgumentException("Players must not be null.");
-            }
-            int seat = player.getSeat();
-            if (playersBySeat[seat] != null || !playerIds.add(player.getId())) {
-                throw new IllegalArgumentException("Player seats and IDs must be unique.");
-            }
-            playersBySeat[seat] = player;
-        }
-        return List.of(playersBySeat);
-    }
-
-    private static void requireValidSeat(int seat) {
-        if (seat < 0 || seat >= SEAT_COUNT) {
-            throw new IllegalArgumentException("Seat must be between 0 and 5.");
-        }
-    }
-
-    private static long[] copyCommitments(long[] committedChips) {
-        if (committedChips == null || committedChips.length != SEAT_COUNT) {
-            throw new IllegalArgumentException("Exactly six chip commitments are required.");
-        }
-        long[] snapshot = committedChips.clone();
-        for (long amount : snapshot) {
-            if (amount < 0) {
-                throw new IllegalArgumentException("Committed chips must not be negative.");
-            }
-        }
-        return snapshot;
-    }
-
-    private static long calculatePot(long[] committedChips) {
-        long total = 0L;
-        for (long amount : committedChips) {
-            total = Math.addExact(total, amount);
+        long total = getPot();
+        for (PlayerState state : players) {
+            total = Math.addExact(total, state.getPlayer().getChipStack());
         }
         return total;
     }
 
-    private static long calculateTotalChips(List<Player> players, long pot) {
-        long total = pot;
-        for (Player player : players) {
-            total = Math.addExact(total, player.getChipStack());
+    /** @throws IllegalArgumentException if the viewer is not a player in this match */
+    public GameView viewFor(String playerId) {
+        if (playerId == null || players.stream().noneMatch(state -> state.getPlayer().getId().equals(playerId))) {
+            throw new IllegalArgumentException("A view requires an existing player ID.");
         }
-        return total;
+        return new GameView(this, playerId);
     }
 }

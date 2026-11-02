@@ -1,96 +1,83 @@
-# GameState BVA
+# GameState boundary value analysis
 
-## Contract
+Each case maps to the JUnit method with the same ID (hyphens become underscores).
+Grouped assertions exercise the public getters at the stated boundary; no mutable state is exposed.
 
-`GameState(List<Player> players, int dealerSeat, int smallBlindSeat,
-int bigBlindSeat, int currentActorSeat, long[] committedChips)` is an immutable
-snapshot of the six-seat table.
-
-- Exactly six non-null players must occupy the six unique seats 0..5 and have
-  distinct IDs. The constructor accepts any input order; `getPlayers()` returns
-  an unmodifiable list in seat order. Existing Player objects are immutable.
-- Dealer, small-blind, big-blind, and current-actor seat numbers must be 0..5.
-  The small and big blinds must use different seats.
-- The six per-seat commitments must be nonnegative and are copied defensively.
-  `getCommittedChips(int seat)` accepts only seats 0..5.
-- `getPot()` is the sum of commitments for the current hand. `getTotalChips()`
-  is that pot plus the remaining player stacks, counting each chip once.
-  A combined value exceeding Long.MAX_VALUE is rejected, never wrapped.
-- Invalid constructor arguments or lookup seats throw IllegalArgumentException.
-- Game setup/turn logic determines role placement, human/bot counts, legal
-  actors, blind amounts, and conservation against a match's initial chip total.
-  This class does not choose seats, post blinds, deal cards, or execute actions.
-
-## Cases
-
-Each case creates a fresh state unless it describes a getter/mutation check.
-Defaults: six immutable players with IDs player-0 through player-5 in matching
-seats, HUMAN type, stack=1000 each; dealer=0, small blind=1, big blind=2,
-current actor=3; six zero commitments. Role-case rows specify all four positions
-in that order. All IDs also appear in GameStateTest display names.
-
-| ID | Methods under test | State / input | Expected result | Implemented? |
+| ID | Public methods | State/input boundary | Expected result | Implemented |
 | --- | --- | --- | --- | --- |
-| G-P01 | Constructor | Players list is null | IllegalArgumentException | Yes |
-| G-P02 | Constructor | 0 players | IllegalArgumentException | Yes |
-| G-P03 | Constructor | 1 player | IllegalArgumentException | Yes |
-| G-P04 | Constructor | 5 players | IllegalArgumentException | Yes |
-| G-P05 | Constructor | 7 players | IllegalArgumentException | Yes |
-| G-P06 | Constructor | Null player in first position | IllegalArgumentException | Yes |
-| G-P07 | Constructor | Null player in last position | IllegalArgumentException | Yes |
-| G-P08 | Constructor | Two players use seat 0; seat 5 is missing | IllegalArgumentException | Yes |
-| G-P09 | Constructor | Seats 0 and 5 have the same player ID | IllegalArgumentException | Yes |
-| G-P10 | Constructor, getPlayers() | Six players supplied in seat order | Six unchanged players returned in seat order 0..5 | Yes |
-| G-P11 | Constructor, getPlayers() | Six players supplied in reverse order | Six unchanged players returned in seat order 0..5 | Yes |
-| G-I01 | Constructor, getPlayers() | Replace an entry in the source list after construction | Snapshot still contains the original player | Yes |
-| G-I02 | getPlayers() | Attempt to replace an entry in the returned list | UnsupportedOperationException; snapshot cannot be changed | Yes |
-| G-R01 | Constructor | dealer seat=-1; positions=[-1, 1, 2, 3] | IllegalArgumentException | Yes |
-| G-R02 | Constructor, four position getters | dealer seat=0; positions=[0, 1, 2, 3] | All four positions retained exactly | Yes |
-| G-R03 | Constructor, four position getters | dealer seat=1; positions=[1, 1, 2, 3] | All four positions retained exactly | Yes |
-| G-R04 | Constructor, four position getters | dealer seat=4; positions=[4, 1, 2, 3] | All four positions retained exactly | Yes |
-| G-R05 | Constructor, four position getters | dealer seat=5; positions=[5, 1, 2, 3] | All four positions retained exactly | Yes |
-| G-R06 | Constructor | dealer seat=6; positions=[6, 1, 2, 3] | IllegalArgumentException | Yes |
-| G-R07 | Constructor | small blind seat=-1; positions=[0, -1, 2, 3] | IllegalArgumentException | Yes |
-| G-R08 | Constructor, four position getters | small blind seat=0; positions=[0, 0, 2, 3] | All four positions retained exactly | Yes |
-| G-R09 | Constructor, four position getters | small blind seat=1; positions=[0, 1, 2, 3] | All four positions retained exactly | Yes |
-| G-R10 | Constructor, four position getters | small blind seat=4; positions=[0, 4, 2, 3] | All four positions retained exactly | Yes |
-| G-R11 | Constructor, four position getters | small blind seat=5; positions=[0, 5, 2, 3] | All four positions retained exactly | Yes |
-| G-R12 | Constructor | small blind seat=6; positions=[0, 6, 2, 3] | IllegalArgumentException | Yes |
-| G-R13 | Constructor | big blind seat=-1; positions=[0, 2, -1, 3] | IllegalArgumentException | Yes |
-| G-R14 | Constructor, four position getters | big blind seat=0; positions=[0, 2, 0, 3] | All four positions retained exactly | Yes |
-| G-R15 | Constructor, four position getters | big blind seat=1; positions=[0, 2, 1, 3] | All four positions retained exactly | Yes |
-| G-R16 | Constructor, four position getters | big blind seat=4; positions=[0, 2, 4, 3] | All four positions retained exactly | Yes |
-| G-R17 | Constructor, four position getters | big blind seat=5; positions=[0, 2, 5, 3] | All four positions retained exactly | Yes |
-| G-R18 | Constructor | big blind seat=6; positions=[0, 2, 6, 3] | IllegalArgumentException | Yes |
-| G-R19 | Constructor | current actor seat=-1; positions=[0, 1, 2, -1] | IllegalArgumentException | Yes |
-| G-R20 | Constructor, four position getters | current actor seat=0; positions=[0, 1, 2, 0] | All four positions retained exactly | Yes |
-| G-R21 | Constructor, four position getters | current actor seat=1; positions=[0, 1, 2, 1] | All four positions retained exactly | Yes |
-| G-R22 | Constructor, four position getters | current actor seat=4; positions=[0, 1, 2, 4] | All four positions retained exactly | Yes |
-| G-R23 | Constructor, four position getters | current actor seat=5; positions=[0, 1, 2, 5] | All four positions retained exactly | Yes |
-| G-R24 | Constructor | current actor seat=6; positions=[0, 1, 2, 6] | IllegalArgumentException | Yes |
-| G-R25 | Constructor | Small blind and big blind both use seat 2 | IllegalArgumentException | Yes |
-| G-C01 | Constructor | Committed-chip array is null | IllegalArgumentException | Yes |
-| G-C02 | Constructor | Committed-chip array length=0 | IllegalArgumentException | Yes |
-| G-C03 | Constructor | Committed-chip array length=5 | IllegalArgumentException | Yes |
-| G-C04 | Constructor | Committed-chip array length=7 | IllegalArgumentException | Yes |
-| G-C05 | Constructor | Seat 0 commitment=-1 | IllegalArgumentException | Yes |
-| G-C06 | Constructor | Seat 2 commitment=-1 | IllegalArgumentException | Yes |
-| G-C07 | Constructor | Seat 5 commitment=-1 | IllegalArgumentException | Yes |
-| G-C08 | Constructor | Seat 3 commitment=Long.MIN_VALUE | IllegalArgumentException | Yes |
-| G-C09 | Constructor, getCommittedChips(int) | Six zero commitments | All six getters return zero | Yes |
-| G-Q01 | getCommittedChips(int) | Commitments=[10,20,30,40,50,60]; queried seat=-1 | IllegalArgumentException | Yes |
-| G-Q02 | getCommittedChips(int) | Commitments=[10,20,30,40,50,60]; queried seat=0 | 10 | Yes |
-| G-Q03 | getCommittedChips(int) | Commitments=[10,20,30,40,50,60]; queried seat=1 | 20 | Yes |
-| G-Q04 | getCommittedChips(int) | Commitments=[10,20,30,40,50,60]; queried seat=4 | 50 | Yes |
-| G-Q05 | getCommittedChips(int) | Commitments=[10,20,30,40,50,60]; queried seat=5 | 60 | Yes |
-| G-Q06 | getCommittedChips(int) | Commitments=[10,20,30,40,50,60]; queried seat=6 | IllegalArgumentException | Yes |
-| G-I03 | Constructor, getCommittedChips(int) | Mutate the supplied commitment array after construction | Snapshot retains its original commitments | Yes |
-| G-A01 | Constructor, getPot(), getTotalChips() | All stacks and commitments are zero | Pot=0; total chips=0 | Yes |
-| G-A02 | Constructor, getPot(), getTotalChips() | Six stacks of 1000; all commitments zero | Pot=0; total chips=6000 | Yes |
-| G-A03 | Constructor, getPot(), getTotalChips() | Stacks=[1000,990,980,1000,1000,1000]; commitments=[0,10,20,0,0,0] | Pot=30; total chips=6000 | Yes |
-| G-A04 | Constructor, getPot(), getTotalChips() | Stacks=[999,998,997,996,995,994]; commitments=[1,2,3,4,5,6] | Pot=21; total chips=6000 | Yes |
-| G-A05 | Constructor, getPot(), getTotalChips() | All stacks zero; commitments=[Long.MAX_VALUE,0,0,0,0,0] | Pot=Long.MAX_VALUE; total chips=Long.MAX_VALUE | Yes |
-| G-A06 | Constructor, getPot(), getTotalChips() | First stack=Long.MAX_VALUE-1, other stacks zero; first commitment=1 | Pot=1; total chips=Long.MAX_VALUE | Yes |
-| G-A07 | Constructor | All stacks zero; commitments start with Long.MAX_VALUE and 1 | IllegalArgumentException: pot overflow | Yes |
-| G-A08 | Constructor | Stacks start with Long.MAX_VALUE and 1; commitments zero | IllegalArgumentException: total-stack overflow | Yes |
-| G-A09 | Constructor | First stack=Long.MAX_VALUE; last commitment=1 | IllegalArgumentException: combined-total overflow | Yes |
+| GS-01 | GameState(...); getConfig(); getHandId(); getPhase(); getPlayers(); getPlayerStates(); getPositions(); getDealerSeat(); getSmallBlindSeat(); getBigBlindSeat(); getCurrentActorId(); getCurrentActorSeat(); getCommunityCards(); getRemainingDeck(); getBettingProgress(); getCurrentBet(); getLastFullRaiseSize(); getPot(); getTotalChips() | Six-seat setup before dealing | Immutable settings/IDs; seat order; expected positions/actor; zero pot and 6000 total | Yes |
+| GS-02 | GameState; getPot; getTotalChips; getCommittedChips | Blinds 10/20 deducted from stacks | Pot=30; total=6000; commitments counted once | Yes |
+| GS-03 | GameState; getPot; getTotalChips | Round contribution 10 already included in hand contribution 30 | Pot=30, not 40; total=6000 | Yes |
+| GS-04 | GameState | null config | IllegalArgumentException | Yes |
+| GS-05 | GameState | null hand ID | IllegalArgumentException | Yes |
+| GS-06 | GameState | empty hand ID | IllegalArgumentException | Yes |
+| GS-07 | GameState | blank hand ID | IllegalArgumentException | Yes |
+| GS-08 | GameState | null phase | IllegalArgumentException | Yes |
+| GS-09 | GameState | null players | IllegalArgumentException | Yes |
+| GS-10 | GameState | null positions | IllegalArgumentException | Yes |
+| GS-11 | GameState | null community | IllegalArgumentException | Yes |
+| GS-12 | GameState | null deck | IllegalArgumentException | Yes |
+| GS-13 | GameState | null betting progress | IllegalArgumentException | Yes |
+| GS-14 | GameState | five player records | IllegalArgumentException | Yes |
+| GS-15 | GameState | seven player records | IllegalArgumentException | Yes |
+| GS-16 | GameState | null player record | IllegalArgumentException | Yes |
+| GS-17 | GameState | duplicate seat | IllegalArgumentException | Yes |
+| GS-18 | GameState | duplicate ID | IllegalArgumentException | Yes |
+| GS-19 | GameState | incorrect clockwise blind assignment | IllegalArgumentException | Yes |
+| GS-20 | GameState | one chip missing | IllegalArgumentException | Yes |
+| GS-21 | GameState | one chip created | IllegalArgumentException | Yes |
+| GS-22 | GameState | current bet below maximum contribution | IllegalArgumentException | Yes |
+| GS-23 | GameState | current bet above maximum contribution | IllegalArgumentException | Yes |
+| GS-24 | GameState | full raise below configured big blind | IllegalArgumentException | Yes |
+| GS-25 | GameState | unknown pending player | IllegalArgumentException | Yes |
+| GS-26 | GameState | unknown raise-eligible player | IllegalArgumentException | Yes |
+| GS-27 | GameState | folded pending player | IllegalArgumentException | Yes |
+| GS-28 | GameState | all-in pending player | IllegalArgumentException | Yes |
+| GS-29 | GameState | folded raise-eligible player | IllegalArgumentException | Yes |
+| GS-30 | GameState | unknown actor | IllegalArgumentException | Yes |
+| GS-31 | GameState | blank actor | IllegalArgumentException | Yes |
+| GS-32 | GameState | actor missing with pending decisions | IllegalArgumentException | Yes |
+| GS-33 | GameState | actor not pending | IllegalArgumentException | Yes |
+| GS-34 | GameState | actor exists with no pending decisions | IllegalArgumentException | Yes |
+| GS-35 | GameState; getPlayers; getPlayerStates | Reversed input order then caller clears list | Stored players remain seat-sorted and intact | Yes |
+| GS-36 | getPlayers; getPlayerStates | Mutating returned player lists | UnsupportedOperationException | Yes |
+| GS-37 | getCurrentActorId; getCurrentActorSeat | Round closed with no pending actions | Both actor optionals unavailable | Yes |
+| GS-38 | GameState; getPlayers; getPositions | Heads-up seats 0 and 4 retain all six seat records | Dealer also SB; eliminated seats not renumbered | Yes |
+| GS-39 | GameState; getTotalChips | Cross-player totals exceed long even though each player is valid | IllegalArgumentException | Yes |
+| GS-40 | GameState; getTotalChips | Maximum safe configured six-stack total | Accept without overflow | Yes |
+| GS-41 | getCommittedChips | Invalid seat -1 | IllegalArgumentException | Yes |
+| GS-42 | getCommittedChips | Invalid seat 6 | IllegalArgumentException | Yes |
+| GS-43 | getCommittedChips | Valid endpoint seats 0 and 5 | Return zero commitments | Yes |
+| GS-44 | GameState; getPhase; getCommunityCards; getRemainingDeck | PREFLOP board size 0 | Accept complete dealt-in snapshot | Yes |
+| GS-45 | GameState; getPhase; getCommunityCards; getRemainingDeck | FLOP board size 3 | Accept complete dealt-in snapshot | Yes |
+| GS-46 | GameState; getPhase; getCommunityCards; getRemainingDeck | TURN board size 4 | Accept complete dealt-in snapshot | Yes |
+| GS-47 | GameState; getPhase; getCommunityCards; getRemainingDeck | RIVER board size 5 | Accept complete dealt-in snapshot | Yes |
+| GS-48 | GameState; getPhase; getCommunityCards; getRemainingDeck | SHOWDOWN board size 5 | Accept complete dealt-in snapshot | Yes |
+| GS-49 | GameState | SETUP has invalid board size 3 | IllegalArgumentException | Yes |
+| GS-50 | GameState | PREFLOP has invalid board size 3 | IllegalArgumentException | Yes |
+| GS-51 | GameState | FLOP has invalid board size 2 | IllegalArgumentException | Yes |
+| GS-52 | GameState | FLOP has invalid board size 4 | IllegalArgumentException | Yes |
+| GS-53 | GameState | TURN has invalid board size 3 | IllegalArgumentException | Yes |
+| GS-54 | GameState | TURN has invalid board size 5 | IllegalArgumentException | Yes |
+| GS-55 | GameState | RIVER has invalid board size 4 | IllegalArgumentException | Yes |
+| GS-56 | GameState | RIVER has invalid board size 6 | IllegalArgumentException | Yes |
+| GS-57 | GameState | SHOWDOWN has invalid board size 4 | IllegalArgumentException | Yes |
+| GS-58 | GameState | COMPLETION has invalid board size 2 | IllegalArgumentException | Yes |
+| GS-59 | GameState | same card in two hole-card sets | IllegalArgumentException | Yes |
+| GS-60 | GameState | same card in hole cards and deck | IllegalArgumentException | Yes |
+| GS-61 | GameState | same card in board and deck | IllegalArgumentException | Yes |
+| GS-62 | GameState | same card in board and hole cards | IllegalArgumentException | Yes |
+| GS-63 | GameState | duplicate board card | IllegalArgumentException | Yes |
+| GS-64 | GameState | duplicate deck card | IllegalArgumentException | Yes |
+| GS-65 | GameState | null board element | IllegalArgumentException | Yes |
+| GS-66 | GameState | null deck element | IllegalArgumentException | Yes |
+| GS-67 | GameState | dealt street without all hole cards | IllegalArgumentException | Yes |
+| GS-68 | GameState | setup already contains dealt hole cards | IllegalArgumentException | Yes |
+| GS-69 | GameState | showdown still has actor | IllegalArgumentException | Yes |
+| GS-70 | GameState | completion has unawarded commitments | IllegalArgumentException | Yes |
+| GS-71 | GameState; getPot; getTotalChips | Completed match: one winner, all pots awarded | Pot zero; winner holds all 6000 chips | Yes |
+| GS-72 | GameState; getCommunityCards; getRemainingDeck | Caller mutates supplied board/deck and returned lists | Defensive copy; returned lists unmodifiable | Yes |
+| GS-73 | GameState | Completion snapshot whose unawarded pot overflows long | IllegalArgumentException; no partially constructed state | Yes |
+
+`viewFor(String)` is covered by GV-01–GV-08 in [GameView.md](GameView.md).
+This analysis replaces the earlier basic snapshot analysis after the full state API migration.
