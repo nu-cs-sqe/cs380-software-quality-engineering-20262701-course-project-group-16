@@ -1,5 +1,9 @@
 package domain;
 
+import domain.model.Card;
+import domain.model.Rank;
+import domain.model.Suit;
+
 import static org.junit.jupiter.api.Assertions.*;
 import java.util.*;
 import org.junit.jupiter.api.Test;
@@ -329,7 +333,7 @@ class GameStateTest {
 
     @Test
     void GS_60() {
-        FoundationFixtures.Fixture f=fixture(); f.deal(); f.deck.add(Card.TWO_OF_CLUBS); assertThrows(IllegalArgumentException.class,f::build);
+        FoundationFixtures.Fixture f=fixture(); f.deal(); f.deck.add(new Card(Rank.TWO, Suit.CLUBS)); assertThrows(IllegalArgumentException.class,f::build);
     }
 
     @Test
@@ -339,7 +343,7 @@ class GameStateTest {
 
     @Test
     void GS_62() {
-        FoundationFixtures.Fixture f=fixture(); f.board(GamePhase.FLOP,3); f.community.set(0,Card.TWO_OF_CLUBS); assertThrows(IllegalArgumentException.class,f::build);
+        FoundationFixtures.Fixture f=fixture(); f.board(GamePhase.FLOP,3); f.community.set(0,new Card(Rank.TWO, Suit.CLUBS)); assertThrows(IllegalArgumentException.class,f::build);
     }
 
     @Test
@@ -349,7 +353,7 @@ class GameStateTest {
 
     @Test
     void GS_64() {
-        FoundationFixtures.Fixture f=fixture(); f.deck=new ArrayList<>(List.of(Card.ACE_OF_SPADES,Card.ACE_OF_SPADES)); assertThrows(IllegalArgumentException.class,f::build);
+        FoundationFixtures.Fixture f=fixture(); f.deck=new ArrayList<>(List.of(new Card(Rank.ACE, Suit.SPADES),new Card(Rank.ACE, Suit.SPADES))); assertThrows(IllegalArgumentException.class,f::build);
     }
 
     @Test

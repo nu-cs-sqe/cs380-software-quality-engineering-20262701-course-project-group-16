@@ -1,5 +1,7 @@
 package domain;
 
+import domain.model.Card;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;

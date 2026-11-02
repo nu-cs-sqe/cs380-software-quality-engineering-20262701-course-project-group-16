@@ -62,6 +62,14 @@ Unchecked items remain planned, partially complete, or in need of team verificat
 
 ### Progress evaluation
 
+- The combined integration checkout passes **554 tests**: 488 Member B cases,
+  64 Member A cases and two new cross-component integration cases. The new
+  tests first failed to compile against the two incompatible Card types; the
+  passing implementation uses Member A's immutable value class throughout.
+  The checks verify 12 unique hole cards, 40 remaining cards, actor seat 3,
+  10/20 blinds, 6,000 conserved chips, value-based duplicate rejection and
+  filtered human/bot views. This does not claim a playable setup interface.
+
 - Estella verified her starter build locally. Kevin verified Java 11 and Gradle
   8.10 for the implemented components.
 - Member A's Week 5 code has 64 passing cases: 15 Card, 48 Deck, and one

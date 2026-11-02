@@ -1,5 +1,7 @@
 package domain;
 
+import domain.model.Card;
+
 import java.util.List;
 
 /** Public seat information plus hole cards only for the view owner's seat. */

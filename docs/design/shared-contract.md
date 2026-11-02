@@ -1,9 +1,9 @@
 # Foundation contract
 
 This contract covers immutable state, match initialization, seat order, action messages and
-player-specific views. `GameSetup` prepares the table; Member A supplies deck creation,
-shuffling, dealing and hand evaluation. The betting engine will validate actions, produce
-accepted results, advance streets, handle pots and settle hands. CI follows this work.
+player-specific views. `GameSetup` prepares the table; Member A supplies the shared card/deck model and shuffling/dealing primitives.
+Hand evaluation and the setup/controller wiring remain later work. The betting engine will validate actions, produce
+accepted results, advance streets, handle pots and settle hands. CI builds and tests pushes and pull requests.
 
 ## Settings and seats
 
@@ -131,9 +131,11 @@ contested showdown payouts and uncalled refunds remain distinct engine events; s
 
 ## Card contract and private information
 
-`Card` is a shared enum of 52 immutable values, with ranks 2–14 (ace is 14) and four suits.
-The evaluator handles ace-low straights. Member A can use `Card.values()` as the card
-inventory; this change does not implement shuffling, dealing or evaluation.
+The shared immutable value class is `domain.model.Card`, with `Rank` and `Suit` enums.
+Cards compare by rank and suit, so separately constructed equal values identify the
+same physical card. Member A's `Deck` creates the 52 combinations and supplies shuffle
+and deal operations. The duplicate `domain.Card` enum was removed during integration.
+The evaluator handles rank ordering and ace-low straights when implemented.
 
 The internal state holds all hole cards and the remaining deck. Cards cannot occur in
 more than one stored location. Burned/discarded cards may be absent from the snapshot;
@@ -143,6 +145,10 @@ the flop, 3 on the flop, 4 on the turn, and 5 on the river/showdown.
 ```java
 GameView botInput = state.viewFor(botPlayerId);
 ```
+
+The [setup integration cases](../bva/setup-integration.md) compose `Deck` with these
+snapshots. They transfer the undealt order into the immutable state and verify duplicate
+rejection by value. They do not claim that the setup controller or UI is wired yet.
 
 `GameView` contains public state and `PlayerView` records. Only the selected viewer's
 hole cards are included; every opponent's hole-card list is empty. The view exposes no
