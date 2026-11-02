@@ -68,7 +68,7 @@ local to `feature/setup-dealing`, pending push and teammate review.
   to merged work.
 - [ ] **Review workflow:** verify required reviews and passing CI checks on
   `main`; confirm CI failure detection and record the workflow run link.
-- [ ] **Quality setup:** configure coverage and mutation testing, document
+- [ ] **Later project quality work:** configure coverage and mutation testing, document
   justified exclusions and evaluate the course's required metrics. The manual
   shuffle mutation check is not a full mutation-testing report.
 - [x] **Application initialization:** connect GameSetup and Deck through
@@ -78,6 +78,29 @@ local to `feature/setup-dealing`, pending push and teammate review.
   usable actions for the first human or bot before declaring setup complete.
 
 ### Progress evaluation
+
+**Week 5 result: Member A's planned components are complete, but the team's
+full setup deliverable is not complete yet.** The initialization logic is ready
+on the local integration branch; there is still no launchable game interface.
+
+The test counts describe different component scopes, not a target each person
+must match:
+
+| Scope | Executed test cases |
+| --- | ---: |
+| Member A cards/deck and dealing check | 64 |
+| Member B player/setup/state/action/view/statistics components | 488 |
+| Original cross-component integration | 2 |
+| Combined merged suite before the initializer | **554** |
+| New application initializer | 16 |
+| Current initializer branch total | **570** |
+
+Estella's 488 cases span 15 test classes, including 129 statistics cases and 73
+game-state cases. The original Member A scope has three test classes: Card (15),
+Deck (48) and initial dealing (1). Different responsibilities need different
+numbers of cases. The smaller count alone does not indicate missing work;
+requirements and boundary/failure coverage matter. Coverage and mutation scores
+have not been measured, so test counts do not establish those quality metrics.
 
 - Kevin's Member A work has **64 verified passing component cases**: 15 Card,
   48 Deck and one six-player dealing check. The last local clean build before
@@ -100,6 +123,30 @@ local to `feature/setup-dealing`, pending push and teammate review.
   the components and composition tests are ready. The November 2 follow-up
   adds the application coordinator on `feature/setup-dealing`; the first-turn
   interface and action execution remain unfinished.
+
+### Week 5 completion review (November 2 follow-up)
+
+This review compares the team's original Week 5 plan, the revised setup scope
+and the provided course guidance against the repository. It does not treat
+later hand evaluation, complete betting, pot settlement, equity bots or full
+translation work as completed Week 5 requirements.
+
+| Planned work | Status | Evidence / remaining action |
+| --- | --- | --- |
+| Member A: cards, deck behavior, evaluator interface, BVA and TDD | Complete | Card/Deck, interface-only HandEvaluator, BVA documents and 64 passing cases. |
+| Member B: player/seat/action/state foundations, setup validation and bot assignment | Implemented | Shared model and setup classes, BVA and component tests; statistics extend beyond the original minimal foundation scope. |
+| Build and initial CI | Implemented | Wrapper and CI workflow exist; local full-suite build verified. Required GitHub checks remain a separate verification item. |
+| Shared card/deck/state initialization | Implemented locally | GameInitializer and 16 new cases pass; branch `feature/setup-dealing` still needs push, teammate review and merge. |
+| Final rules and shared agreements | Incomplete | Game rules file is still a placeholder. Reconcile the older 5/10 and current 10/20 blind settings and document the agreed button policy. |
+| Minimal launchable interface and localization structure | Incomplete | `ui/Main.java` is empty; no Swing setup/table screen or localization resources are implemented. Full translation remains later work. |
+| Project board, PR protections and required instructor meeting | Needs external verification | Local files cannot establish current board assignments, enforced GitHub rules or meeting completion. Confirm these and record supporting links/evidence. |
+| Weekly planning and evaluation | Updated | Contributions, test-count breakdown, merged work, remaining tasks and branch status are recorded here. |
+
+The main outstanding Week 5 implementation task is the minimal launchable
+setup/first-turn interface. Finish the rules and verify the board/repository
+workflow alongside it. Keep overall setup unchecked until its acceptance
+criteria are demonstrated; adding tests merely to match a teammate's count
+will not complete those missing behaviors.
 
 ### Next week's priorities
 
