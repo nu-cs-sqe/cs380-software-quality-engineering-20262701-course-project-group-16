@@ -81,3 +81,24 @@ Tests can use `new Deck(new Random(seed))` to repeat a shuffle. Game setup shoul
 - For shuffling, verify preservation of card membership and count; make randomness controllable for repeatable tests. Do not rely on the assertion that every shuffle must change the order.
 - Verify that the initial deal yields six two-card hands, no duplicate cards, and 40 remaining cards.
 - Keep the BVA implementation status linked to actual test methods. Do not mark uniqueness complete based on a size-only test.
+
+## Application initialization checkpoint
+
+The application will call `application.GameInitializer.start(int humanCount)`.
+Keep `GameSetup.create` as the existing table-only SETUP operation. The new
+coordinator combines it with a fresh Deck and returns a PREFLOP snapshot, without
+implementing Swing or betting actions. Changing GameSetup itself would alter its
+existing contract; a separate coordinator lets the application start a dealt
+match while retaining the lower-level setup API and tests.
+
+The default constructor uses GameConfig defaults and normal random sources.
+The injected constructor takes `(GameConfig, Random dealerRandom, Random deckRandom)`
+for repeatable tests and rejects null dependencies with IllegalArgumentException.
+Validate human counts through GameSetup before shuffling. Deal one card per seat
+clockwise after the dealer, twice; rebuild PlayerState records preserving their
+players, statuses and contributions, then transfer the remaining 40-card order
+into GameState. Preserve the selected actor, blind positions and betting data.
+A repeated start creates a separate match with a new deck and identities.
+
+The [GameInitializer BVA](../bva/GameInitializer.md) defines the current RED tests.
+Application screen wiring remains the next checkpoint.

@@ -19,6 +19,7 @@ the course rule; view models also have privacy and immutability cases.
 | `SeatOrder` | [SeatOrder.md](SeatOrder.md) |
 | `GameState` | [GameState.md](GameState.md) |
 | `GameSetup` | [GameSetup.md](GameSetup.md) |
+| `GameInitializer` | [GameInitializer.md](GameInitializer.md) |
 | `GameView` | [GameView.md](GameView.md) |
 | `PlayerView` | [PlayerView.md](PlayerView.md) |
 | `PlayStats` | [PlayStats.md](PlayStats.md) |
