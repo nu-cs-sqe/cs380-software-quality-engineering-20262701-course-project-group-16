@@ -4,7 +4,6 @@ import application.SetupSession;
 import java.awt.Dimension;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.util.Locale;
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 
@@ -14,7 +13,7 @@ public final class Main {
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            GamePanel panel = new GamePanel(new SetupSession(), Locale.getDefault());
+            GamePanel panel = new GamePanel(new SetupSession());
             JFrame frame = new JFrame("Texas Hold'em - Group 16");
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             frame.setContentPane(panel);

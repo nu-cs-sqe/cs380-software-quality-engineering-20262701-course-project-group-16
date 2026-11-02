@@ -32,7 +32,7 @@ The project uses Java 11. The shared card/deck model belongs in `domain.model`; 
 | `GameSetup` | Validate configuration and initialize the table before dealing | Estella (Member B) |
 | `GameInitializer` | Combine GameSetup and Deck into a dealt first PREFLOP state | Kevin, shared integration |
 | `SetupSession` / `SetupView` | Own the match and expose public data plus explicitly revealed human cards | Kevin, shared integration |
-| `GamePanel` / `Main` | Swing input, table display, localized labels and private-card handoffs | Kevin, shared interface |
+| `GamePanel` / `Main` | Swing input, table display, English labels and private-card handoffs | Kevin, shared interface |
 
 `Player`, `PlayerState`, `GameState`, and `GameSetup` are implemented. The [shared contract](shared-contract.md) defines their APIs; the combined integration cases verify card/deck interoperability. The application initializer is implemented; the Swing screen calls it through SetupSession. Game rules and validation stay in Java application/model code rather than in Swing event handlers.
 
@@ -118,19 +118,26 @@ empty. It clearly identifies this as a setup preview without betting actions.
 `SetupSession` owns the real GameState and calls GameInitializer. Its immutable
 SetupView contains public players, positions, pot/remainder and only explicitly
 revealed cards for the selected human. The screen never receives the internal
-state or the deck. Human selection, invalid input, restart and language changes
-hide cards. A failed restart preserves the prior match. This is a shared-computer
+state or the deck. Human selection, invalid input and restart hide cards. A failed restart preserves the prior match. This is a shared-computer
 handoff, not an authenticated restriction on selecting human seats.
 
-English and Chinese resource bundles live under `src/main/resources/ui`.
-Language changes preserve the match and hide cards. Java sources compile as
-UTF-8; Swing component tests run on the event thread in headless mode.
+The English labels live in `src/main/resources/ui/messages.properties`.
+There is no language selector or additional translation bundle. Labels and
+number formatting stay English regardless of the computer's language settings.
+Java sources compile as UTF-8; Swing component tests run on the event thread in
+headless mode.
 
 Session TDD: RED `bc5accd` (19 expected failures), GREEN `88a535b` (20 cases).
-Swing TDD: RED `36a2975` (12 expected failures), then a passing full build of
-602 tests, zero failures/errors/skips. Component tests cover input errors,
-private reveals/handoffs, restart, language changes and the focus-loss hiding
-callback using real session/setup/deck/state classes with controlled randomness.
-Native window focus delivery still needs a teammate desktop check; offscreen
-English/Chinese renders verify layout. Views and Main use the course BVA exemption;
-[SetupSession BVA](../bva/SetupSession.md) covers the application behavior.
+Original Swing checkpoints: RED `36a2975`, GREEN `58f968a`; locale regression
+RED `217434e`, GREEN `2ac9fe3`. That checkpoint passed 603 tests. The English-only
+revision removes three translation-specific cases and adds one regression for
+English labels, validation and private-card reveals under a non-English system
+locale. This new case failed before the change; the full clean build now passes
+601 tests, zero failures/errors/skips. The revision is pending the user's commit.
+
+Component tests cover input errors, private reveals/handoffs, restart, English
+labels and the focus-loss hiding callback using real session/setup/deck/state
+classes with controlled randomness. Native window focus delivery still needs a
+teammate desktop check; offscreen renders verify layout. Views and Main use the
+course BVA exemption; [SetupSession BVA](../bva/SetupSession.md) covers the
+application behavior.

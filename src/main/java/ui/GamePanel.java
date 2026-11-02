@@ -34,7 +34,6 @@ public final class GamePanel extends JPanel {
     private static final Color GOLD = new Color(224, 184, 92);
     private final SetupSession session;
     private final JTextField humanCount = named(new JTextField("1"), "humanCount");
-    private final JComboBox<String> language = named(new JComboBox<>(new String[]{"English", "中文"}), "language");
     private final JComboBox<String> viewers = named(new JComboBox<>(), "viewers");
     private final JButton start = named(new JButton(), "start");
     private final JButton reveal = named(new JButton(), "reveal");
@@ -47,14 +46,12 @@ public final class GamePanel extends JPanel {
     private final JLabel[] holes = new JLabel[2];
     private final JPanel seats = new JPanel(new GridLayout(2, 3, 12, 12));
     private final List<Player> humanViewers = new ArrayList<>();
-    private ResourceBundle messages;
-    private Locale locale;
+    private final ResourceBundle messages = ResourceBundle.getBundle("ui.messages", Locale.ROOT,
+            ResourceBundle.Control.getNoFallbackControl(ResourceBundle.Control.FORMAT_DEFAULT));
     private boolean rendering;
 
-    public GamePanel(SetupSession session, Locale locale) {
+    public GamePanel(SetupSession session) {
         this.session = java.util.Objects.requireNonNull(session, "session");
-        this.locale = java.util.Objects.requireNonNull(locale, "locale");
-        language.setSelectedIndex("zh".equals(locale.getLanguage()) ? 1 : 0);
         start.addActionListener(event -> startGame());
         humanCount.addActionListener(event -> startGame());
         viewers.addActionListener(event -> {
@@ -65,11 +62,6 @@ public final class GamePanel extends JPanel {
         });
         reveal.addActionListener(event -> { session.revealCards(); refresh(); });
         hide.addActionListener(event -> hidePrivateCards());
-        language.addActionListener(event -> {
-            session.hideCards();
-            this.locale = language.getSelectedIndex() == 1 ? Locale.SIMPLIFIED_CHINESE : Locale.ENGLISH;
-            buildScreen();
-        });
         setPreferredSize(new Dimension(1100, 740));
         buildScreen();
     }
@@ -81,7 +73,6 @@ public final class GamePanel extends JPanel {
     }
 
     private void buildScreen() {
-        messages = ResourceBundle.getBundle("ui.messages", locale);
         removeAll();
         setLayout(new BorderLayout(18, 18));
         setBackground(INK);
@@ -89,7 +80,6 @@ public final class GamePanel extends JPanel {
         JPanel header = transparent(new BorderLayout());
         JLabel title = label(text("title"), 27, Color.WHITE);
         header.add(title, BorderLayout.WEST);
-        header.add(language, BorderLayout.EAST);
         add(header, BorderLayout.NORTH);
 
         JPanel sidebar = new JPanel();
@@ -227,7 +217,7 @@ public final class GamePanel extends JPanel {
     }
 
     private String text(String key, Object... arguments) {
-        return new MessageFormat(messages.getString(key), locale).format(arguments);
+        return new MessageFormat(messages.getString(key), Locale.ENGLISH).format(arguments);
     }
 
     private static String cardText(Card card) {

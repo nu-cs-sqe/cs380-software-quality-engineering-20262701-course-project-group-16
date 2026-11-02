@@ -5,8 +5,8 @@ filling the remaining seats. Players share one computer and use virtual chips.
 A match ends when one player holds all the chips.
 
 **Status:** A launchable Swing setup preview initializes six seats, chips, dealer,
-blinds and two hole cards per player. English and Chinese labels and private-card
-handoffs are available. Full betting, hand evaluation, settlement and equity bots
+blinds and two hole cards per player. The interface uses English labels and
+supports private-card handoffs. Full betting, hand evaluation, settlement and equity bots
 are still future work; the full game is not yet playable.
 
 ## Contributors
@@ -62,9 +62,9 @@ With the JDKs configured above, run `bash ./gradlew run` (Windows:
 `.\gradlew.bat run`) on a computer with a desktop display. Enter 1–6 human
 players and choose **Start Game**; bots fill the remaining seats. The highlighted
 seat is the first actor. Select a human in **Private hand** and pass the computer
-to that person before choosing **Reveal cards**. Switching humans, restarting,
-changing language or leaving the window hides the cards. English and Chinese
-can be selected from the language menu before or after setup.
+to that person before choosing **Reveal cards**. Switching humans, restarting
+or leaving the window hides the cards. The interface is English-only, regardless
+of the computer's language settings.
 
 This is shared-computer privacy by handoff, not authentication: anyone using the
 computer can select another human. Betting controls and bot turns are not

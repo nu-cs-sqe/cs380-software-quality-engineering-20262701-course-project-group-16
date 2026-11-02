@@ -48,7 +48,7 @@ merged; the initializer and Swing follow-ups still need push and teammate review
 - [x] **CI workflow:** automatic build/tests on pushes and PRs.
 - [x] **Shared toolchain:** Gradle 9.7.1 runs locally on JDK 17 and in CI on JDK 25; compilation/tests use JDK 11.
 - [ ] **Requirements:** complete the [game rules](requirements/game-rules.md), currently a placeholder; reconcile 5/10 versus 10/20 blinds and the button policy.
-- [x] **UI and languages:** Swing setup preview, English/Chinese resources and private-card handoffs implemented locally on `feature/swing-setup`; native desktop walkthrough still pending.
+- [x] **Setup UI:** English-only Swing setup preview, label resources and private-card handoffs implemented locally on `feature/swing-setup`; native desktop walkthrough still pending.
 - [x] **Initial model/setup design:** document responsibilities and APIs in the [design documents](design/README.md).
 - [ ] **Project board:** confirm assignees, status and PR links; record instructor-meeting evidence.
 - [ ] **Review workflow:** verify required reviews/CI enforcement and failure detection; add the workflow run link.
@@ -68,10 +68,9 @@ runs locally with Gradle 9.7.1 on JDK 17 and the JDK 11 toolchain.
 Setup/dealing tests verify two cards per player, 40 remaining, correct positions,
 10/20 blinds, 6,000 conserved chips and private views. The initializer now does
 this in application code. The later November 2 Swing follow-up adds a launchable
-setup preview (603 tests total); betting actions remain absent. Finish the
+setup preview (601 tests after the English-only revision); betting actions remain absent. Finish the
 rules and verify board/review settings. Hand evaluation is still an
-interface; full betting, settlement, equity bots and complete translations are
-later milestones. Coverage and mutation scores have not been measured.
+interface; full betting, settlement and equity bots are later milestones. Coverage and mutation scores have not been measured.
 
 ### Next week's priorities
 
@@ -98,14 +97,15 @@ provide a Swing setup preview with private-card handoffs.
 | Kevin | Verified the merged project and new coordinator on this computer using JDK 17 for Gradle 9.7.1 and JDK 11 for compilation/tests. Updated README build instructions. | Clean build: 570 tests, zero failures, errors or skips. |
 | Kevin | Moved all domain classes and matching tests into `domain.model`, retaining application/UI packages. | `d0109ec`; clean build: 570 tests. |
 | Kevin | Added a setup session and immutable public view with explicit human-card reveals and safe handoffs/restarts. | RED `bc5accd`; GREEN `88a535b`; [20 session BVA cases](bva/SetupSession.md), full suite 590 passing. |
-| Kevin | Built the Swing setup preview with seats/chips/blinds/actor, human selection, reveal/hide, English/Chinese resources and Gradle launch task. | RED `36a2975`; GREEN `58f968a`; 13 GUI behavior cases (locale fix: RED `217434e`, GREEN `2ac9fe3`); full clean build: 603 tests, zero failures/errors/skips; offscreen English/Chinese layout checks. |
+| Kevin | Built the Swing setup preview with seats/chips/blinds/actor, human selection, reveal/hide, label resources and Gradle launch task. | RED `36a2975`; GREEN `58f968a`; 13 GUI behavior cases (locale fix: RED `217434e`, GREEN `2ac9fe3`); full clean build: 603 tests, zero failures/errors/skips; offscreen layout checks. |
+| Kevin | Simplified the interface to English only, removed the language selector and extra translation bundle, and updated the tests and documentation. | English-only regression observed RED, then GREEN; current clean build: 601 tests (11 GUI cases), zero failures/errors/skips. Changes are pending the user's commit and push. |
 
 ### Integration checklist
 
 - [x] Connect GameSetup and Deck through GameInitializer to produce a dealt PREFLOP state.
 - [x] Preserve dealer, blinds, first actor, chip totals and private player views.
 - [x] Document BVA and complete the RED/GREEN cycle for 16 coordinator cases.
-- [x] Verify the full clean build: 603 tests pass after the session and interface additions.
+- [x] Verify the full clean build: 601 tests pass after the English-only revision.
 - [ ] Push `feature/swing-setup` (includes initializer commits), open a PR and complete teammate review before merging.
 - [x] Connect the Swing setup screen and private-card handoffs to the initializer.
 - [ ] Complete a native desktop walkthrough, including focus-loss hiding, with the teammate.
@@ -119,7 +119,8 @@ provide a Swing setup preview with private-card handoffs.
   conserved chips, preserved blind/actor/status data and private player views.
 - Initialization was committed on `feature/setup-dealing`; package consolidation,
   session and Swing work continue on `feature/swing-setup`, which includes the
-  initializer history. These follow-ups still need push, teammate review and merge.
+  initializer history. The earlier checkpoints were pushed; the English-only
+  revision is uncommitted and unpushed, with teammate review and merge still pending.
 - The Swing setup preview is implemented locally; action execution remains future
   work. The full first-turn readiness requirement stays open. Real components run
   together in tests; fixed dealer stubs and seeded shuffles control randomness,

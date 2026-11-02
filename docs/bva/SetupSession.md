@@ -31,8 +31,9 @@ before starting/restarting, selecting a viewer, or reporting invalid input.
 There are 20 passing cases. RED commit `bc5accd` ran 20 cases with 19 expected
 assertion failures for missing initialization, validation and privacy behavior.
 The empty-session/hide case already passed. The GREEN session passes all 20;
-the session checkpoint passed 590 tests. The subsequent Swing checkpoint passes
-602 tests with zero failures, errors or skips.
+the session checkpoint passed 590 tests. The original Swing checkpoint passed
+603 tests; the current English-only revision passes 601 tests with zero failures,
+errors or skips.
 
 SetupView is a view model (course view exemption); its data and privacy are
 checked through these session tests. UI callbacks use the session on the Swing

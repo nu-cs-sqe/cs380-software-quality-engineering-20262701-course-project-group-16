@@ -22,7 +22,7 @@ class GamePanelTest {
     @Test
     void initialScreenWaitsForAStartAndCannotRevealCards() throws Exception {
         onEdt(() -> {
-            GamePanel panel = panel(new SetupSession(), Locale.ENGLISH);
+            GamePanel panel = panel(new SetupSession());
             assertEquals("Start Game", find(panel, "start", JButton.class).getText());
             assertFalse(find(panel, "reveal", JButton.class).isEnabled());
             assertFalse(find(panel, "viewers", JComboBox.class).isEnabled());
@@ -34,7 +34,7 @@ class GamePanelTest {
     void startButtonDisplaysInitializedSeatsAndFirstActor() throws Exception {
         onEdt(() -> {
             SetupSession session = session();
-            GamePanel panel = panel(session, Locale.ENGLISH);
+            GamePanel panel = panel(session);
             start(panel, "2");
             assertEquals(6, session.getView().orElseThrow().getPlayers().size());
             assertEquals("Human 1", find(panel, "seatName0", JLabel.class).getText());
@@ -52,7 +52,7 @@ class GamePanelTest {
     @Test
     void humanHandoffHidesPreviousCardsAndNeverRevealsOtherSeats() throws Exception {
         onEdt(() -> {
-            GamePanel panel = panel(session(), Locale.ENGLISH);
+            GamePanel panel = panel(session());
             start(panel, "2");
             find(panel, "reveal", JButton.class).doClick();
             assertEquals("A ♥", find(panel, "hole0", JLabel.class).getText());
@@ -72,7 +72,7 @@ class GamePanelTest {
     @Test
     void hideAndRestartBothConcealPrivateCards() throws Exception {
         onEdt(() -> {
-            GamePanel panel = panel(session(), Locale.ENGLISH);
+            GamePanel panel = panel(session());
             start(panel, "2");
             find(panel, "reveal", JButton.class).doClick();
             find(panel, "hide", JButton.class).doClick();
@@ -84,30 +84,12 @@ class GamePanelTest {
         });
     }
 
-    @Test
-    void languageChangeKeepsMatchButHidesCards() throws Exception {
-        onEdt(() -> {
-            SetupSession session = session();
-            GamePanel panel = panel(session, Locale.ENGLISH);
-            start(panel, "2");
-            String id = session.getView().orElseThrow().getPlayers().get(0).getId();
-            find(panel, "reveal", JButton.class).doClick();
-            find(panel, "language", JComboBox.class).setSelectedIndex(1);
-            assertEquals("开始游戏", find(panel, "start", JButton.class).getText());
-            assertEquals("人类玩家 1", find(panel, "seatName0", JLabel.class).getText());
-            assertEquals("--", find(panel, "hole0", JLabel.class).getText());
-            assertEquals(id, session.getView().orElseThrow().getPlayers().get(0).getId());
-            find(panel, "language", JComboBox.class).setSelectedIndex(0);
-            assertEquals("Start Game", find(panel, "start", JButton.class).getText());
-        });
-    }
-
     @ParameterizedTest
     @ValueSource(strings = {"0", "7", "abc", "", "2147483648"})
     void invalidInputShowsAnErrorAndHidesThePreviousHand(String input) throws Exception {
         onEdt(() -> {
             SetupSession session = session();
-            GamePanel panel = panel(session, Locale.ENGLISH);
+            GamePanel panel = panel(session);
             start(panel, "2");
             String id = session.getView().orElseThrow().getPlayers().get(0).getId();
             find(panel, "reveal", JButton.class).doClick();
@@ -121,7 +103,7 @@ class GamePanelTest {
     @Test
     void privacyResetUsedOnWindowDeactivationHidesCards() throws Exception {
         onEdt(() -> {
-            GamePanel panel = panel(session(), Locale.ENGLISH);
+            GamePanel panel = panel(session());
             assertDoesNotThrow(panel::hidePrivateCards);
             start(panel, "1");
             find(panel, "reveal", JButton.class).doClick();
@@ -131,17 +113,28 @@ class GamePanelTest {
     }
 
     @Test
-    void chineseLocaleIsAvailableAtStartup() throws Exception {
-        onEdt(() -> {
-            GamePanel panel = panel(session(), Locale.SIMPLIFIED_CHINESE);
-            assertEquals("开始游戏", find(panel, "start", JButton.class).getText());
-            start(panel, "0");
-            assertEquals("请输入 1 到 6 之间的整数。", find(panel, "error", JLabel.class).getText());
-        });
+    void setupUsesEnglishRegardlessOfSystemLanguage() throws Exception {
+        Locale original = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag("zh-CN"));
+            onEdt(() -> {
+                GamePanel panel = panel(session());
+                assertEquals("Start Game", find(panel, "start", JButton.class).getText());
+                assertNull(locate(panel, "language"), "The English-only screen needs no language selector");
+                start(panel, "0");
+                assertEquals("Enter a whole number from 1 to 6.", find(panel, "error", JLabel.class).getText());
+                start(panel, "2");
+                assertEquals("Human 1", find(panel, "seatName0", JLabel.class).getText());
+                find(panel, "reveal", JButton.class).doClick();
+                assertEquals("A ♥", find(panel, "hole0", JLabel.class).getText());
+            });
+        } finally {
+            Locale.setDefault(original);
+        }
     }
 
-    private static GamePanel panel(SetupSession session, Locale locale) {
-        return new GamePanel(session, locale);
+    private static GamePanel panel(SetupSession session) {
+        return new GamePanel(session);
     }
 
     private static SetupSession session() {
