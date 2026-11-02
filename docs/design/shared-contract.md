@@ -2,7 +2,7 @@
 
 This contract covers immutable state, match initialization, seat order, action messages and
 player-specific views. `GameSetup` prepares the table; Member A supplies the shared card/deck model and shuffling/dealing primitives.
-Hand evaluation and the setup/controller wiring remain later work. The betting engine will validate actions, produce
+The application initializer and Swing setup session now connect setup and dealing. Hand evaluation remains later work. The betting engine will validate actions, produce
 accepted results, advance streets, handle pots and settle hands. CI builds and tests pushes and pull requests.
 
 ## Settings and seats

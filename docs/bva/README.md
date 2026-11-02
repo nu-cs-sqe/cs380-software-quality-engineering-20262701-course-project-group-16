@@ -1,8 +1,9 @@
 # BVA index
 
 Every listed case identifies methods, input/system state, expected output and implementation
-status. JUnit method names use the same IDs with underscores. Enums are excluded under
-the course rule; view models also have privacy and immutability cases.
+status. Tables map case IDs to JUnit methods (parameterized methods may cover
+several IDs). Enums are excluded under the course rule; view models also have
+privacy and immutability cases.
 
 | Class | Analysis |
 | --- | --- |

@@ -28,5 +28,7 @@ then produces a new snapshot and `AcceptedAction`. Bots and the interface receiv
 `GameView`; profiles and saved statistics stay separate from live match state.
 
 Implemented here: initialization and immutable contracts. Betting execution, street
-advancement, pot settlement, bot strategy, profile storage and interface follow later.
+advancement, pot settlement, bot strategy and profile storage follow later.
+The Swing setup preview uses SetupSession and
+SetupView to display initialization and private-card handoffs; see [setup design](game-setup.md).
 CI builds and tests pushes and pull requests.

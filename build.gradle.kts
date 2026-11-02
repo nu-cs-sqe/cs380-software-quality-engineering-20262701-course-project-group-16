@@ -1,5 +1,6 @@
 plugins {
     id("java")
+    id("application")
 }
 
 group = "nu.csse.sqe"
@@ -32,4 +33,8 @@ tasks.withType<JavaCompile>().configureEach {
 tasks.test {
     useJUnitPlatform()
     systemProperty("java.awt.headless", "true")
+}
+
+application {
+    mainClass.set("ui.Main")
 }

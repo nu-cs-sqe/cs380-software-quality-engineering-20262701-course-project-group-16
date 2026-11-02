@@ -4,12 +4,10 @@ A Java desktop no-limit Texas Hold'em game with six seats for 1–6 humans and b
 filling the remaining seats. Players share one computer and use virtual chips.
 A match ends when one player holds all the chips.
 
-**Status:** Cards, deck behavior, table initialization, immutable game state and
-statistics are implemented. The application
-initializer now combines table setup and dealing into a first PREFLOP state.
-The Swing interface still needs to call it and display the initialized game. The full game is not yet
-playable. Java Swing is selected; the two startup languages remain to be confirmed.
-Betting execution, hand evaluation, equity bots and the interface remain future work.
+**Status:** A launchable Swing setup preview initializes six seats, chips, dealer,
+blinds and two hole cards per player. English and Chinese labels and private-card
+handoffs are available. Full betting, hand evaluation, settlement and equity bots
+are still future work; the full game is not yet playable.
 
 ## Contributors
 
@@ -56,17 +54,32 @@ If Gradle cannot find an installed JDK 11, set `JAVA_HOME_11` to that JDK
 installation directory and add
 `-Porg.gradle.java.installations.fromEnv=JAVA_HOME_11` to the Gradle command.
 
-Test reports appear at `build/reports/tests/test/index.html`. Game launch
-instructions will be added when a playable interface is available.
+Test reports appear at `build/reports/tests/test/index.html`.
+
+## Run the setup preview
+
+With the JDKs configured above, run `bash ./gradlew run` (Windows:
+`.\gradlew.bat run`) on a computer with a desktop display. Enter 1–6 human
+players and choose **Start Game**; bots fill the remaining seats. The highlighted
+seat is the first actor. Select a human in **Private hand** and pass the computer
+to that person before choosing **Reveal cards**. Switching humans, restarting,
+changing language or leaving the window hides the cards. English and Chinese
+can be selected from the language menu before or after setup.
+
+This is shared-computer privacy by handoff, not authentication: anyone using the
+computer can select another human. Betting controls and bot turns are not
+implemented. Tests run headlessly, without opening a desktop window.
 
 ## Application initialization
 
 `new application.GameInitializer().start(humanCount)` starts a new match for
 1-6 humans with bots filling six seats. It initializes chips, dealer, blinds
 and first actor, shuffles a fresh deck, deals two cards per seat, and returns
-a PREFLOP GameState with 40 cards remaining. Interface code should request
-`state.viewFor(playerId)` so opponents' cards and the remaining deck stay private.
-This is an application API; a playable Swing entry point is not implemented yet.
+a PREFLOP GameState with 40 cards remaining. The Swing screen uses
+`application.SetupSession` and its immutable `SetupView`, which expose public
+player information and only the selected human's cards after explicit reveal.
+All domain classes are under `domain.model`; coordinators stay in `application`
+and Swing classes stay in `ui`.
 
 ## Continuous integration
 

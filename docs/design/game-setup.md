@@ -4,7 +4,7 @@
 
 Initialize a Texas Hold'em game so it is ready for the first preflop turn. This document separates the completed Member A components from the remaining setup integration.
 
-Member A's Week 5 components are implemented: immutable cards with value equality, a full 52-card deck, controlled shuffling, validated dealing, and immutable returned hands. The six-player dealing sequence is tested. The application GameInitializer now combines table setup and dealing into a PREFLOP state. The full game is not playable yet; Swing and betting/action execution still need integration.
+Member A's Week 5 components are implemented: immutable cards with value equality, a full 52-card deck, controlled shuffling, validated dealing, and immutable returned hands. The six-player dealing sequence is tested. The application GameInitializer now combines table setup and dealing into a PREFLOP state. The Swing setup preview now calls that initializer and displays the dealt state. Full betting/action execution is still future work.
 
 ## Requirements
 
@@ -31,9 +31,10 @@ The project uses Java 11. The shared card/deck model belongs in `domain.model`; 
 | `GameState` | Hold players, dealer/blind positions, contributions, and current actor | Member B |
 | `GameSetup` | Validate configuration and initialize the table before dealing | Estella (Member B) |
 | `GameInitializer` | Combine GameSetup and Deck into a dealt first PREFLOP state | Kevin, shared integration |
-| Swing views | Read input and display setup state and private cards | Shared |
+| `SetupSession` / `SetupView` | Own the match and expose public data plus explicitly revealed human cards | Kevin, shared integration |
+| `GamePanel` / `Main` | Swing input, table display, localized labels and private-card handoffs | Kevin, shared interface |
 
-`Player`, `PlayerState`, `GameState`, and `GameSetup` are implemented. The [shared contract](shared-contract.md) defines their APIs; the combined integration cases verify card/deck interoperability. The application initializer is implemented; the UI still needs wiring. Game rules and validation stay in Java application/model code rather than in Swing event handlers.
+`Player`, `PlayerState`, `GameState`, and `GameSetup` are implemented. The [shared contract](shared-contract.md) defines their APIs; the combined integration cases verify card/deck interoperability. The application initializer is implemented; the Swing screen calls it through SetupSession. Game rules and validation stay in Java application/model code rather than in Swing event handlers.
 
 ## Member A interface
 
@@ -63,8 +64,8 @@ For the six-player initial deal, the setup coordinator requests one card per sea
 The team selected 1,000 starting chips per player, fixed 10/20 blinds, a random first dealer, and no rebuys. These initialization settings are in `GameConfig` and the shared contract. Complete game-rule documentation remains to be finished.
 
 - `handContribution` includes `roundContribution`; the pot is derived from whole-hand contributions.
-- Use `GameInitializer.start(humanCount)` to create the first PREFLOP snapshot; connect it to the interface.
-- How the Swing interface hides/reveals cards when humans share a computer and starts the turn if the first actor is a bot.
+- Use `GameInitializer.start(humanCount)` through SetupSession to create the first PREFLOP snapshot.
+- Private-card handoffs are implemented; executing the first turn, including a bot turn, remains future work.
 
 Full betting rounds and hand evaluation are later work. `HandEvaluator.compare(List<Card>, List<Card>)` is an interface only: each input has seven non-null distinct cards, shared community cards may occur in both lists, and the result is positive/zero/negative for first stronger/tied/second stronger. Neither input may be modified. Invalid-size/duplicate inputs require `IllegalArgumentException`; null lists/cards require `NullPointerException`. Its planned BVA cases are in `docs/bva/HandEvaluator.md`; no evaluator behavior is implemented or claimed tested yet.
 
@@ -103,5 +104,33 @@ A repeated start creates a separate match with a new deck and identities.
 
 The [GameInitializer BVA](../bva/GameInitializer.md) maps all 16 passing cases
 and records the RED checkpoint. The full clean build passes 570 tests. The
-existing GameSetup tests and SETUP contract remain unchanged. Application screen
-wiring remains the next checkpoint.
+existing GameSetup tests and SETUP contract remain unchanged. The Swing session and screen are described below.
+
+
+## Swing setup preview
+
+Launch `ui.Main` using `bash ./gradlew run`. `Main` creates the window on the
+Swing event thread and hides private cards when the window deactivates.
+`GamePanel` accepts a human count, displays six occupied seats, chips,
+dealer/blinds, first actor, pot and deck remainder, and leaves community cards
+empty. It clearly identifies this as a setup preview without betting actions.
+
+`SetupSession` owns the real GameState and calls GameInitializer. Its immutable
+SetupView contains public players, positions, pot/remainder and only explicitly
+revealed cards for the selected human. The screen never receives the internal
+state or the deck. Human selection, invalid input, restart and language changes
+hide cards. A failed restart preserves the prior match. This is a shared-computer
+handoff, not an authenticated restriction on selecting human seats.
+
+English and Chinese resource bundles live under `src/main/resources/ui`.
+Language changes preserve the match and hide cards. Java sources compile as
+UTF-8; Swing component tests run on the event thread in headless mode.
+
+Session TDD: RED `bc5accd` (19 expected failures), GREEN `88a535b` (20 cases).
+Swing TDD: RED `36a2975` (12 expected failures), then a passing full build of
+602 tests, zero failures/errors/skips. Component tests cover input errors,
+private reveals/handoffs, restart, language changes and the focus-loss hiding
+callback using real session/setup/deck/state classes with controlled randomness.
+Native window focus delivery still needs a teammate desktop check; offscreen
+English/Chinese renders verify layout. Views and Main use the course BVA exemption;
+[SetupSession BVA](../bva/SetupSession.md) covers the application behavior.
