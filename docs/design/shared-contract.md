@@ -60,8 +60,13 @@ and amounts owed to decide whether a betting round is finished.
 
 `GameSetup` returns `SETUP`: blinds are posted and the future first actor is identified,
 but hole cards, community cards and remaining-deck contents are empty. No betting may be
-accepted yet. Member A's dealing integration constructs a new `PREFLOP` snapshot with two
-hole cards for each dealt-in player and an immutable remaining deck in deal order.
+accepted yet. The application's `application.GameInitializer.start(humanCount)` calls this
+setup operation, creates and shuffles a fresh Deck, and deals two rounds clockwise
+after the dealer. It returns a `PREFLOP` snapshot with two hole cards per player
+and the immutable 40-card remainder in deal order, preserving the table's chips,
+statuses, positions and actor. Its injected constructor accepts GameConfig and
+separate dealer/deck Random sources; see the [initializer BVA](../bva/GameInitializer.md).
+The Swing interface still needs to call this coordinator.
 
 ## Current state and chip accounting
 

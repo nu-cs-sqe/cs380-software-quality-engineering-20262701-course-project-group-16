@@ -4,7 +4,7 @@
 
 Initialize a Texas Hold'em game so it is ready for the first preflop turn. This document separates the completed Member A components from the remaining setup integration.
 
-Member A's Week 5 components are implemented: immutable cards with value equality, a full 52-card deck, controlled shuffling, validated dealing, and immutable returned hands. The six-player dealing sequence is tested. This does not make the full game playable; Member B and shared setup/UI integration are still required.
+Member A's Week 5 components are implemented: immutable cards with value equality, a full 52-card deck, controlled shuffling, validated dealing, and immutable returned hands. The six-player dealing sequence is tested. The application GameInitializer now combines table setup and dealing into a PREFLOP state. The full game is not playable yet; Swing and betting/action execution still need integration.
 
 ## Requirements
 
@@ -29,10 +29,11 @@ The project uses Java 11. The shared card/deck model belongs in `domain.model`; 
 | `HandEvaluator` (interface only) | Define the Week 6 comparison contract | Kevin (Member A) |
 | `Player` / `PlayerState` | Hold identity, seat, chips, per-hand status, cards and contributions | Estella (Member B) |
 | `GameState` | Hold players, dealer/blind positions, contributions, and current actor | Member B |
-| `GameSetup` | Validate configuration and coordinate initialization using the model | Member B, integrated together |
+| `GameSetup` | Validate configuration and initialize the table before dealing | Estella (Member B) |
+| `GameInitializer` | Combine GameSetup and Deck into a dealt first PREFLOP state | Kevin, shared integration |
 | Swing views | Read input and display setup state and private cards | Shared |
 
-`Player`, `PlayerState`, `GameState`, and `GameSetup` are implemented. The [shared contract](shared-contract.md) defines their APIs; the combined integration cases verify card/deck interoperability. The controller/UI still needs wiring. Game rules and validation stay in Java application/model code rather than in Swing event handlers.
+`Player`, `PlayerState`, `GameState`, and `GameSetup` are implemented. The [shared contract](shared-contract.md) defines their APIs; the combined integration cases verify card/deck interoperability. The application initializer is implemented; the UI still needs wiring. Game rules and validation stay in Java application/model code rather than in Swing event handlers.
 
 ## Member A interface
 
@@ -62,7 +63,7 @@ For the six-player initial deal, the setup coordinator requests one card per sea
 The team selected 1,000 starting chips per player, fixed 10/20 blinds, a random first dealer, and no rebuys. These initialization settings are in `GameConfig` and the shared contract. Complete game-rule documentation remains to be finished.
 
 - `handContribution` includes `roundContribution`; the pot is derived from whole-hand contributions.
-- Use the implemented shared state APIs and transfer dealt cards/remaining order into a new PREFLOP snapshot; finish controller wiring.
+- Use `GameInitializer.start(humanCount)` to create the first PREFLOP snapshot; connect it to the interface.
 - How the Swing interface hides/reveals cards when humans share a computer and starts the turn if the first actor is a bot.
 
 Full betting rounds and hand evaluation are later work. `HandEvaluator.compare(List<Card>, List<Card>)` is an interface only: each input has seven non-null distinct cards, shared community cards may occur in both lists, and the result is positive/zero/negative for first stronger/tied/second stronger. Neither input may be modified. Invalid-size/duplicate inputs require `IllegalArgumentException`; null lists/cards require `NullPointerException`. Its planned BVA cases are in `docs/bva/HandEvaluator.md`; no evaluator behavior is implemented or claimed tested yet.
@@ -84,8 +85,8 @@ Tests can use `new Deck(new Random(seed))` to repeat a shuffle. Game setup shoul
 
 ## Application initialization checkpoint
 
-The application will call `application.GameInitializer.start(int humanCount)`.
-Keep `GameSetup.create` as the existing table-only SETUP operation. The new
+The application can call `application.GameInitializer.start(int humanCount)`.
+Keep `GameSetup.create` as the existing table-only SETUP operation. The
 coordinator combines it with a fresh Deck and returns a PREFLOP snapshot, without
 implementing Swing or betting actions. Changing GameSetup itself would alter its
 existing contract; a separate coordinator lets the application start a dealt
@@ -100,5 +101,7 @@ players, statuses and contributions, then transfer the remaining 40-card order
 into GameState. Preserve the selected actor, blind positions and betting data.
 A repeated start creates a separate match with a new deck and identities.
 
-The [GameInitializer BVA](../bva/GameInitializer.md) defines the current RED tests.
-Application screen wiring remains the next checkpoint.
+The [GameInitializer BVA](../bva/GameInitializer.md) maps all 16 passing cases
+and records the RED checkpoint. The full clean build passes 570 tests. The
+existing GameSetup tests and SETUP contract remain unchanged. Application screen
+wiring remains the next checkpoint.

@@ -98,6 +98,38 @@ coordinator to dealing and the Swing interface, finish the agreed game rules,
 and update the board and review/check settings. Begin the Week 6 hand evaluator
 and betting work with BVA and TDD after the shared interfaces are confirmed.
 
+## Week 6 (11/02/2026-11/08/2026)
+
+### Goal
+
+Connect the tested deck-to-state composition to an application method, then
+prepare to call it from the Swing interface.
+
+### Completed work
+
+| Owner | Work completed | Evidence |
+| --- | --- | --- |
+| Kevin | Added `GameInitializer.start(humanCount)` to combine existing GameSetup and Deck operations. It deals two clockwise rounds and returns the first PREFLOP state. | [Setup design](design/game-setup.md); [initializer BVA](bva/GameInitializer.md). |
+| Kevin | Added 16 TDD/BVA cases for constructor nulls, human-count boundaries, all six dealer positions, all-in blinds, repeated games and recovery after invalid input. | RED commit `2ae10c9`: 12 expected failures; GREEN implementation: all 16 pass. |
+| Kevin | Verified the merged project and new coordinator on this computer using JDK 17 for Gradle 9.7.1 and JDK 11 for compilation/tests. Updated README build instructions. | Clean build: 570 tests, zero failures, errors or skips. |
+
+### Progress evaluation
+
+- The coordinator reuses Member A's real deck and Member B's real setup/state
+  classes. GameSetup's existing SETUP contract and tests remain unchanged.
+- Tests verify two cards per player, 40 remaining, correct clockwise order,
+  conserved chips, preserved blind/actor/status data and private player views.
+- This checkpoint is committed locally on `feature/setup-dealing`; it has not
+  been pushed, reviewed by the teammate or merged into main yet.
+- The Swing interface and action execution are not implemented. The first-turn
+  interface requirement remains open even though the initialized state is ready.
+
+### Next priorities
+
+Review this checkpoint, push its branch and link the PR here. Connect the Swing
+setup screen to GameInitializer, add privacy handoffs between humans, and verify
+first-turn readiness through the interface before marking setup complete.
+
 ## Future weekly report template
 
 Copy this template for each subsequent week and replace the placeholders.
