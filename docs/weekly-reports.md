@@ -8,7 +8,9 @@ or PRs when available.
 
 ### Goal
 
-Initialize the game so it is ready for the first turn. Complete Member A's card/deck components and prepare the interfaces needed for Member B and shared setup integration.
+Initialize the game so it is ready for the first turn. Member A supplies cards,
+a deck, shuffling and dealing; Member B supplies players and setup state. The
+team still needs to connect these components to the application and interface.
 
 ### Completed work
 
@@ -20,89 +22,81 @@ Initialize the game so it is ready for the first turn. Complete Member A's card/
 | Estella | Reviewed the rubric and simplified the README to the required project information. | [README](../README.md) includes dependencies, build/test commands, documentation links, and exceptions. |
 | Estella | Implemented player identity, six-seat setup, immutable hand state, action contracts, filtered views and poker statistics with tests and BVA. | [Shared contract](design/shared-contract.md); [BVA index](bva/README.md); source branch `feature/game-state-and-stats`. |
 | Estella | Added CI to build and test pushes and PRs using JDK 25 and the JDK 11 toolchain. | [Workflow](../.github/workflows/ci.yml). |
-| Kevin | Completed immutable Card values, null validation, equality, and hashing through RED/GREEN checkpoints. | [Card BVA](bva/Card.md); GREEN commits `2219068`, `acbd186`, `a35669d`. |
-| Kevin | Implemented the full deck, validated stateful dealing, immutable returned hands, and controlled shuffling through RED/GREEN checkpoints. | [Deck BVA](bva/Deck.md); GREEN commits `630deff`, `3a53ede`, `d2ad3b7`. |
-| Kevin | Verified two dealing rounds for six hands and defined the Week 6 evaluator interface. | `9bf1c6e`; [setup design](design/game-setup.md); [planned evaluator cases](bva/HandEvaluator.md). |
+| Kevin | Implemented immutable cards with rank and suit, null validation, value equality and hashing. | [Card BVA](bva/Card.md); GREEN commits `2219068`, `acbd186`, `a35669d`; 15 Card cases. |
+| Kevin | Created a 52-card deck, added validated dealing and shuffling, and protected returned hands from modification. | [Deck BVA](bva/Deck.md); GREEN commits `630deff`, `3a53ede`, `d2ad3b7`. |
+| Kevin | Covered zero/full/near-full draws, partially used and empty decks, negative and excessive requests, extreme integers, and rejection without changing state. | BVA cases mapped to `DeckTest`; invalid-request RED commit `a1490c5` and GREEN commit `3a53ede`. |
+| Kevin | Added repeatable shuffle tests and two test-only Random stub cases for the lowest and highest valid choices. Confirmed the stub tests detect a shuffle that ignores the supplied random source. | Checkpoint `f1c922e`; 48 Deck cases in total, including both stub cases. This extends existing behavior coverage. |
+| Kevin | Verified two rounds of dealing for six hands: two cards per hand, 12 distinct dealt cards and 40 remaining. Defined the hand-evaluation interface for later work. | `9bf1c6e`; `DeckSetupTest`; [setup design](design/game-setup.md); [planned evaluator cases](bva/HandEvaluator.md). |
+| Kevin | Documented Member A's contracts and BVA, updated project documentation, and pushed the cards-and-deck branch for integration. | [Member A PR #6](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/pull/6), merged into `main`; component commits preserve the RED/GREEN history. |
 
-Both contributors' work is pushed. The integration branch combines
-`docs/project-setup`, `feature/cards-and-deck`, and `feature/game-state-and-stats`
-without squashing their TDD commits. Member A's original [PR #6](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/pull/6)
-provides its review context; the combined PR records final verification.
+The Week 5 component work is merged. Estella completed the combined merge into
+`main` on November 2, 2026, preserving the branches' TDD commits. The integration
+uses Member A's `domain.model.Card` throughout state and views and removes the
+incompatible duplicate card enum. See [merge commit `881ad79`](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/commit/881ad796c1a3894d35da9667025a75bf6f85fa06)
+and [Member B PR #8](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/pull/8).
+This merge status is a November 2 follow-up to the Week 5 report.
 
 ### Setup work remaining
 
 Kevin is Member A; Estella is Member B. Track their tasks on the project board.
-Unchecked items remain planned, partially complete, or in need of team verification.
+Checked items have supporting implementation or merge evidence. Unchecked items
+are planned, partially complete, or still need team verification.
 
-- [ ] **Shared toolchain:** agree on the Gradle version and document the JDKs
-  used to run Gradle and compile/test the project. The combined build uses JDK
-  25, a JDK 11 toolchain and Gradle 9.7.1; Kevin still needs to verify this
-  updated setup locally.
+- [x] **Member A components:** complete cards, deck, shuffling, dealing and BVA;
+  verify 64 component test cases.
+- [x] **Shared card model:** combine the branches and use Member A's card values
+  throughout state and views; add deck-to-state integration tests.
+- [x] **CI workflow:** add automatic builds and tests for pushes and PRs.
+- [ ] **Shared toolchain:** verify the updated setup on Kevin's computer. The
+  merged project uses JDK 25 to run Gradle 9.7.1 and JDK 11 to compile/run tests.
 - [ ] **Requirements:** complete the [game rules](requirements/game-rules.md),
   including the authoritative rule source, chosen variants, starting chips,
-  blinds, match progression, and expected behavior for invalid actions.
-- [ ] **UI and languages:** use Java Swing; confirm two languages and specify
-  language selection, locale extension, and private-card handoffs on the shared
-  computer.
-- [ ] **Initial design:** document responsibilities and interfaces for game
-  rules, bot logic, and the UI in the [design document](design/README.md).
-- [ ] **Project board:** keep the project tasks current with actual
-  assignees, acceptance criteria, status, and links to related work.
-- [ ] **Review workflow:** agree on branch/PR conventions and a merge strategy
-  that preserves TDD/BDD evidence; verify protection of `main`, required reviews,
-  and required CI checks on GitHub.
-- [ ] **CI:** the build/test workflow is implemented. Record the combined PR's
-  GitHub result and verify required status checks and failure detection.
-- [ ] **Quality setup:** agree on Clean Code standards and a definition of done;
-  prepare coverage and mutation-testing configuration, report locations, and
-  justified exclusions using the course's required metrics.
-- [ ] **First feature integration:** use Member A's Card/Rank/Suit model throughout
-  state and views, verify deck-to-state composition, then connect the setup
-  coordinator and Swing interface before declaring the full setup story complete.
+  blinds, match progression and expected behavior for invalid actions. The
+  merged setup currently defaults to 1,000 chips and 10/20 blinds; reconcile
+  the earlier 5/10 rules draft with the current shared contract.
+- [ ] **UI and languages:** build the Swing setup/first-turn interface, confirm
+  two languages, and implement private-card handoffs on the shared computer.
+- [ ] **Initial design:** keep the [design document](design/README.md) current
+  as the application coordinator, betting engine, bot logic and UI are added.
+- [ ] **Project board:** update assignees, acceptance criteria, status and links
+  to merged work.
+- [ ] **Review workflow:** verify required reviews and passing CI checks on
+  `main`; confirm CI failure detection and record the workflow run link.
+- [ ] **Quality setup:** configure coverage and mutation testing, document
+  justified exclusions and evaluate the course's required metrics. The manual
+  shuffle mutation check is not a full mutation-testing report.
+- [ ] **First-turn readiness:** move the tested deck-to-state composition into
+  the application setup coordinator, connect the interface, and verify that
+  the first human or bot can start its turn.
 
 ### Progress evaluation
 
-- The combined integration checkout passes **554 tests**: 488 Member B cases,
-  64 Member A cases and two new cross-component integration cases. The new
-  tests first failed to compile against the two incompatible Card types; the
-  passing implementation uses Member A's immutable value class throughout.
-  The checks verify 12 unique hole cards, 40 remaining cards, actor seat 3,
-  10/20 blinds, 6,000 conserved chips, value-based duplicate rejection and
-  filtered human/bot views. This does not claim a playable setup interface.
-
-- Estella verified her starter build locally. Kevin verified Java 11 and Gradle
-  8.10 for the implemented components.
-- Member A's Week 5 code has 64 passing cases: 15 Card, 48 Deck, and one
-  six-player initial-deal check. The recorded RED/GREEN commits show tests
-  failing for missing behavior before the implementations passed.
-- Boundary cases include fresh, partially used, one-card, and empty decks;
-  zero/full/near-full draws; negative and extreme integer requests; rejection
-  without changing remaining card order; returned-hand ownership; and repeatable
-  shuffles that preserve only the remaining cards.
-- An independent read-only review found no Week 5 code/test/BVA issues.
-  The earlier 62-case independent review preceded the added random-stub tests.
-  `sh gradlew --no-daemon clean build` passed with Java 11: all 64 cases ran,
-  with zero failures, errors, or skipped cases.
-- Added two test-only random-stub cases for the lowest and highest valid
-  choices in a two-card shuffle. They check actual card order; a temporary
-  ignored-source mutation was detected and restored. Production code is unchanged.
-- The evaluator is an interface for Week 6 only. Evaluation, pot settlement,
-  and equity estimation have not been implemented.
-- The combined contract uses 1,000 starting chips, fixed 10/20 blinds, a random
-  initial dealer, stable seats and no antes/blind increases. The shared Card
-  value class is Member A's `domain.model.Card`; the duplicate enum is removed.
-- Swing is selected. The CI workflow is present; required review/status-check
-  settings, language choices, complete game rules and setup/UI integration
-  remain to be completed or verified.
-- The full game is not yet playable. Do not check off overall game setup until
-  players, chips, blinds, first actor, and interface readiness are integrated.
+- Kevin's Member A work has **64 verified passing component cases**: 15 Card,
+  48 Deck and one six-player dealing check. The last local clean build before
+  integration used Java 11 and Gradle 8.10, with zero failures, errors or skips.
+  The recorded RED/GREEN checkpoints show tests failing before the related
+  behavior was implemented.
+- Estella's [integration merge record](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/commit/881ad796c1a3894d35da9667025a75bf6f85fa06)
+  reports **554 passing tests** and successful GitHub CI: 488 Member B cases,
+  64 Member A cases and two cross-component cases. Kevin has not yet rerun
+  this combined suite with the updated local toolchain; 554 is the reported
+  integration result, not a new local verification claim.
+- The integration tests check 12 unique hole cards, 40 remaining cards, first
+  actor seat 3, 10/20 blinds, 6,000 conserved chips, duplicate-card rejection
+  by value and private human/bot views. They compose the components in test
+  code; `GameSetup.create` itself still returns `SETUP` with no hole cards.
+- The evaluator is an interface only. Hand evaluation, betting execution,
+  pot settlement and equity estimation are not implemented yet.
+- The full game is not yet playable. The setup goal is only partially met:
+  the components and composition tests are ready, while the application
+  coordinator and first-turn interface remain unfinished.
 
 ### Next week's priorities
 
-Review and combine the branches through PRs, add their links to this report,
-and integrate the completed deck with Estella's setup classes. Continue Week 6
-hand evaluation and betting using BVA and TDD after the shared interfaces are
-confirmed.
+Verify the merged build locally with the updated toolchain. Connect the setup
+coordinator to dealing and the Swing interface, finish the agreed game rules,
+and update the board and review/check settings. Begin the Week 6 hand evaluator
+and betting work with BVA and TDD after the shared interfaces are confirmed.
 
 ## Future weekly report template
 
