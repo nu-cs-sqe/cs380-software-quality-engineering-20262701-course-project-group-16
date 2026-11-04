@@ -41,7 +41,7 @@ card enum was removed. Evidence: [Member A PR #6](https://github.com/nu-cs-sqe/c
 ### Setup checklist
 
 Status checked November 3. Checked means implemented/verified. Initialization and
-Swing were merged through PR #11; the new evaluator RED checkpoint is uncommitted.
+Swing were merged through PR #11; the evaluator RED checkpoint is committed, and its GREEN validation update is uncommitted.
 
 - [x] **Member A components:** cards, deck, shuffling, dealing and BVA; 64 passing cases.
 - [x] **Shared card model:** one Card model across deck/state/views, with integration tests.
@@ -105,21 +105,22 @@ Kevin's evaluator checkpoint starts from merged main `9dbaa39` on
 ### Current evaluator checkpoint
 
 Kevin added 16 input-validation BVA/TDD cases for null lists/cards, card counts
-0/6/8 in either argument, and duplicate card values. Each case also requires
-rejected inputs to remain unchanged. The class uses the existing HandEvaluator
-interface and is a compile-only scaffold; validation and ranking remain pending.
+0/6/8 in either argument, and duplicate card values. Rejections preserve both
+input lists. RED commit `f5fd72e` was verified with all 16 expected failures.
+Validation is now implemented through the existing HandEvaluator interface.
 
-Evidence: [PokerHandEvaluator BVA](bva/PokerHandEvaluator.md). Baseline clean
-build: 601 passing tests. Current RED run: 617 cases, 16 expected assertion
-failures, zero errors/skips; all 601 existing cases pass. Changes are uncommitted
-on `feature/hand-evaluation`. Next checkpoint is the validation implementation.
+Evidence: [PokerHandEvaluator BVA](bva/PokerHandEvaluator.md). The full clean
+build passes 617 tests, including all 16 validation cases, with zero failures,
+errors or skips. The GREEN update is uncommitted on `feature/hand-evaluation`.
+Hand ranking, valid-hand comparison and winner selection remain pending; valid
+holdings still return a placeholder tie. Next checkpoint adds comparison tests.
 
 ### Integration checklist
 
 - [x] Connect GameSetup and Deck through GameInitializer to produce a dealt PREFLOP state.
 - [x] Preserve dealer, blinds, first actor, chip totals and private player views.
 - [x] Document BVA and complete the RED/GREEN cycle for 16 coordinator cases.
-- [x] Verify the full clean build: 601 tests pass after the English-only revision.
+- [x] Verify the full clean build: 617 tests pass after evaluator input validation.
 - [x] Merge the initializer and Swing work through [PR #11](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/pull/11).
 - [x] Connect the Swing setup screen and private-card handoffs to the initializer.
 - [ ] Complete a native desktop walkthrough, including focus-loss hiding, with the teammate.
@@ -134,7 +135,8 @@ on `feature/hand-evaluation`. Next checkpoint is the validation implementation.
 - Initialization was committed on `feature/setup-dealing`; package consolidation,
   session and Swing work continue on `feature/swing-setup`, which includes the
   initializer history. That setup/interface work is merged through PR #11; the
-  new evaluator RED checkpoint is uncommitted on `feature/hand-evaluation`.
+  evaluator RED checkpoint is committed as `f5fd72e`; its GREEN validation update
+  is uncommitted on `feature/hand-evaluation`.
 - The Swing setup preview is implemented locally; action execution remains future
   work. The full first-turn readiness requirement stays open. Real components run
   together in tests; fixed dealer stubs and seeded shuffles control randomness,
@@ -142,8 +144,8 @@ on `feature/hand-evaluation`. Next checkpoint is the validation implementation.
 
 ### Next priorities
 
-Commit the evaluator RED checkpoint, then implement validation for the GREEN
-checkpoint before starting hand rankings. Continue the shared static-analysis
+Commit the evaluator validation GREEN checkpoint, then add focused comparison
+tests before implementing hand rankings. Continue the shared static-analysis
 setup, rules/documentation follow-ups, desktop walkthrough and first-turn actions.
 
 ## Future weekly report template

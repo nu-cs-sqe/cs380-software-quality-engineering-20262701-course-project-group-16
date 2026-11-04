@@ -10,7 +10,7 @@ privacy and immutability cases.
 | `Card` | [Card.md](Card.md) |
 | `Deck` | [Deck.md](Deck.md) |
 | `HandEvaluator` (interface contract) | [HandEvaluator.md](HandEvaluator.md) |
-| `PokerHandEvaluator` (RED scaffold) | [PokerHandEvaluator.md](PokerHandEvaluator.md) |
+| `PokerHandEvaluator` (validation implemented; ranking pending) | [PokerHandEvaluator.md](PokerHandEvaluator.md) |
 | `Player` | [Player.md](Player.md) |
 | `GameConfig` | [GameConfig.md](GameConfig.md) |
 | `ActionRequest` | [ActionRequest.md](ActionRequest.md) |
