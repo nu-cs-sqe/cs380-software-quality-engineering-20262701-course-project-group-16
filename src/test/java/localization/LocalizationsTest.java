@@ -167,6 +167,7 @@ class LocalizationsTest {
     private static Stream<Arguments> compatiblePatterns() {
         return Stream.of(
                 Arguments.of("{0} {1}", "{1} {0}", new Object[] {"Ada", "Bea"}, "Bea Ada"),
+                Arguments.of("{0} }", "} {0}", new Object[] {"Ada"}, "} Ada"),
                 Arguments.of("{0,number} / {0}", "{0} / {0,number}", new Object[] {2}, "2 / 2"),
                 Arguments.of("''{0}'' '{1}'", "'{1}' ''{0}''", new Object[] {"Ada"}, "{1} 'Ada'"),
                 Arguments.of("{0,choice,0#None|1#{1}}", "{0,choice,0#Nobody|1#Winner {1}}",

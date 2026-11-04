@@ -18,8 +18,11 @@ loader isolates malformed configuration without altering application resources.
 | LC-10a–c | text() | Null, empty or missing message key | IllegalArgumentException | Yes: unknownMessageKeyIsRejected (3 cases) |
 | LC-11 | text() | Missing or surplus arguments; null argument array; text passed to number format | IllegalArgumentException; no unresolved placeholders | Yes: wrongArgumentCountOrTypeIsRejectedInsteadOfLeavingPlaceholders |
 | LC-12 | load(ClassLoader) | Resource InputStream throws IOException while read | IllegalArgumentException retains the original IOException cause; stream is closed | Yes: resourceReadFailureRetainsCauseAndClosesTheStream |
+| LC-13a–h | load(ClassLoader) | Omitted lower index; incompatible earlier repeated format; removed repeated format kind; quoted-away argument; missing or incompatible nested choice argument; invalid nested choice format | IllegalArgumentException from actual placeholder/type validation | Yes: everyActualArgumentAndRepeatedFormatMustHaveATranslation (8 cases) |
+| LC-14a–h | load(ClassLoader); text() | Reordered arguments and repeated format kinds; literal closing brace; quoted braces and doubled apostrophes; simple and nested choice outputs; quoted choice output; number pattern containing commas | Compatible translations load and format exact expected output | Yes: compatibleReorderingQuotesAndNestedChoicesFormatCorrectly (8 cases) |
+| LC-15 | text() | Choice-only nested argument omitted by caller | IllegalArgumentException rather than unresolved nested placeholder | Yes: choiceFormattingRequiresArgumentsUsedOnlyInsideItsBranches |
 
-There are 35 catalog cases. RED checkpoint `132e255` compiled the complete test
+There are 52 catalog cases. RED checkpoint `132e255` compiled the complete test
 source set and ran 50 focused catalog/UI cases: 40 expected assertion failures
 and 10 existing UI cases passing. The catalog was a compile-only stub at RED.
 The first GREEN focused run passed all 50 cases.
@@ -30,4 +33,14 @@ no new RED checkpoint is claimed. A direct Java 11 probe confirmed that
 Locale.Builder rejects an empty tag before the language guard and maps `und` to
 an empty language. The unreachable redundant empty-tag check was removed; the
 existing trailing-empty configuration case still verifies rejection. The updated
-focused suite passes 52 cases (35 catalog and 17 UI).
+coverage-hardening focused suite passed 52 cases (35 catalog and 17 UI).
+
+Placeholder-validation RED checkpoint `c72b794` ran 68 focused cases with 12
+expected assertion failures and no errors. It exposes missing lower indexes,
+earlier repeated-format loss, compatible repeated-format reordering, nested
+choice validation and nested argument counts. The GREEN implementation compares
+actual argument indexes and the set of format kinds used by each index, including
+choice outputs that MessageFormat reparses. Quoted braces remain literals and
+doubled apostrophes preserve active placeholders. One additional compatible
+literal-closing-brace fixture completes scanner coverage. The updated focused
+suite passes 69 cases (52 catalog and 17 UI).

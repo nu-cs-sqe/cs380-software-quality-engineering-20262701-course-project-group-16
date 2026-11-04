@@ -19,3 +19,5 @@ headless tests verify that property in both languages. Native focus delivery and
 cross-platform font/layout rendering still need a manual desktop check.
 
 Coverage hardening now runs 52 focused cases (35 catalog and 17 UI); all pass.
+
+Complete placeholder validation now runs 69 focused cases (52 catalog and 17 UI).

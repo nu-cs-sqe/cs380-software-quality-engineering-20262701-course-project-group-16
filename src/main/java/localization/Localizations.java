@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.text.Format;
+import java.text.ChoiceFormat;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -77,11 +78,9 @@ public final class Localizations {
                 throw new IllegalArgumentException("Translation keys differ for " + language);
             }
             for (String key : reference.stringPropertyNames()) {
-                Format[] expected = new MessageFormat(required(reference, key), locales.get(defaultLanguage))
-                        .getFormatsByArgumentIndex();
-                Format[] actual = new MessageFormat(required(messages, key), locales.get(language))
-                        .getFormatsByArgumentIndex();
-                if (!sameArgumentTypes(expected, actual)) {
+                Map<Integer, Set<String>> expected = argumentTypes(required(reference, key), locales.get(defaultLanguage));
+                Map<Integer, Set<String>> actual = argumentTypes(required(messages, key), locales.get(language));
+                if (!expected.equals(actual)) {
                     throw new IllegalArgumentException("Incompatible message arguments: " + key + " in " + language);
                 }
             }
@@ -119,8 +118,14 @@ public final class Localizations {
         if (key == null || !messages.containsKey(key)) {
             throw new IllegalArgumentException("Unknown message key: " + key);
         }
-        MessageFormat format = new MessageFormat(messages.getProperty(key), locales.get(language));
-        if (arguments == null || arguments.length != format.getFormatsByArgumentIndex().length) {
+        String pattern = messages.getProperty(key);
+        Locale locale = locales.get(language);
+        int argumentCount = 0;
+        for (int index : argumentTypes(pattern, locale).keySet()) {
+            argumentCount = Math.max(argumentCount, index + 1);
+        }
+        MessageFormat format = new MessageFormat(pattern, locale);
+        if (arguments == null || arguments.length != argumentCount) {
             throw new IllegalArgumentException("Incorrect argument count for " + key);
         }
         return format.format(arguments);
@@ -156,17 +161,49 @@ public final class Localizations {
         return value;
     }
 
-    private static boolean sameArgumentTypes(Format[] expected, Format[] actual) {
-        if (expected.length != actual.length) {
-            return false;
-        }
-        for (int i = 0; i < expected.length; i++) {
-            Class<?> expectedType = expected[i] == null ? null : expected[i].getClass();
-            Class<?> actualType = actual[i] == null ? null : actual[i].getClass();
-            if (expectedType != actualType) {
-                return false;
+    private static Map<Integer, Set<String>> argumentTypes(String pattern, Locale locale) {
+        Map<Integer, Set<String>> types = new LinkedHashMap<>();
+        collectArgumentTypes(pattern, locale, types);
+        return types;
+    }
+
+    /** Scans actual format elements; quoted braces are literals and doubled quotes toggle twice. */
+    private static void collectArgumentTypes(String pattern, Locale locale, Map<Integer, Set<String>> types) {
+        Format[] formats = new MessageFormat(pattern, locale).getFormats();
+        boolean quoted = false;
+        int depth = 0;
+        int start = 0;
+        int occurrence = 0;
+        for (int i = 0; i < pattern.length(); i++) {
+            char character = pattern.charAt(i);
+            if (character == '\'') {
+                quoted = !quoted;
+            } else if (!quoted) {
+                if (character == '{') {
+                    if (depth == 0) {
+                        start = i + 1;
+                    }
+                    depth++;
+                } else if (character == '}' && depth > 0) {
+                    depth--;
+                    if (depth == 0) {
+                        String[] parts = pattern.substring(start, i).split(",", 3);
+                        int index = Integer.parseInt(parts[0]);
+                        String type = parts.length > 1 ? parts[1].trim().toLowerCase(Locale.ROOT) : "";
+                        types.computeIfAbsent(index, ignored -> new HashSet<>()).add(type);
+                        Format format = formats[occurrence++];
+                        if (format instanceof ChoiceFormat) {
+                            for (Object branch : ((ChoiceFormat) format).getFormats()) {
+                                String nested = (String) branch;
+                                // MessageFormat reparses a choice output only when it contains an opening brace.
+                                if (nested.indexOf('{') >= 0) {
+                                    collectArgumentTypes(nested, locale, types);
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
-        return true;
     }
 }

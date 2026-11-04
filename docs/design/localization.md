@@ -29,7 +29,14 @@ numeric arguments, including future result messages.
 
 Catalog loading rejects empty/duplicate/malformed language entries, unmatched
 configuration, missing resources, missing/extra/blank translation values,
-invalid format patterns and incompatible argument indexes/types. Formatting
+invalid format patterns and incompatible argument indexes/types. Validation scans
+actual unquoted placeholders and retains every format kind used for a repeated
+index. Translations may reorder arguments and repeated format kinds while keeping
+the same required indexes and kinds. Quoted braces are literal text; doubled
+apostrophes follow MessageFormat rules. Choice outputs are checked recursively
+when MessageFormat would reparse them, so nested placeholders and their format
+kinds are included. Argument counts include indexes used only inside choice
+branches. Formatting
 rejects unsupported language tags, unknown message keys and incorrect argument
 counts/types. Available languages are immutable to consumers. Tests add a third
 German language entirely through supplied resources and verify locale-specific
