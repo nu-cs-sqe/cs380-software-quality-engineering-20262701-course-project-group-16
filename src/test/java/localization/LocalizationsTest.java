@@ -2,6 +2,8 @@ package localization;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.io.IOException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -49,7 +51,8 @@ class LocalizationsTest {
         "languages=bad_tag\ndefault=bad_tag\nbundle.bad_tag=en.properties",
         "languages=en\ndefault=en", "languages=en\nbundle.en=en.properties",
         "languages=en\ndefault=en\nbundle.en=", "languages=en\ndefault=en\nbundle.en=missing.properties",
-        "languages=en\ndefault=en\nbundle.en=en.properties\nunexpected=value"
+        "languages=en\ndefault=en\nbundle.en=en.properties\nunexpected=value",
+        "languages=und\ndefault=und\nbundle.und=en.properties"
     })
     void malformedCatalogIsRejectedBeforeDisplayingTheScreen(String config) {
         Map<String, String> files = fixture();
@@ -60,6 +63,17 @@ class LocalizationsTest {
     @Test
     void missingCatalogIsRejected() {
         assertThrows(IllegalArgumentException.class, () -> Localizations.load(resources(Map.of())));
+    }
+
+    @Test
+    void resourceReadFailureRetainsCauseAndClosesTheStream() {
+        IOException readFailure = new IOException("Resource read failed");
+        AtomicBoolean closed = new AtomicBoolean();
+        ClassLoader loader = failingResources(readFailure, closed);
+        IllegalArgumentException failure = assertThrows(IllegalArgumentException.class,
+                () -> Localizations.load(loader));
+        assertSame(readFailure, failure.getCause());
+        assertTrue(closed.get(), "A failed resource read must still close its stream");
     }
 
     @Test
@@ -128,6 +142,22 @@ class LocalizationsTest {
         files.put("en.properties", "languageName=English\ngreeting=Hello {0}\namount=Amount: {0,number}\n");
         files.put("zh.properties", "languageName=中文\ngreeting=你好 {0}\namount=金额：{0,number}\n");
         return files;
+    }
+
+    private static ClassLoader failingResources(IOException readFailure, AtomicBoolean closed) {
+        InputStream failingStream = new InputStream() {
+            @Override public int read() throws IOException {
+                throw readFailure;
+            }
+            @Override public void close() {
+                closed.set(true);
+            }
+        };
+        return new ClassLoader(null) {
+            @Override public InputStream getResourceAsStream(String name) {
+                return "ui/languages.properties".equals(name) ? failingStream : null;
+            }
+        };
     }
 
     private static ClassLoader resources(Map<String, String> files) {

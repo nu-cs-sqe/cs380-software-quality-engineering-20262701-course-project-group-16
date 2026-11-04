@@ -56,7 +56,7 @@ public final class Localizations {
             } catch (java.util.IllformedLocaleException invalid) {
                 throw new IllegalArgumentException("Invalid language tag: " + language, invalid);
             }
-            if (language.isEmpty() || locale.getLanguage().isEmpty() || locales.containsValue(locale)) {
+            if (locale.getLanguage().isEmpty() || locales.containsValue(locale)) {
                 throw new IllegalArgumentException("Empty or duplicate language: " + language);
             }
             languages.add(language);

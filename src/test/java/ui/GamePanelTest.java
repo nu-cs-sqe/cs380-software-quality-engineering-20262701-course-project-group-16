@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class GamePanelTest {
     @Test
-    void initialScreenWaitsForAStartAndCannotRevealCards() throws Exception {
+    void initialScreenWaitsForAStartAndCannotRevealCards() throws InterruptedException, InvocationTargetException {
         onEdt(() -> {
             GamePanel panel = panel(new SetupSession());
             assertEquals("Start Game", find(panel, "start", JButton.class).getText());
@@ -31,7 +31,7 @@ class GamePanelTest {
     }
 
     @Test
-    void startButtonDisplaysInitializedSeatsAndFirstActor() throws Exception {
+    void startButtonDisplaysInitializedSeatsAndFirstActor() throws InterruptedException, InvocationTargetException {
         onEdt(() -> {
             SetupSession session = session();
             GamePanel panel = panel(session);
@@ -50,7 +50,7 @@ class GamePanelTest {
     }
 
     @Test
-    void humanHandoffHidesPreviousCardsAndNeverRevealsOtherSeats() throws Exception {
+    void humanHandoffHidesPreviousCardsAndNeverRevealsOtherSeats() throws InterruptedException, InvocationTargetException {
         onEdt(() -> {
             GamePanel panel = panel(session());
             start(panel, "2");
@@ -70,7 +70,7 @@ class GamePanelTest {
     }
 
     @Test
-    void hideAndRestartBothConcealPrivateCards() throws Exception {
+    void hideAndRestartBothConcealPrivateCards() throws InterruptedException, InvocationTargetException {
         onEdt(() -> {
             GamePanel panel = panel(session());
             start(panel, "2");
@@ -86,7 +86,7 @@ class GamePanelTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"0", "7", "abc", "", "2147483648"})
-    void invalidInputShowsAnErrorAndHidesThePreviousHand(String input) throws Exception {
+    void invalidInputShowsAnErrorAndHidesThePreviousHand(String input) throws InterruptedException, InvocationTargetException {
         onEdt(() -> {
             SetupSession session = session();
             GamePanel panel = panel(session);
@@ -101,7 +101,7 @@ class GamePanelTest {
     }
 
     @Test
-    void privacyResetUsedOnWindowDeactivationHidesCards() throws Exception {
+    void privacyResetUsedOnWindowDeactivationHidesCards() throws InterruptedException, InvocationTargetException {
         onEdt(() -> {
             GamePanel panel = panel(session());
             assertDoesNotThrow(panel::hidePrivateCards);
@@ -113,7 +113,7 @@ class GamePanelTest {
     }
 
     @Test
-    void defaultLanguageIsEnglishWithAnExplicitChoiceRegardlessOfSystemLocale() throws Exception {
+    void defaultLanguageIsEnglishWithAnExplicitChoiceRegardlessOfSystemLocale() throws InterruptedException, InvocationTargetException {
         Locale original = Locale.getDefault();
         try {
             Locale.setDefault(Locale.forLanguageTag("zh-CN"));
@@ -136,7 +136,7 @@ class GamePanelTest {
 
     @ParameterizedTest
     @ValueSource(ints = {0, 1})
-    void selectedLanguageAppliesToSetupAndPrivateHandoff(int language) throws Exception {
+    void selectedLanguageAppliesToSetupAndPrivateHandoff(int language) throws InterruptedException, InvocationTargetException {
         onEdt(() -> {
             SetupSession session = session();
             GamePanel panel = panel(session);
@@ -165,7 +165,7 @@ class GamePanelTest {
 
     @ParameterizedTest
     @ValueSource(ints = {0, 1})
-    void selectedLanguageSurvivesRestartAndInvalidInputWithCardsHidden(int language) throws Exception {
+    void selectedLanguageSurvivesRestartAndInvalidInputWithCardsHidden(int language) throws InterruptedException, InvocationTargetException {
         onEdt(() -> {
             SetupSession session = session();
             GamePanel panel = panel(session);
@@ -190,7 +190,7 @@ class GamePanelTest {
 
     @ParameterizedTest
     @ValueSource(ints = {0, 1})
-    void languageChangeHidesCardsPreservesMatchAndRetranslatesErrors(int initialLanguage) throws Exception {
+    void languageChangeHidesCardsPreservesMatchAndRetranslatesErrors(int initialLanguage) throws InterruptedException, InvocationTargetException {
         onEdt(() -> {
             SetupSession session = session();
             GamePanel panel = panel(session);

@@ -11,14 +11,23 @@ loader isolates malformed configuration without altering application resources.
 | LC-03 | load(ClassLoader); languages(); defaultLanguage(); languageName(); text() | Three configured languages, German default and resources | Third locale discovered without Java changes; translated greeting; 1234.5 formatted as 1,234.5 in English and 1.234,5 in German | Yes: thirdLanguageIsDiscoveredAndNumbersUseItsLocaleFromResourcesOnly |
 | LC-04 | load(ClassLoader) | Null loader | IllegalArgumentException | Yes: nullResourceLoaderIsRejected |
 | LC-05 | load(ClassLoader) | Missing catalog | IllegalArgumentException before UI is shown | Yes: missingCatalogIsRejected |
-| LC-06a–k | load(ClassLoader) | Empty catalog; empty list; duplicate tag; trailing empty tag; unsupported default; malformed tag; missing bundle mapping; missing default; empty path; nonexistent bundle; unknown configuration key | IllegalArgumentException for each malformed configuration | Yes: malformedCatalogIsRejectedBeforeDisplayingTheScreen (11 cases) |
+| LC-06a–l | load(ClassLoader) | Empty catalog; empty list; duplicate tag; trailing empty tag; unsupported default; malformed tag; missing bundle mapping; missing default; empty path; nonexistent bundle; unknown configuration key; undefined tag with no language | IllegalArgumentException for each malformed configuration | Yes: malformedCatalogIsRejectedBeforeDisplayingTheScreen (12 cases) |
 | LC-07a–h | load(ClassLoader) | Translation missing key; extra key; blank message; blank native name; malformed pattern; changed argument index; removed number format; date substituted for number | IllegalArgumentException rather than partial or incompatible translations | Yes: missingExtraBlankOrIncompatibleTranslationIsRejected (8 cases) |
 | LC-08 | load(ClassLoader) | Invalid MessageFormat pattern in default bundle | IllegalArgumentException | Yes: malformedDefaultMessageIsRejected |
 | LC-09a–e | text(); locale(); languageName() | Null, empty, unconfigured, region-alias or whitespace language | IllegalArgumentException; no system/default-language fallback | Yes: unconfiguredLanguageIsRejectedInsteadOfFallingBack (5 cases) |
 | LC-10a–c | text() | Null, empty or missing message key | IllegalArgumentException | Yes: unknownMessageKeyIsRejected (3 cases) |
 | LC-11 | text() | Missing or surplus arguments; null argument array; text passed to number format | IllegalArgumentException; no unresolved placeholders | Yes: wrongArgumentCountOrTypeIsRejectedInsteadOfLeavingPlaceholders |
+| LC-12 | load(ClassLoader) | Resource InputStream throws IOException while read | IllegalArgumentException retains the original IOException cause; stream is closed | Yes: resourceReadFailureRetainsCauseAndClosesTheStream |
 
-There are 33 catalog cases. RED checkpoint `132e255` compiled the complete test
+There are 35 catalog cases. RED checkpoint `132e255` compiled the complete test
 source set and ran 50 focused catalog/UI cases: 40 expected assertion failures
 and 10 existing UI cases passing. The catalog was a compile-only stub at RED.
 The first GREEN focused run passed all 50 cases.
+
+Coverage hardening added the undefined-language configuration and resource-read
+failure cases after GREEN; both passed against the existing implementation, so
+no new RED checkpoint is claimed. A direct Java 11 probe confirmed that
+Locale.Builder rejects an empty tag before the language guard and maps `und` to
+an empty language. The unreachable redundant empty-tag check was removed; the
+existing trailing-empty configuration case still verifies rejection. The updated
+focused suite passes 52 cases (35 catalog and 17 UI).

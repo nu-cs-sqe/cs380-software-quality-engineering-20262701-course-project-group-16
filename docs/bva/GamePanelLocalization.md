@@ -17,3 +17,5 @@ with LocalizationsTest, the first GREEN run passed 50 cases. The native frame
 uses the panel's localized `windowTitle` client property and listens for changes;
 headless tests verify that property in both languages. Native focus delivery and
 cross-platform font/layout rendering still need a manual desktop check.
+
+Coverage hardening now runs 52 focused cases (35 catalog and 17 UI); all pass.

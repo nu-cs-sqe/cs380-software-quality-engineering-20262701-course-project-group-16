@@ -33,7 +33,8 @@ invalid format patterns and incompatible argument indexes/types. Formatting
 rejects unsupported language tags, unknown message keys and incorrect argument
 counts/types. Available languages are immutable to consumers. Tests add a third
 German language entirely through supplied resources and verify locale-specific
-number output.
+number output. Coverage also rejects the undefined `und` language and verifies
+that a resource read failure retains its IOException cause and closes the stream.
 
 ## Reuse for later result displays
 
