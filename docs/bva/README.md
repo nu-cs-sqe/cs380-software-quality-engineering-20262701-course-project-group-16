@@ -16,6 +16,8 @@ privacy and immutability cases.
 | `AcceptedAction` | [AcceptedAction.md](AcceptedAction.md) |
 | `PlayerState` | [PlayerState.md](PlayerState.md) |
 | `BettingProgress` | [BettingProgress.md](BettingProgress.md) |
+| `BettingEngine` (RED checkpoint) | [BettingEngine.md](BettingEngine.md) |
+| `BettingResult` (RED checkpoint) | [BettingResult.md](BettingResult.md) |
 | `HandPositions` | [HandPositions.md](HandPositions.md) |
 | `SeatOrder` | [SeatOrder.md](SeatOrder.md) |
 | `GameState` | [GameState.md](GameState.md) |
