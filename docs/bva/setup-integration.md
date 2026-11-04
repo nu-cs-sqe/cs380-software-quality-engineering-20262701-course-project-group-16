@@ -1,7 +1,11 @@
 # Setup integration BVA
 
 These cases compose Member A's cards/deck with Member B's setup, state and views.
-They specify the integration boundary; setup/controller and Swing wiring remain later work.
+They specify the original card/deck-to-state boundary. GameInitializer and the
+Swing SetupSession now compose these components in application code; see
+[setup design](../design/game-setup.md). The later
+[showdown fixtures](../design/showdown.md) verify a separate closed-state result
+boundary, without claiming played-hand betting progression.
 
 | ID | Methods | State/input | Expected output | Implemented |
 | --- | --- | --- | --- | --- |
