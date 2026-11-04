@@ -1,6 +1,10 @@
 # HandEvaluator contract cases
 
-Week 5 defines the interface only. There is no evaluator implementation or evaluator test suite yet; these cases are planned for Week 6. Unlike Card/Deck, this file does not claim passing implementation coverage.
+Week 5 defined the interface. Week 6 now has a compile-only PokerHandEvaluator
+scaffold and 16 input-validation tests at the RED checkpoint. Validation and hand
+ranking are not implemented yet; no passing evaluator coverage is claimed.
+See [the concrete evaluator BVA](PokerHandEvaluator.md) for unique case IDs and
+observed test results.
 
 ## Method: compare(List<Card> firstCards, List<Card> secondCards)
 
@@ -8,14 +12,15 @@ Each valid input has exactly seven distinct card values. The two inputs can over
 
 | ID | State/input | Expected output | Test implemented? |
 |---|---|---|---|
-| EVAL-01 | Null first or second list | NullPointerException | No |
-| EVAL-02 | Null element in either list | NullPointerException | No |
-| EVAL-03 | Either list has 0, 6, or 8 cards | IllegalArgumentException | No |
-| EVAL-04 | Exactly seven entries but a repeated card value in either list | IllegalArgumentException | No |
+| EVAL-01 | Null first or second list | NullPointerException | Yes, RED: PHE-N01–N02 |
+| EVAL-02 | Null element in either list | NullPointerException | Yes, RED: PHE-N03–N08 |
+| EVAL-03 | Either list has 0, 6, or 8 cards | IllegalArgumentException | Yes, RED: PHE-S01–S06 |
+| EVAL-04 | Exactly seven entries but a repeated card value in either list | IllegalArgumentException | Yes, RED: PHE-D01–D02 |
 | EVAL-05 | Seven valid cards per list; first is stronger | Positive result; inputs unchanged | No |
 | EVAL-06 | Same five-card strength, including playing the board | Zero; inputs unchanged | No |
 | EVAL-07 | Second holding is stronger | Negative result; inputs unchanged | No |
 | EVAL-08 | Shared community cards occur in both valid lists | Allowed; compare normal hand strength | No |
 | EVAL-09 | Every hand category, kickers, and ace-low straight boundaries | Standard best-five-of-seven ranking | No |
 
-Separate Week 6 tests will expand the grouped input categories into uniquely identified cases before implementing them.
+The first four groups are expanded into 16 uniquely identified cases. Remaining
+comparison/ranking cases will be expanded before their implementation.
