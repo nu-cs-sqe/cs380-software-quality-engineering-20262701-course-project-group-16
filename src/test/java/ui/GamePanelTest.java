@@ -113,24 +113,96 @@ class GamePanelTest {
     }
 
     @Test
-    void setupUsesEnglishRegardlessOfSystemLanguage() throws Exception {
+    void defaultLanguageIsEnglishWithAnExplicitChoiceRegardlessOfSystemLocale() throws Exception {
         Locale original = Locale.getDefault();
         try {
             Locale.setDefault(Locale.forLanguageTag("zh-CN"));
             onEdt(() -> {
                 GamePanel panel = panel(session());
                 assertEquals("Start Game", find(panel, "start", JButton.class).getText());
-                assertNull(locate(panel, "language"), "The English-only screen needs no language selector");
-                start(panel, "0");
-                assertEquals("Enter a whole number from 1 to 6.", find(panel, "error", JLabel.class).getText());
-                start(panel, "2");
-                assertEquals("Human 1", find(panel, "seatName0", JLabel.class).getText());
-                find(panel, "reveal", JButton.class).doClick();
-                assertEquals("A ♥", find(panel, "hole0", JLabel.class).getText());
+                JComboBox<?> language = find(panel, "language", JComboBox.class);
+                assertEquals(2, language.getItemCount());
+                assertEquals("English", language.getItemAt(0).toString());
+                assertEquals("简体中文", language.getItemAt(1).toString());
             });
         } finally {
             Locale.setDefault(original);
         }
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1})
+    void selectedLanguageAppliesToSetupAndPrivateHandoff(int language) throws Exception {
+        onEdt(() -> {
+            SetupSession session = session();
+            GamePanel panel = panel(session);
+            find(panel, "language", JComboBox.class).setSelectedIndex(language);
+            assertEquals(language == 0 ? "Start Game" : "开始游戏", find(panel, "start", JButton.class).getText());
+            assertEquals(language == 0 ? "Texas Hold’em · Group 16" : "德州扑克 · 第16组", panel.getClientProperty("windowTitle"));
+            start(panel, "2");
+            assertEquals(language == 0 ? "Human 1" : "玩家 1", find(panel, "seatName0", JLabel.class).getText());
+            assertEquals(language == 0 ? "Bot 4" : "电脑 4", find(panel, "seatName3", JLabel.class).getText());
+            assertEquals(language == 0 ? "Chips: 990" : "筹码：990", find(panel, "seatStack1", JLabel.class).getText());
+            assertEquals(language == 0 ? "Pot: 30" : "底池：30", find(panel, "pot", JLabel.class).getText());
+            assertEquals(language == 0 ? "Deck remaining: 40" : "剩余牌数：40", find(panel, "deck", JLabel.class).getText());
+            assertEquals(language == 0 ? "First turn: Bot 4" : "首先行动：电脑 4", find(panel, "status", JLabel.class).getText());
+            find(panel, "reveal", JButton.class).doClick();
+            assertEquals("A ♥", find(panel, "hole0", JLabel.class).getText());
+            find(panel, "viewers", JComboBox.class).setSelectedIndex(1);
+            assertEquals("--", find(panel, "hole0", JLabel.class).getText());
+            assertTrue(find(panel, "handoff", JLabel.class).getText().contains(language == 0 ? "Human 2" : "玩家 2"));
+            find(panel, "reveal", JButton.class).doClick();
+            assertEquals("A ♠", find(panel, "hole0", JLabel.class).getText());
+            for (int seat = 0; seat < 6; seat++) {
+                assertEquals("▧  ▧", find(panel, "seatCards" + seat, JLabel.class).getText());
+            }
+        });
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1})
+    void selectedLanguageSurvivesRestartAndInvalidInputWithCardsHidden(int language) throws Exception {
+        onEdt(() -> {
+            SetupSession session = session();
+            GamePanel panel = panel(session);
+            find(panel, "language", JComboBox.class).setSelectedIndex(language);
+            start(panel, "2");
+            String id = session.getView().orElseThrow().getPlayers().get(0).getId();
+            for (String invalid : new String[] {"0", "7", "abc", "", "2147483648"}) {
+                find(panel, "reveal", JButton.class).doClick();
+                start(panel, invalid);
+                assertEquals(language == 0 ? "Enter a whole number from 1 to 6." : "请输入1到6之间的整数。", find(panel, "error", JLabel.class).getText());
+                assertEquals("--", find(panel, "hole0", JLabel.class).getText());
+                assertEquals(id, session.getView().orElseThrow().getPlayers().get(0).getId());
+            }
+            find(panel, "reveal", JButton.class).doClick();
+            start(panel, "1");
+            assertEquals(" ", find(panel, "error", JLabel.class).getText());
+            assertEquals("--", find(panel, "hole0", JLabel.class).getText());
+            assertEquals(language == 0 ? "Human 1" : "玩家 1", find(panel, "seatName0", JLabel.class).getText());
+            assertEquals(1, find(panel, "viewers", JComboBox.class).getItemCount());
+        });
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1})
+    void languageChangeHidesCardsPreservesMatchAndRetranslatesErrors(int initialLanguage) throws Exception {
+        onEdt(() -> {
+            SetupSession session = session();
+            GamePanel panel = panel(session);
+            find(panel, "language", JComboBox.class).setSelectedIndex(initialLanguage);
+            start(panel, "2");
+            find(panel, "viewers", JComboBox.class).setSelectedIndex(1);
+            String id = session.getView().orElseThrow().getPlayers().get(0).getId();
+            find(panel, "reveal", JButton.class).doClick();
+            find(panel, "language", JComboBox.class).setSelectedIndex(1 - initialLanguage);
+            assertEquals("--", find(panel, "hole0", JLabel.class).getText());
+            assertEquals(id, session.getView().orElseThrow().getPlayers().get(0).getId());
+            assertEquals(1, find(panel, "viewers", JComboBox.class).getSelectedIndex());
+            start(panel, "0");
+            find(panel, "language", JComboBox.class).setSelectedIndex(initialLanguage);
+            assertEquals(initialLanguage == 0 ? "Enter a whole number from 1 to 6." : "请输入1到6之间的整数。", find(panel, "error", JLabel.class).getText());
+        });
     }
 
     private static GamePanel panel(SetupSession session) {
