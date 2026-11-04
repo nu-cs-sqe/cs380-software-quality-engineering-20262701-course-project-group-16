@@ -14,7 +14,8 @@ public final class Main {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             GamePanel panel = new GamePanel(new SetupSession());
-            JFrame frame = new JFrame("Texas Hold'em - Group 16");
+            JFrame frame = new JFrame((String) panel.getClientProperty("windowTitle"));
+            panel.addPropertyChangeListener("windowTitle", event -> frame.setTitle((String) event.getNewValue()));
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             frame.setContentPane(panel);
             frame.setMinimumSize(new Dimension(1080, 780));

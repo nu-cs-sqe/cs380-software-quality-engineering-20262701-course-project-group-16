@@ -124,6 +124,10 @@ class GamePanelTest {
                 assertEquals(2, language.getItemCount());
                 assertEquals("English", language.getItemAt(0).toString());
                 assertEquals("简体中文", language.getItemAt(1).toString());
+                language.setSelectedIndex(1);
+                assertEquals("开始游戏", find(panel, "start", JButton.class).getText());
+                language.setSelectedIndex(0);
+                assertEquals("Start Game", find(panel, "start", JButton.class).getText());
             });
         } finally {
             Locale.setDefault(original);
@@ -238,11 +242,12 @@ class GamePanelTest {
         return null;
     }
 
-    private static void onEdt(Runnable action) throws Exception {
+    private static void onEdt(Runnable action) throws InterruptedException, InvocationTargetException {
         try {
             SwingUtilities.invokeAndWait(action);
         } catch (InvocationTargetException failure) {
-            if (failure.getCause() instanceof AssertionError) throw (AssertionError)failure.getCause();
+            Throwable cause = failure.getCause();
+            if (cause instanceof AssertionError) throw (AssertionError) cause;
             throw failure;
         }
     }
