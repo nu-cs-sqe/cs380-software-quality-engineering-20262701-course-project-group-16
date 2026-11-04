@@ -124,32 +124,35 @@ findings and rubric gaps must remain visible until assessed.
 ## Measured results
 
 Verified locally on November 3, 2026, on `feature/hand-evaluation`, after the
-real showdown-integration and localization fault-path additions:
+real showdown-integration, localization fault-path additions and the placeholder
+validation fix in `025baef`:
 
 ```sh
-bash ./gradlew --no-daemon build pitest --continue
+bash ./gradlew --no-daemon clean build pitest --continue
 ```
 
-The measurement used an external init script to set the build directory to
-`/private/tmp/kevin-quality-build` and an isolated Gradle project cache; no root
-build directory was cleaned. HTML/XML reports were generated and inspected at
-that location. The standard commands above regenerate them under `build/`.
-The complete command exited 0 with `BUILD SUCCESSFUL` in 37 seconds.
+This final clean run generated and verified HTML/XML reports in the normal
+`build/reports/` paths listed above. It supersedes the earlier isolated reports
+under `/private/tmp/kevin-quality-build`, which predated the placeholder fix.
+The complete command exited 0 with `BUILD SUCCESSFUL` in 29 seconds; all 16
+actionable tasks executed. The verification log is
+`/private/tmp/kevin-final-check.log`.
 
-- Full project JUnit suite: **718 tests**, zero failures, errors or skips. This
+- Full project JUnit suite: **735 tests**, zero failures, errors or skips. This
   is the team suite count, not an individual target or number of PIT test runs.
 - Checkstyle: **0 main / 0 test violations** with the documented starter rules.
 - SpotBugs: **0 main / 0 test unexcluded findings**, after the 13 exact reviewed
-  exceptions listed above. This does not mean the unfiltered initial scan was empty.
-- Kevin-only JaCoCo: **1,628/1,628 instructions**, **166/166 branches**,
-  **292/292 lines**, **142/142 covered complexity**, **59/59 methods**, **9/9 classes**.
+  exceptions listed above; both reports also have zero analysis errors and zero
+  missing classes. This does not mean the unfiltered initial scan was empty.
+- Kevin-only JaCoCo: **1,748/1,748 instructions**, **184/184 branches**,
+  **319/319 lines**, **153/153 covered complexity**, **61/61 methods**, **9/9 classes**.
   Every reported counter is 100%; the complexity-counter result is not proof of
   independent basis-path execution or a substitute for the rubric interpretation.
-- PIT: **170 generated; 162 killed; 8 survived**, raw mutation score **95.29%**.
+- PIT: **186 generated; 178 killed; 8 survived**, raw mutation score **95.70%**.
   No uncovered, timed-out, non-viable, memory-error or run-error mutants. Its own
-  line counter is **293/293**; PIT and JaCoCo count lines differently, so their
+  line counter is **320/320**; PIT and JaCoCo count lines differently, so their
   denominators are reported separately. PIT selected 11 test classes and ran
-  975 test executions across the mutants.
+  1,072 test executions across the mutants.
 
 | Kevin component | JaCoCo lines | Branches | Covered complexity | PIT killed / generated |
 | --- | --- | --- | --- | --- |
@@ -161,20 +164,24 @@ The complete command exited 0 with `BUILD SUCCESSFUL` in 37 seconds.
 | GameInitializer | 28/28 | 14/14 | 10/10 | 12/13 |
 | SetupSession | 27/27 | 10/10 | 15/15 | 12/12 |
 | SetupView | 19/19 | 2/2 | 9/9 | 8/8 |
-| Localizations | 82/82 | 48/48 | 36/36 | 36/36 |
+| Localizations | 109/109 | 66/66 | 47/47 | 52/52 |
 
 The first coverage run found untested localization rejection of the valid BCP47
 `und` tag (whose `Locale` has no language) and the resource I/O failure path. Added
 real fault-stream tests check rejection, preserved IOException cause and stream
 closure. A Java 11 probe established that an empty language tag already throws
 inside `Locale.Builder`; its unreachable later empty-string guard was removed.
+The later placeholder fix validates actual argument occurrences and types,
+including quoted patterns and recursively parsed choice outputs, with matching
+argument-count checks. Its additional regression cases are included in the
+final 735-test suite and the 52/52 killed localization mutants.
 The final report has no missed branches or lines. Existing source hygiene,
 unused-import, test-exception and switch-format findings were corrected in
 source; no failing baseline was waived to make the final command green.
 
 ## Mutation survivor review
 
-The actual `DEFAULTS` run retained eight survivors; none is hidden by a PIT
+The final 186-mutant `DEFAULTS` run retained the same eight survivors; none is hidden by a PIT
 exclusion. The review below reasons about the published component contracts.
 It does not change PIT's raw mutation score or prove literal output identity
 for every public method.
