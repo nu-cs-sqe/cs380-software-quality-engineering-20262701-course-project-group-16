@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+    <!-- Intentional injectable Random seams: callers can supply seeded/stub random
+         sources. Copying them would break deterministic shuffle/dealer behavior. -->
+    <Match>
+        <Class name="application.GameInitializer"/>
+        <Field name="deckRandom"/>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+    </Match>
+    <Match>
+        <Class name="domain.model.GameSetup"/>
+        <Field name="dealerRandom"/>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+    </Match>
+    <!-- These fields are defensively copied by helper methods. SpotBugs does not
+         follow those helpers far enough; collection immutability has unit tests. -->
+    <Match>
+        <Class name="domain.model.BettingProgress"/>
+        <Method name="getPlayersToAct"/>
+        <Bug pattern="EI_EXPOSE_REP"/>
+    </Match>
+    <Match>
+        <Class name="domain.model.BettingProgress"/>
+        <Method name="getPlayersAllowedToRaise"/>
+        <Bug pattern="EI_EXPOSE_REP"/>
+    </Match>
+    <Match>
+        <Class name="domain.model.GameState"/>
+        <Method name="getCommunityCards"/>
+        <Bug pattern="EI_EXPOSE_REP"/>
+    </Match>
+    <Match>
+        <Class name="domain.model.GameState"/>
+        <Method name="getPlayerStates"/>
+        <Bug pattern="EI_EXPOSE_REP"/>
+    </Match>
+    <Match>
+        <Class name="domain.model.GameState"/>
+        <Method name="getRemainingDeck"/>
+        <Bug pattern="EI_EXPOSE_REP"/>
+    </Match>
+    <!-- GameView.players is Collectors.toUnmodifiableList(); community and
+         PlayerView.holeCards reuse GameState/PlayerState immutable snapshots. -->
+    <Match>
+        <Class name="domain.model.GameView"/>
+        <Method name="getPlayers"/>
+        <Bug pattern="EI_EXPOSE_REP"/>
+    </Match>
+    <Match>
+        <Class name="domain.model.GameView"/>
+        <Method name="getCommunityCards"/>
+        <Bug pattern="EI_EXPOSE_REP"/>
+    </Match>
+    <Match>
+        <Class name="domain.model.PlayerView"/>
+        <Method name="getHoleCards"/>
+        <Bug pattern="EI_EXPOSE_REP"/>
+    </Match>
+    <!-- Swing inherits Serializable; GamePanel is a live UI, never persisted or
+         deserialized. Do not mark live state transient or pretend it serializes. -->
+    <Match>
+        <Class name="ui.GamePanel"/>
+        <Field name="session"/>
+        <Bug pattern="SE_BAD_FIELD"/>
+    </Match>
+    <Match>
+        <Class name="ui.GamePanel"/>
+        <Field name="messages"/>
+        <Bug pattern="SE_BAD_FIELD"/>
+    </Match>
+    <Match>
+        <Class name="ui.GamePanel"/>
+        <Field name="humanViewers"/>
+        <Bug pattern="SE_BAD_FIELD"/>
+    </Match>
+</FindBugsFilter>
