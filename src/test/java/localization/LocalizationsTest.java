@@ -7,9 +7,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -130,6 +133,65 @@ class LocalizationsTest {
         assertThrows(IllegalArgumentException.class, () -> messages.text("en", "greeting", "Ada", "Extra"));
         assertThrows(IllegalArgumentException.class, () -> messages.text("en", "greeting", (Object[]) null));
         assertThrows(IllegalArgumentException.class, () -> messages.text("en", "amount", "not a number"));
+    }
+
+    @ParameterizedTest
+    @MethodSource("incompatiblePatterns")
+    void everyActualArgumentAndRepeatedFormatMustHaveATranslation(String reference, String translated) {
+        Map<String, String> files = patterns(reference, translated);
+        assertThrows(IllegalArgumentException.class, () -> Localizations.load(resources(files)));
+    }
+
+    private static Stream<Arguments> incompatiblePatterns() {
+        return Stream.of(
+                Arguments.of("{0} {1}", "{1}"),
+                Arguments.of("{0,number} {0}", "{0,date} {0}"),
+                Arguments.of("{0,number} {0,date}", "{0,date}"),
+                Arguments.of("{0,number} {0}", "{0} {0}"),
+                Arguments.of("{0} {1}", "'{0}' {1}"),
+                Arguments.of("{0,choice,0#None|1#{1}} {2}", "{0,choice,0#None|1#{2}} {2}"),
+                Arguments.of("{0,choice,0#None|1#{1,number}}", "{0,choice,0#None|1#{1,date}}"),
+                Arguments.of("{0,choice,0#None|1#{1}}", "{0,choice,0#None|1#{1,unknown}}")
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("compatiblePatterns")
+    void compatibleReorderingQuotesAndNestedChoicesFormatCorrectly(String reference, String translated,
+            Object[] arguments, String expected) {
+        Localizations messages = load(patterns(reference, translated));
+        String actual = assertDoesNotThrow(() -> messages.text("zh-CN", "greeting", arguments));
+        assertEquals(expected, actual);
+    }
+
+    private static Stream<Arguments> compatiblePatterns() {
+        return Stream.of(
+                Arguments.of("{0} {1}", "{1} {0}", new Object[] {"Ada", "Bea"}, "Bea Ada"),
+                Arguments.of("{0,number} / {0}", "{0} / {0,number}", new Object[] {2}, "2 / 2"),
+                Arguments.of("''{0}'' '{1}'", "'{1}' ''{0}''", new Object[] {"Ada"}, "{1} 'Ada'"),
+                Arguments.of("{0,choice,0#None|1#{1}}", "{0,choice,0#Nobody|1#Winner {1}}",
+                        new Object[] {1, "Ada"}, "Winner Ada"),
+                Arguments.of("{0,choice,0#none|1#'{1,choice,0#zero|1#{2}}'}",
+                        "{0,choice,0#nobody|1#'{1,choice,0#empty|1#Winner {2}}'}",
+                        new Object[] {1, 1, "Ada"}, "Winner Ada"),
+                Arguments.of("{0,choice,0#none|1#''{1}''}", "{0,choice,0#nobody|1#''{1}''}",
+                        new Object[] {1}, "{1}"),
+                Arguments.of("'{'{0,number,#,##0.00}'}' ''{1}''", "{1}: '{'{0,number,#,##0.00}'}'",
+                        new Object[] {1234.5, "Ada"}, "Ada: {1,234.50}")
+        );
+    }
+
+    @Test
+    void choiceFormattingRequiresArgumentsUsedOnlyInsideItsBranches() {
+        Localizations messages = load(patterns("{0,choice,0#None|1#{1}}", "{0,choice,0#Nobody|1#{1}}"));
+        assertThrows(IllegalArgumentException.class, () -> messages.text("en", "greeting", 1));
+    }
+
+    private static Map<String, String> patterns(String reference, String translated) {
+        Map<String, String> files = fixture();
+        files.put("en.properties", "languageName=English\ngreeting=" + reference + "\namount={0,number}\n");
+        files.put("zh.properties", "languageName=中文\ngreeting=" + translated + "\namount={0,number}\n");
+        return files;
     }
 
     private static Localizations load(Map<String, String> files) {
