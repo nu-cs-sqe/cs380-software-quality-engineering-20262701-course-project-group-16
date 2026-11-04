@@ -74,6 +74,7 @@ tasks.named<JacocoReport>("jacocoTestReport") {
     dependsOn(tasks.test)
     classDirectories.setFrom(sourceSets.main.get().output.classesDirs.asFileTree.matching {
         include(kevinClassFiles)
+        exclude("domain/model/ShowdownResult\$Status.class")
     })
     reports {
         html.required = true
@@ -123,13 +124,15 @@ pitest {
     pitestVersion.set("1.22.1")
     junit5PluginVersion.set("1.2.3")
     targetClasses.set(kevinClasses.flatMap { listOf(it, "$it\$*") }.toSet())
+    excludedClasses.set(setOf("domain.model.ShowdownResult\$Status"))
     targetTests.set(setOf(
         "domain.model.CardTest", "domain.model.DeckTest", "domain.model.DeckSetupTest",
         "domain.model.PokerHandEvaluatorTest", "domain.model.PokerHandRankingTest",
         "domain.model.ShowdownResolverTest",
         "domain.model.ShowdownResultTest", "application.GameInitializerTest",
         "application.SetupSessionTest", "application.SetupViewTest",
-        "integration.SetupIntegrationTest", "localization.LocalizationsTest"
+        "integration.SetupIntegrationTest", "integration.ShowdownIntegrationTest",
+        "localization.LocalizationsTest"
     ))
     threads.set(2)
     mutators.set(setOf("DEFAULTS"))
