@@ -138,7 +138,7 @@ Original Swing checkpoints: RED `36a2975`, GREEN `58f968a`. The English-only
 revision was merged through PR #11 (601 tests at that stage). Week 6 restores
 English/Chinese support with validation and privacy tests: RED `132e255`,
 GREEN `f6ad8e5`, plus the later resource-failure/regression checkpoints recorded
-in the [weekly report](../weekly-report/report.md).
+in the [weekly report](../weekly-reports.md).
 
 Component tests run on the Swing event thread with real session/setup/deck/state
 classes and controlled randomness. They cover errors, private reveals/handoffs,
