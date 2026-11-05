@@ -21,3 +21,29 @@ cross-platform font/layout rendering still need a manual desktop check.
 Coverage hardening now runs 52 focused cases (35 catalog and 17 UI); all pass.
 
 Complete placeholder validation now runs 69 focused cases (52 catalog and 17 UI).
+
+## ShowdownPanel result-display checkpoint
+
+This separate Swing view consumes the existing `GameView` and `ShowdownResult`;
+it does not execute betting actions or alter the session. UI classes use the
+course view exemption, but the following behavior cases document this boundary.
+All fixtures use the real resolver, state, cards and filtered view on the Swing
+event thread. The supplied view includes the viewer's private cards; expected
+result text contains public player names only.
+
+| ID | Public method / state | Expected behavior | Test / status |
+| --- | --- | --- | --- |
+| UI-R01 | constructor; no result | Hidden panel and empty result messages | startsHiddenWithoutAStaleWinner; passing at RED |
+| UI-R02a–b | showResult; one winner; English/Chinese | Localized Human 1 winner and awaiting-settlement status; unchanged pot/chips | rendersRealResultWithLocalizedPublicNames, SINGLE; RED |
+| UI-R03a–b | showResult; two tied players; English/Chinese | Both public names in seat order with tie message | rendersRealResultWithLocalizedPublicNames, TWO_WAY; RED |
+| UI-R04a–b | showResult; six-way board tie; English/Chinese | All six names, including bots, without hole cards or payouts | rendersRealResultWithLocalizedPublicNames, SIX_WAY; RED |
+| UI-R05a–b | showResult; sole participant before complete board; English/Chinese | Uncontested Bot 6 message; awaiting settlement | rendersRealResultWithLocalizedPublicNames, UNCONTESTED; RED |
+| UI-R06 | showResult again with another language | Replace all translated messages, preserving the supplied result | rerenderingInAnotherLanguageReplacesEveryResultMessage; RED |
+| UI-R07 | clearResult, then show next hand | Clear old messages/hide, then display the new winner only | clearingAndShowingAnotherHandRemovesThePreviousWinner; RED |
+| UI-R08 | showResult; different hand IDs | IllegalArgumentException; keep previous valid display | rejectsResultFromAnotherHandWithoutReplacingTheDisplay; RED |
+| UI-R09 | showResult; winner absent from supplied view | IllegalArgumentException; do not show an unrelated player/raw ID | rejectsWinnerIdsMissingFromTheSuppliedPublicView; RED |
+| UI-R10a–b | showResult; null view/result | NullPointerException; keep previous valid display | rejectsNullViewOrResult; RED |
+| UI-R11a–c | showResult; null/empty/unconfigured locale | IllegalArgumentException; keep previous valid display | rejectsUnsupportedLanguageWithoutReplacingTheDisplay; RED |
+
+Observed RED: 18 invocations, 17 expected assertion failures, one initial-state
+pass, zero errors/skips. GREEN implementation and session attachment are pending.
