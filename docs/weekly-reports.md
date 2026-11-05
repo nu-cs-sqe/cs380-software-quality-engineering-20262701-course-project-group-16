@@ -50,6 +50,7 @@ comparison; add English/Chinese support; configure and measure quality checks.
 | Done | Kevin | English/Chinese discovery, selection, UTF-8 messages, locale formatting and privacy on language changes; new locales need resources/configuration only. | RED `132e255` → GREEN `f6ad8e5`; hardening `7717b89`; argument-validation RED `c72b794` → GREEN `025baef`; 69 focused cases; [localization](design/localization.md). |
 | Done | Kevin / shared quality | Configure Checkstyle/SpotBugs, scoped JaCoCo/PIT and CI report uploads; fix findings and review survivors. | `7e65692`, `c7dac83`; measurement records `5b4b092`, `377a143`; [quality results](quality.md). |
 | Done | Kevin | Update README, BVA/design contracts and weekly report with checkpoint evidence and open dependencies. | `8a322f9`, report cleanup `42a02d5`; [BVA index](bva/README.md). |
+| Done, component only | Kevin | Reusable English/Chinese showdown display: winner/ties/uncontested, awaiting settlement, stale-input guards and clearing. Reads public names only; session attachment remains pending. | Branch `feature/showdown-display`; RED `2493bf3` → GREEN `750e7c4`; 18 cases; [result contract](design/showdown.md). |
 
 **Branches:** Initializer `feature/setup-dealing`; session/Swing `feature/swing-setup`
 (merged through PR #11); Kevin branch `feature/hand-evaluation`, based on
@@ -76,19 +77,25 @@ two-card hands, 40-card remainder and private views.
 
 ### Verification and progress evaluation
 
-Last implementation verification: **November 3**, local `clean build pitest --continue`,
-16 tasks executed successfully. Gradle 9.7.1 used JDK 17 locally; compilation/tests
-used JDK 11. CI is configured with JDK 25 plus the JDK 11 toolchain.
+Latest UI checkpoint verification: **November 5**, local `bash ./gradlew build`
+passed using JDK 17 for Gradle 9.7.1 and JDK 11 for compilation/tests. The new
+component's 18 cases raise the team suite from 735 to 753. CI remains configured
+with JDK 25 plus JDK 11. The PIT measurement below is the recorded November 3
+core-component run; mutation analysis was not rerun for this exempt Swing view.
 
 | Check | Recorded result |
 | --- | --- |
-| Team tests | **735 passing**, zero failures/errors/skips. |
+| Team tests, Nov 5 | **753 passing**, zero failures/errors/skips. |
 | Checkstyle / SpotBugs | Zero unexcluded main/test findings; reviewed exceptions documented. |
 | Kevin-only JaCoCo: nine classes | **100%**: 319/319 lines, 184/184 branches, 153/153 complexity counters, 1,748/1,748 instructions, 61/61 methods. |
-| PIT | **178/186 killed (95.70%)**; eight reviewed survivors; zero uncovered/time-out/error mutants. |
+| PIT, Nov 3 core measurement | **178/186 killed (95.70%)**; eight reviewed survivors; zero uncovered/time-out/error mutants. |
 | UI / review | English/Chinese offscreen layouts and card concealment checked; code review found no remaining actionable findings after the argument-validation fix. |
 
-Kevin's comparison and supported bilingual setup flow are complete. Integration
+Kevin's comparison, bilingual setup and separate result component are complete.
+The new result component was reviewed with no actionable findings; English/Chinese
+six-way ties and a Chinese uncontested result fit the inspected offscreen layout.
+Estella's betting/street work is now on `feature/basic-betting`; her session/result
+connection and GamePanel attachment remain the next shared checkpoint. Integration
 uses real game components, controlled Random stubs and one fail-fast evaluator
 stub for the uncontested path; no game components are mocked. The showdown
 fixtures supply the engine boundary, so they do not establish played-hand
