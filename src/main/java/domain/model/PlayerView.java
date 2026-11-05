@@ -1,6 +1,5 @@
 package domain.model;
 
-import domain.model.Card;
 
 import java.util.List;
 

@@ -33,6 +33,14 @@ class GameInitializerTest {
         assertFullInventory(state);
     }
 
+    private static final class UnusedRandom extends Random {
+        private static final long serialVersionUID = 1L;
+
+        @Override public int nextInt(int bound) {
+            throw new AssertionError("Invalid setup must not consume random choices");
+        }
+    }
+
     @ParameterizedTest(name = "reject null {0}")
     @ValueSource(strings = {"config", "dealer", "deck"})
     void rejectsNullDependencies(String dependency) {
@@ -103,12 +111,7 @@ class GameInitializerTest {
     @ParameterizedTest
     @ValueSource(ints = {Integer.MIN_VALUE, 0, 7, Integer.MAX_VALUE})
     void rejectsInvalidHumanCountBeforeUsingRandomness(int humanCount) {
-        Random mustNotBeUsed = new Random() {
-            @Override
-            public int nextInt(int bound) {
-                throw new AssertionError("Invalid setup must not consume random choices");
-            }
-        };
+        Random mustNotBeUsed = new UnusedRandom();
         GameInitializer initializer = new GameInitializer(
                 new GameConfig(), mustNotBeUsed, mustNotBeUsed);
 

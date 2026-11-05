@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 
 class GameSetupTest {
     private static final class DealerRandom extends Random {
+        private static final long serialVersionUID = 1L;
         private final int selected;
         int calls;
         int bound;
@@ -91,7 +92,7 @@ class GameSetupTest {
         assertEquals(0,s.getPlayers().stream().filter(p->p.getType()==PlayerType.BOT).count());
         assertEquals(6,s.getPlayers().stream().map(Player::getId).distinct().count());
         for(int seat=0;seat<6;seat++) { Player p=s.getPlayers().get(seat); assertEquals(seat,p.getSeat());
-            assertEquals(seat<6?PlayerType.HUMAN:PlayerType.BOT,p.getType()); }
+            assertEquals(PlayerType.HUMAN,p.getType()); }
     }
 
     @Test

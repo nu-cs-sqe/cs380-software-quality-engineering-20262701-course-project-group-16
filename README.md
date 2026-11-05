@@ -4,10 +4,12 @@ A Java desktop no-limit Texas Hold'em game with six seats for 1–6 humans and b
 filling the remaining seats. Players share one computer and use virtual chips.
 A match ends when one player holds all the chips.
 
-**Status:** A launchable Swing setup preview initializes six seats, chips, dealer,
-blinds and two hole cards per player. The interface uses English labels and
-supports private-card handoffs. Full betting, hand evaluation, settlement and equity bots
-are still future work; the full game is not yet playable.
+**Status:** The Swing setup preview initializes seats, chips, dealer, blinds and
+hole cards, with English/Chinese selection and private-card handoffs. Best-five
+hand evaluation and eligible winner/tie comparison are implemented in the
+model. Betting actions, street progression, played-hand result display, pot
+settlement and equity bots remain future integration work; the full game is
+not yet playable.
 
 ## Contributors
 
@@ -60,11 +62,13 @@ Test reports appear at `build/reports/tests/test/index.html`.
 
 With the JDKs configured above, run `bash ./gradlew run` (Windows:
 `.\gradlew.bat run`) on a computer with a desktop display. Enter 1–6 human
-players and choose **Start Game**; bots fill the remaining seats. The highlighted
+players, select English or Chinese, and choose **Start Game**; bots fill the remaining seats. The highlighted
 seat is the first actor. Select a human in **Private hand** and pass the computer
 to that person before choosing **Reveal cards**. Switching humans, restarting
-or leaving the window hides the cards. The interface is English-only, regardless
-of the computer's language settings.
+or leaving the window hides the cards. Language changes also hide cards while
+preserving the match. English is the explicit default, independent of the
+computer's language settings. Add future languages through resources/configuration;
+see [localization](docs/design/localization.md).
 
 This is shared-computer privacy by handoff, not authentication: anyone using the
 computer can select another human. Betting controls and bot turns are not
@@ -83,10 +87,18 @@ and Swing classes stay in `ui`.
 
 ## Continuous integration
 
-The [CI workflow](.github/workflows/ci.yml) runs a clean build and tests on pushes
-and pull requests targeting `main`. It uses JDK 25 to run Gradle and JDK 11 for
-compilation and tests, and uploads test reports. Check the workflow result on
-your PR before merging. Required status-check enforcement still needs verification.
+The [CI workflow](.github/workflows/ci.yml) runs the build, JUnit tests,
+Checkstyle, SpotBugs, JaCoCo and PIT on pushes and PRs targeting `main`. It uses
+JDK 25 for Gradle and JDK 11 for compilation/tests, and uploads quality reports.
+Check the actual workflow result on your PR before merging; remote execution
+and required status-check enforcement still need verification after push.
+
+Run `bash ./gradlew build` for tests/static checks/coverage and
+`bash ./gradlew pitest` for mutation testing. The team suite and shared static
+checks run across the project; coverage/PIT scores currently measure Kevin's
+nine documented executable components. [Quality results](docs/quality.md)
+list exact scope, report paths, adapted Checkstyle rules and reviewed SpotBugs
+exceptions. There is no invented metric threshold that hides findings.
 
 ## Documentation
 
@@ -94,22 +106,31 @@ your PR before merging. Required status-check enforcement still needs verificati
 - [System design and shared contract](docs/design/README.md)
 - [Card/deck and setup integration](docs/design/game-setup.md)
 - [Boundary value analysis](docs/bva/README.md)
-- [Weekly planning and progress](docs/weekly-reports.md)
+- [Hand evaluation and showdown boundary](docs/design/showdown.md)
+- [Localization](docs/design/localization.md)
+- [Quality checks and measured results](docs/quality.md)
+- [Weekly planning and progress](docs/weekly-report/report.md)
 - [Project board](https://github.com/orgs/nu-cs-sqe/projects/128)
 
 ## Exceptions
 
 ### Code Coverage
 
-Coverage is not configured or measured yet. The target is 100% cyclomatic
-coverage, excluding View, Main and Enum classes as permitted by the rubric.
-Document any additional exclusions and their justification.
+Coverage is configured and measured for Kevin's components. The rubric targets
+100% cyclomatic coverage, with View/Main/Enum exemptions. JaCoCo line, branch
+and covered-complexity counters are reported separately; these do not prove
+independent basis-path execution. The exact class scope and results are in
+[quality.md](docs/quality.md); partner-owned components are outside Kevin's
+metric denominator, not excluded from tests or shared static analysis.
 
 ### Mutation Testing
 
-Mutation testing is not configured or measured yet. The target is to kill all
-non-equivalent mutants and document justified equivalent mutants.
+PIT uses the DEFAULTS operator group on Kevin's documented scope. The target
+is to kill every non-equivalent mutant. Actual raw scores and each surviving
+mutant's reasoning remain visible in [quality.md](docs/quality.md), including
+the unresolved acceptance of a contract-preserving constant hash. Survivor reasoning and acceptance limits are documented alongside the raw score.
 
 ### Others
 
-No additional exceptions are documented.
+Static-analysis exceptions are exact reviewed class/member/pattern matches in
+`config/spotbugs/exclude.xml`, explained in [quality.md](docs/quality.md).

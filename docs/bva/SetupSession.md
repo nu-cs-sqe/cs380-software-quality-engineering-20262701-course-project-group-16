@@ -32,8 +32,9 @@ There are 20 passing cases. RED commit `bc5accd` ran 20 cases with 19 expected
 assertion failures for missing initialization, validation and privacy behavior.
 The empty-session/hide case already passed. The GREEN session passes all 20;
 the session checkpoint passed 590 tests. The original Swing checkpoint passed
-603 tests; the current English-only revision passes 601 tests with zero failures,
-errors or skips.
+603 tests; the English-only revision passed 601 tests at that historical stage.
+Current English/Chinese UI and resource validation cases are listed separately
+in [GamePanelLocalization.md](GamePanelLocalization.md) and [Localizations.md](Localizations.md).
 
 SetupView is a view model (course view exemption); its data and privacy are
 checked through these session tests. UI callbacks use the session on the Swing

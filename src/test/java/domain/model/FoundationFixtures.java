@@ -1,7 +1,5 @@
 package domain.model;
 
-import domain.model.Card;
-import domain.model.Deck;
 import java.util.*;
 
 /** Test inputs describe explicit snapshots; expected values stay in individual tests. */

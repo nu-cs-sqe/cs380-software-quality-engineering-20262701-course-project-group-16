@@ -3,7 +3,7 @@ package domain.model;
 import java.util.List;
 
 /**
- * Contract for the Week 6 best-five-of-seven evaluator; no implementation yet.
+ * Contract for the best-five-of-seven evaluator used by showdown comparison.
  * Each argument is one player's two hole cards plus the five community cards.
  * Shared community cards may occur in both arguments, but neither argument may
  * contain a duplicate card. Inputs must not be modified by an implementation.
