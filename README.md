@@ -109,7 +109,7 @@ exceptions. There is no invented metric threshold that hides findings.
 - [Hand evaluation and showdown boundary](docs/design/showdown.md)
 - [Localization](docs/design/localization.md)
 - [Quality checks and measured results](docs/quality.md)
-- [Weekly planning and progress](docs/weekly-report/report.md)
+- [Weekly planning and progress](docs/weekly-reports.md)
 - [Project board](https://github.com/orgs/nu-cs-sqe/projects/128)
 
 ## Exceptions
