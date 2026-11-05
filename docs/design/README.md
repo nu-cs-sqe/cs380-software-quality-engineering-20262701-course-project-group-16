@@ -26,11 +26,17 @@ classDiagram
     BettingEngine --> BettingResult
     BettingResult --> GameState
     BettingResult --> AcceptedAction
+    PokerHandEvaluator ..|> HandEvaluator
+    ShowdownResolver --> HandEvaluator
+    ShowdownResolver --> ShowdownResult
 ```
 
 Member A supplies the shared `domain.model.Card`, rank/suit enums, deck creation,
-shuffling and dealing primitives. Hand evaluation remains an interface for later work. The engine accepts `ActionRequest`, validates it against current state,
-then produces a new snapshot and `AcceptedAction`. Bots and the interface receive
+shuffling and dealing primitives. The existing HandEvaluator interface now has one PokerHandEvaluator implementation,
+used by ShowdownResolver to return immutable results awaiting settlement. See
+[showdown design](showdown.md). The betting engine accepts `ActionRequest`,
+validates it against current state, then produces a new snapshot and
+`AcceptedAction`. Bots and the interface receive
 `GameView`; profiles and saved statistics stay separate from live match state.
 
 Implemented here: initialization, immutable contracts, unraised preflop
@@ -63,6 +69,13 @@ postflop checks/folds and advancement through SHOWDOWN without paying pots.
 Betting/raising, raised-round action handling, postflop CALL, pot
 settlement, bot strategy and profile storage follow later. See the
 [engine BVA](../bva/BettingEngine.md).
+Best-five evaluation and closed-state winner/tie resolution are also implemented
+without payouts. SetupSession now connects the played betting flow to ShowdownResolver and Swing;
+see [played-hand application flow](played-hand.md).
 The Swing setup preview uses SetupSession and
 SetupView to display initialization and private-card handoffs; see [setup design](game-setup.md).
 CI builds and tests pushes and pull requests.
+
+[Localization](localization.md) covers English/Chinese discovery, selection and
+private-card handoffs. [Quality checks](../quality.md) document Checkstyle,
+SpotBugs, scoped coverage and mutation results.

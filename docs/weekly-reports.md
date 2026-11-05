@@ -1,150 +1,157 @@
 # Weekly Reports
 
-Reporting starts at Week 5. Add one report each week through the final week of
-class, recording actual progress, remaining work, and links to supporting issues
-or PRs when available.
+One section per week from Week 5 through the last week of class. Each records
+the goal, owner, task status, evidence, progress evaluation and next steps.
+**Done** means completed in the stated scope. This is the single weekly report;
+checkpoint commits, verification and remaining work are recorded below.
 
-## Week 5 (10/26/2026-11/01/2026)
+## Week 5 (10/26/2026–11/01/2026)
 
-### Goal
+**Goal:** Build card/deck and player/state foundations with BVA/TDD, then integrate
+setup toward readiness for the first turn.
 
-Build the card/deck and player/setup foundations, document BVA, and integrate
-them toward a game ready for its first turn.
+### Planning and progress tracking
 
-### Completed work
+| Status | Owner | Work | Evidence |
+| --- | --- | --- | --- |
+| Done | Estella | HTTPS clone, JDK 11/25 setup and local build; project scope, README/rubric review and build/test CI. | [README](../README.md); [CI workflow](../.github/workflows/ci.yml). |
+| Done | Estella | Player identity, six-seat setup, immutable state, action contracts, private views and statistics, with tests/BVA. | [Shared contract](design/shared-contract.md); [BVA](bva/README.md); branch `feature/game-state-and-stats`. |
+| Done | Kevin | Immutable cards, null validation, value equality/hash codes; 15 cases. | [Card BVA](bva/Card.md); GREEN `2219068`, `acbd186`, `a35669d`. |
+| Done | Kevin | Full deck, validated/immutable dealing and controlled shuffling; 48 cases covering fresh/used/empty decks, boundary/extreme inputs and unchanged state after rejection. | [Deck BVA](bva/Deck.md); RED `a1490c5`; GREEN `630deff`, `3a53ede`, `d2ad3b7`; Two bounded Random-stub checks `f1c922e` also detect a shuffle that ignores its injected source. |
+| Done | Kevin | Six two-card hands, 12 unique dealt cards, 40 remaining; shared evaluator interface and design. | `9bf1c6e`; DeckSetupTest; [setup design](design/game-setup.md). |
+| Done, Nov 2 follow-up | Together | Merge both component branches using one shared Card model; preserve TDD history. | [PR #6](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/pull/6), [PR #8](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/pull/8); merge `881ad79`. |
 
-| Owner | Work completed | Evidence |
-| --- | --- | --- |
-| Estella | Cloned the course repository using HTTPS. | Successful clone in the local terminal. |
-| Estella | Installed JDK 11 and JDK 25 and verified the local Gradle build. | `java_home -V` lists both JDKs; `bash ./gradlew clean build` reported `BUILD SUCCESSFUL`. |
-| Estella | Recorded the proposed Texas Hold'em scope and contributor names. | [Project overview](../README.md): six seats, 1-6 humans, bots, virtual chips, and shared-computer play. |
-| Estella | Reviewed the rubric and simplified the README to the required project information. | [README](../README.md) includes dependencies, build/test commands, documentation links, and exceptions. |
-| Estella | Implemented player identity, six-seat setup, immutable hand state, action contracts, filtered views and poker statistics with tests and BVA. | [Shared contract](design/shared-contract.md); [BVA index](bva/README.md); source branch `feature/game-state-and-stats`. |
-| Estella | Added CI to build and test pushes and PRs using JDK 25 and the JDK 11 toolchain. | [Workflow](../.github/workflows/ci.yml). |
-| Kevin | Implemented immutable cards with rank and suit, null validation, value equality and hashing. | [Card BVA](bva/Card.md); GREEN commits `2219068`, `acbd186`, `a35669d`; 15 Card cases. |
-| Kevin | Created a 52-card deck, added validated dealing and shuffling, and protected returned hands from modification. | [Deck BVA](bva/Deck.md); GREEN commits `630deff`, `3a53ede`, `d2ad3b7`. |
-| Kevin | Covered zero/full/near-full draws, partially used and empty decks, negative and excessive requests, extreme integers, and rejection without changing state. | BVA cases mapped to `DeckTest`; invalid-request RED commit `a1490c5` and GREEN commit `3a53ede`. |
-| Kevin | Added repeatable shuffle tests and two test-only Random stub cases for the lowest and highest valid choices. Confirmed the stub tests detect a shuffle that ignores the supplied random source. | Checkpoint `f1c922e`; 48 Deck cases in total, including both stub cases. This extends existing behavior coverage. |
-| Kevin | Verified two rounds of dealing for six hands: two cards per hand, 12 distinct dealt cards and 40 remaining. Defined the hand-evaluation interface for later work. | `9bf1c6e`; `DeckSetupTest`; [setup design](design/game-setup.md); [planned evaluator cases](bva/HandEvaluator.md). |
-| Kevin | Documented Member A's contracts and BVA, updated project documentation, and pushed the cards-and-deck branch for integration. | [Member A PR #6](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/pull/6), merged into `main`; component commits preserve the RED/GREEN history. |
+**Branches:** Kevin `feature/cards-and-deck`; Estella `feature/game-state-and-stats`;
+shared documentation `docs/project-setup`.
 
-**Branches:** Kevin: `feature/cards-and-deck`; Estella: `feature/game-state-and-stats`;
-shared documentation: `docs/project-setup`. The November 2 initialization
-follow-up is on local branch `feature/setup-dealing` (details in Week 6).
+**Progress evaluation:** Member A's Week 5 components are complete. The merged
+suite passed 554 cases: 64 Member A, 488 Member B and two integration cases.
+The team had not completed first-turn readiness. Application initialization,
+Swing and later evaluation/quality work are recorded in Week 6.
 
-Estella combined the Week 5 work into `main` on November 2, preserving the TDD
-history and reusing `domain.model.Card` throughout state and views. The duplicate
-card enum was removed. Evidence: [Member A PR #6](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/pull/6),
-[Member B PR #8](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/pull/8), and
-[merge `881ad79`](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/commit/881ad796c1a3894d35da9667025a75bf6f85fa06).
+**Carry forward:** Finish initialization/Swing integration, game rules, project-board
+and review-workflow checks; continue hand evaluation and basic betting with BVA/TDD.
 
-### Setup checklist
+## Week 6 (11/02/2026–11/08/2026)
 
-Status updated November 2. Checked means implemented/verified, not necessarily
-merged; the initializer and Swing follow-ups still need push and teammate review.
+**Goal:** Finish setup integration; implement best-five evaluation and winner/tie
+comparison; add English/Chinese support; configure and measure quality checks.
+[Plan: issue #12](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/issues/12).
 
-- [x] **Member A components:** cards, deck, shuffling, dealing and BVA; 64 passing cases.
-- [x] **Shared card model:** one Card model across deck/state/views, with integration tests.
-- [x] **CI workflow:** automatic build/tests on pushes and PRs.
-- [x] **Shared toolchain:** Gradle 9.7.1 runs locally on JDK 17 and in CI on JDK 25; compilation/tests use JDK 11.
-- [ ] **Requirements:** complete the [game rules](requirements/game-rules.md), currently a placeholder; reconcile 5/10 versus 10/20 blinds and the button policy.
-- [x] **Setup UI:** English-only Swing setup preview, label resources and private-card handoffs implemented locally on `feature/swing-setup`; native desktop walkthrough still pending.
-- [x] **Initial model/setup design:** document responsibilities and APIs in the [design documents](design/README.md).
-- [ ] **Project board:** confirm assignees, status and PR links; record instructor-meeting evidence.
-- [ ] **Review workflow:** verify required reviews/CI enforcement and failure detection; add the workflow run link.
-- [ ] **Later project quality work:** configure coverage/mutation testing, measure required metrics and justify exclusions; the manual shuffle check is not a full mutation report.
-- [x] **Application initialization:** GameInitializer returns a dealt PREFLOP state; 16 cases pass. Completed November 2 on `feature/setup-dealing`, not merged yet.
-- [ ] **First-turn readiness:** implement and verify usable first-turn actions; the setup interface is connected.
+### Planning and progress tracking
 
-### Progress evaluation
+| Status | Owner | Work | Evidence / checkpoint |
+| --- | --- | --- | --- |
+| Done | Kevin | GameInitializer composes setup/deck into PREFLOP: chips, blinds, positions, two cards per seat and 40 remaining. Consolidate domain classes/tests into `domain.model`. | RED `2ae10c9` → GREEN `600ad38` (16 cases); package move `d0109ec`; [initializer BVA](bva/GameInitializer.md). |
+| Done | Kevin | SetupSession/SetupView and launchable Swing setup with explicit card reveals, safe handoffs/restarts and hidden cards on focus loss. | RED `bc5accd` → GREEN `88a535b`; RED `36a2975` → GREEN `58f968a`; [PR #11](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/pull/11). Locale fix RED `217434e` → GREEN `2ac9fe3`; the later English-only revision was merged in PR #11 before Week 6 bilingual support. |
+| Done | Kevin | Validate seven-card holdings; compare all nine categories, kickers, wheels, best-five selection and ties without modifying inputs. | RED `f5fd72e` → GREEN `631bb87`; RED `935e12b` → GREEN `8291f17`; 53 cases; [evaluator BVA](bva/PokerHandEvaluator.md). |
+| Done | Kevin | Resolve eligible ACTIVE/ALL_IN winners/ties; reject unfinished states; recognize uncontested wins. Return immutable AWAITING_SETTLEMENT without payouts. | RED `29442e4` → GREEN `0d5172e`; 21 cases; [resolver/result contract](design/showdown.md). |
+| Done | Kevin | Connect real initialized cards/state to known-winner and board-tie showdown fixtures, preserving chips and the original state. | `428b161`; two integration cases; fixtures supply a closed SHOWDOWN state. |
+| Done | Kevin | English/Chinese discovery, selection, UTF-8 messages, locale formatting and privacy on language changes; new locales need resources/configuration only. | RED `132e255` → GREEN `f6ad8e5`; hardening `7717b89`; argument-validation RED `c72b794` → GREEN `025baef`; 69 focused cases; [localization](design/localization.md). |
+| Done | Kevin / shared quality | Configure Checkstyle/SpotBugs, scoped JaCoCo/PIT and CI report uploads; fix findings and review survivors. | `7e65692`, `c7dac83`; measurement records `5b4b092`, `377a143`; [quality results](quality.md). |
+| Done locally; awaiting review | Estella | Connect BettingEngine actions/turns/streets to the real showdown resolver through one SetupSession; handle uncontested/all-in runout and atomic failure/retry. | [Session BVA](bva/SessionBetting.md); [played-hand flow](design/played-hand.md). |
+| Done locally; awaiting review | Estella | Add Swing legal actions, automatic temporary check/call bots, public board/status, private handoffs and English/Chinese pending results. | [Played-screen cases](bva/PlayedGamePanel.md); two real played winner/tie integration cases. |
+| Done locally; awaiting review | Estella / shared quality | Preserve setup/privacy checks, update mutation test selection and review findings; final939 tests pass with clean static checks. | [Local TDD record](tdd/week6-session.md); [current shared-scope measurements](quality.md). |
+| Done | Kevin | Update README, BVA/design contracts and weekly report with checkpoint evidence and open dependencies. | `8a322f9`, report cleanup `42a02d5`; [BVA index](bva/README.md). |
 
-**Member A's planned Week 5 components are complete; the team's full setup
-feature remains incomplete.** The merged suite passed **554 tests**: 64 Member A,
-488 Member B and two integration cases. Different scopes explain the counts;
-they are not individual targets. The November 2 initializer adds 16 cases for
-**570 passing tests**, with zero failures, errors or skips. Kevin verified both
-runs locally with Gradle 9.7.1 on JDK 17 and the JDK 11 toolchain.
+**Branches:** Initializer `feature/setup-dealing`; session/Swing `feature/swing-setup`
+(merged through PR #11); Kevin branch `feature/hand-evaluation`, based on
+merged main `9dbaa39` and now merged through
+[PR #13](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/pull/13)
+(commit `d2a78f3`).
 
-Setup/dealing tests verify two cards per player, 40 remaining, correct positions,
-10/20 blinds, 6,000 conserved chips and private views. The initializer now does
-this in application code. The later November 2 Swing follow-up adds a launchable
-setup preview (601 tests after the English-only revision); betting actions remain absent. Finish the
-rules and verify board/review settings. Hand evaluation is still an
-interface; full betting, settlement and equity bots are later milestones. Coverage and mutation scores have not been measured.
+**TDD history:** Initializer RED had 12 expected failures before all 16 cases
+passed. Session RED had 19 expected failures and one existing pass before all
+20 passed. Ranking RED had 34 expected failures and three existing ties; all
+53 validation/ranking cases passed after GREEN. Localization RED had 40
+expected failures plus ten existing passes. Resource-failure hardening expanded
+the focused suite to 52; placeholder RED then had 12 expected failures among
+68 cases, and GREEN plus a literal-brace fixture reached 69 (52 catalog/17 UI).
+The resource hardening tested existing behavior and is not claimed as a new
+RED cycle. The final fix was reviewed with no remaining actionable findings.
 
-### Next week's priorities
+**Intermediate team suites:** 554 after component integration → 570 after the
+initializer/package move → 590 after the session → 603 after original Swing →
+601 after the English-only revision → 617 after evaluator validation → 735 at
+the final November 3 check. These are historical scopes, not individual targets.
+Setup checks preserve the 10/20 blinds, 6,000-chip total, correct positions,
+two-card hands, 40-card remainder and private views.
 
-Push/review the initializer and Swing follow-ups, walk through the desktop screen,
-and finish the rules and workflow follow-ups. Begin hand evaluation and basic betting with
-BVA and TDD after confirming shared interfaces.
+### Verification and progress evaluation
 
-## Week 6 (11/02/2026-11/08/2026)
+Kevin's historical implementation verification: **November 3**, local `clean build pitest --continue`,
+16 tasks executed successfully. Gradle 9.7.1 used JDK 17 locally; compilation/tests
+used JDK 11. CI is configured with JDK 25 plus the JDK 11 toolchain.
 
-### Goal
+| Check | Recorded result |
+| --- | --- |
+| Team tests | **735 passing**, zero failures/errors/skips. |
+| Checkstyle / SpotBugs | Zero unexcluded main/test findings; reviewed exceptions documented. |
+| Kevin-only JaCoCo: nine classes | **100%**: 319/319 lines, 184/184 branches, 153/153 complexity counters, 1,748/1,748 instructions, 61/61 methods. |
+| PIT | **178/186 killed (95.70%)**; eight reviewed survivors; zero uncovered/time-out/error mutants. |
+| UI / review | English/Chinese offscreen layouts and card concealment checked; code review found no remaining actionable findings after the argument-validation fix. |
 
-Connect the tested deck-to-state composition to an application method and
-provide a Swing setup preview with private-card handoffs.
+Kevin's comparison and supported bilingual setup flow are complete. Integration
+uses real game components, controlled Random stubs and one fail-fast evaluator
+stub for the uncontested path; no game components are mocked. The showdown
+fixtures supply the engine boundary, so they do not establish played-hand
+progression or result-screen readiness. Coverage is Kevin-scoped; JaCoCo
+complexity counters do not prove independent basis-path execution. Mutation
+survivor reasoning, including the hash-contract acceptance question, remains in
+[quality.md](quality.md).
 
-**Branches:** `feature/setup-dealing` (initializer); `feature/swing-setup`
-(package consolidation, session and interface, based on the initializer branch).
+### Estella's local integration verification — November 5
 
-### Completed work
+The pending integration of main at 11a4e00 with feature/basic-betting now runs the
+supported played flow through Swing to a real winner/tie result awaiting
+settlement. **939 tests pass**, zero failures/errors/skips; Checkstyle and
+SpotBugs have0 main/test unexcluded findings. The new 42 cases extend the 897-case
+merged baseline. TDD ran RED before session/UI implementations; the record is
+local and is not claimed as separate RED/GREEN Git commits.
 
-| Owner | Work completed | Evidence |
-| --- | --- | --- |
-| Kevin | Added `GameInitializer.start(humanCount)` to combine existing GameSetup and Deck operations. It deals two clockwise rounds and returns the first PREFLOP state. | [Setup design](design/game-setup.md); [initializer BVA](bva/GameInitializer.md). |
-| Kevin | Added 16 TDD/BVA cases for constructor nulls, human-count boundaries, all six dealer positions, all-in blinds, repeated games and recovery after invalid input. | RED commit `2ae10c9`: 12 expected failures; GREEN commit `600ad38`: all 16 pass. |
-| Kevin | Verified the merged project and new coordinator on this computer using JDK 17 for Gradle 9.7.1 and JDK 11 for compilation/tests. Updated README build instructions. | Clean build: 570 tests, zero failures, errors or skips. |
-| Kevin | Moved all domain classes and matching tests into `domain.model`, retaining application/UI packages. | `d0109ec`; clean build: 570 tests. |
-| Kevin | Added a setup session and immutable public view with explicit human-card reveals and safe handoffs/restarts. | RED `bc5accd`; GREEN `88a535b`; [20 session BVA cases](bva/SetupSession.md), full suite 590 passing. |
-| Kevin | Built the Swing setup preview with seats/chips/blinds/actor, human selection, reveal/hide, label resources and Gradle launch task. | RED `36a2975`; GREEN `58f968a`; 13 GUI behavior cases (locale fix: RED `217434e`, GREEN `2ac9fe3`); full clean build: 603 tests, zero failures/errors/skips; offscreen layout checks. |
-| Kevin | Simplified the interface to English only, removed the language selector and extra translation bundle, and updated the tests and documentation. | English-only regression observed RED, then GREEN; current clean build: 601 tests (11 GUI cases), zero failures/errors/skips. Changes are pending the user's commit and push. |
+The controlled call/fold/check hand ends with 21 accepted actions, five live
+participants, pot 100, stacks 5,900 and 32 remaining cards. Tests also verify
+uncontested endings, all-in runout, rejected-action preservation, atomic
+comparison retry, human privacy and both languages. Automatic bots only check
+or call; no opponent cards/equity are used. Pending actions are logged once;
+no payout, settled completion or completed-hand statistics are fabricated.
 
-### Integration checklist
+Nine-class shared-scope JaCoCo counters are all covered; PIT kills219/227
+mutants (96.48%), retaining the eight documented baseline survivors. Session
+43/43 and view 18/18 mutants are killed. These are not whole-game quality
+measurements or proof of independent basis paths. See [quality.md](quality.md)
+and [TDD evidence](tdd/week6-session.md). Offscreen English/Chinese layouts were
+inspected; native focus/teammate walkthrough and new remote CI remain pending.
 
-- [x] Connect GameSetup and Deck through GameInitializer to produce a dealt PREFLOP state.
-- [x] Preserve dealer, blinds, first actor, chip totals and private player views.
-- [x] Document BVA and complete the RED/GREEN cycle for 16 coordinator cases.
-- [x] Verify the full clean build: 601 tests pass after the English-only revision.
-- [ ] Push `feature/swing-setup` (includes initializer commits), open a PR and complete teammate review before merging.
-- [x] Connect the Swing setup screen and private-card handoffs to the initializer.
-- [ ] Complete a native desktop walkthrough, including focus-loss hiding, with the teammate.
-- [ ] Implement and verify usable first-turn actions before marking the full setup feature complete.
+### Call-button layout follow-up — November 5
 
-### Progress evaluation
+A larger button font could wrap Call below the action row and clip it. The
+screen now keeps Fold/Check/Call in one row, with compact margins and labels
+set before measuring row height. Two bilingual visibility cases were added:
+English failed before the fix; both pass afterward. The full build now passes
+**941 tests**, with zero Checkstyle/SpotBugs main/test findings. This UI-only
+follow-up does not extend the mutation measurement scope. See
+[UI-PLAY06](bva/PlayedGamePanel.md#call-button-visibility-regression).
 
-- The coordinator reuses Member A's real deck and Member B's real setup/state
-  classes. GameSetup's existing SETUP contract and tests remain unchanged.
-- Tests verify two cards per player, 40 remaining, correct clockwise order,
-  conserved chips, preserved blind/actor/status data and private player views.
-- Initialization was committed on `feature/setup-dealing`; package consolidation,
-  session and Swing work continue on `feature/swing-setup`, which includes the
-  initializer history. The earlier checkpoints were pushed; the English-only
-  revision is uncommitted and unpushed, with teammate review and merge still pending.
-- The Swing setup preview is implemented locally; action execution remains future
-  work. The full first-turn readiness requirement stays open. Real components run
-  together in tests; fixed dealer stubs and seeded shuffles control randomness,
-  with no mocked game components.
+### Remaining work and next steps
 
-### Next priorities
-
-Review and push the initializer/Swing branches and link the PRs here. Run the
-window with `bash ./gradlew run`, check handoffs/focus hiding, and implement usable
-first-turn actions before marking the full setup feature complete.
+- [x] **Estella (local):** Connect betting/turn/street progression to showdown and Swing results; test both languages plus uncontested/all-in runout. Awaiting user commit, remote CI and teammate review. Payouts/side pots and equity bots remain later work.
+- [ ] **Together:** Walk through native desktop focus-loss privacy and cross-platform fonts/layout.
+- [ ] **Together:** Complete [game rules](requirements/game-rules.md), reconcile proposed 5/10 versus implemented 10/20 blinds/button policy, confirm board assignees/status/PR links and record instructor-meeting evidence.
+- [ ] **Together:** Review rubric interpretation and mutation survivors with the instructor; obtain partner-owned quality measurements separately.
+- [x] **Kevin:** Implementation branch merged through PR #13 (`d2a78f3`).
+- [ ] **Together:** Confirm remote CI results and required review/check enforcement, including failure detection; local results alone do not establish these settings.
 
 ## Future weekly report template
 
-Copy this template for each subsequent week and replace the placeholders.
+### Week N (MM/DD/YYYY–MM/DD/YYYY)
 
-### Week N (MM/DD/YYYY-MM/DD/YYYY)
+**Goal:** Planned outcome.
 
-**Goal:** State the week's intended outcome.
-
-| Status | Owner | Task and acceptance criteria | Evidence / issue / PR |
+| Status | Owner | Task and acceptance criteria | Evidence / branch / PR |
 | --- | --- | --- | --- |
-| Planned / In progress / Done / Blocked | Name | Concrete task and completion condition | Link or local verification result |
+| Planned / In progress / Done / Blocked | Name | Concrete task | Link or verified checkpoint |
 
-**Progress evaluation:** Compare the plan with actual outcomes, record checks
-and results, explain blockers, and identify work to carry forward.
+**Progress evaluation:** Actual outcome, checks, blockers and differences from plan.
 
-**Next week's priorities:** List the next tasks and their owners.
+**Next steps:** Remaining tasks and owners.

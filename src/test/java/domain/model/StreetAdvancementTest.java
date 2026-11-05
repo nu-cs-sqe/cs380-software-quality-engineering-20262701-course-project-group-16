@@ -113,9 +113,7 @@ class StreetAdvancementTest {
     @ParameterizedTest(name = "BE-SA08-{0}: reject advancement with pending decisions")
     @ValueSource(ints = {1, 6})
     void aPendingDecisionPreventsAdvancement(int pending) {
-        Random dealer = new Random() {
-            @Override public int nextInt(int bound) { return 0; }
-        };
+        Random dealer = new SeatZeroRandom();
         GameState state = new GameInitializer(new GameConfig(), dealer, new Random(7)).start(2);
         if (pending == 1) {
             for (int seat : new int[]{3, 4, 5, 0, 1}) {
@@ -317,5 +315,14 @@ class StreetAdvancementTest {
                     player.getHoleCards(), player.getRoundContribution(), player.getHandContribution()));
         }
         return values;
+    }
+
+    private static final class SeatZeroRandom extends Random {
+        private static final long serialVersionUID = 1L;
+
+        @Override
+        public int nextInt(int bound) {
+            return 0;
+        }
     }
 }

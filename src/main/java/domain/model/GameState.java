@@ -1,6 +1,5 @@
 package domain.model;
 
-import domain.model.Card;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -133,13 +132,24 @@ public final class GameState {
         boolean validBoard;
         switch (phase) {
             case SETUP:
-            case PREFLOP: validBoard = count == 0; break;
-            case FLOP: validBoard = count == 3; break;
-            case TURN: validBoard = count == 4; break;
+            case PREFLOP:
+                validBoard = count == 0;
+                break;
+            case FLOP:
+                validBoard = count == 3;
+                break;
+            case TURN:
+                validBoard = count == 4;
+                break;
             case RIVER:
-            case SHOWDOWN: validBoard = count == 5; break;
-            case COMPLETION: validBoard = count == 0 || count == 3 || count == 4 || count == 5; break;
-            default: throw new IllegalArgumentException("Unknown phase.");
+            case SHOWDOWN:
+                validBoard = count == 5;
+                break;
+            case COMPLETION:
+                validBoard = count == 0 || count == 3 || count == 4 || count == 5;
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown phase.");
         }
         if (!validBoard) {
             throw new IllegalArgumentException("Community card count does not match the phase.");

@@ -5,17 +5,20 @@ import application.SetupView;
 import domain.model.Card;
 import domain.model.Player;
 import domain.model.PlayerType;
+import domain.model.ActionRequest;
+import domain.model.ActionType;
+import domain.model.ShowdownResult;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridLayout;
-import java.text.MessageFormat;
+import java.awt.Insets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
-import java.util.ResourceBundle;
+import java.util.Set;
+import java.util.stream.Collectors;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -25,33 +28,53 @@ import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
+import localization.Localizations;
 
-/** Shared-computer setup screen. Construct and use on the Swing event thread. */
+/** Shared-computer played-hand screen. Construct and use on the Swing event thread. */
 public final class GamePanel extends JPanel {
     private static final long serialVersionUID = 1L;
     private static final Color INK = new Color(24, 39, 47);
     private static final Color FELT = new Color(24, 76, 63);
     private static final Color GOLD = new Color(224, 184, 92);
     private final SetupSession session;
+    private final Localizations messages = Localizations.load();
+    private final JComboBox<String> language = named(new JComboBox<>(), "language");
+    private String selectedLanguage = messages.defaultLanguage();
+    private String errorKey;
     private final JTextField humanCount = named(new JTextField("1"), "humanCount");
     private final JComboBox<String> viewers = named(new JComboBox<>(), "viewers");
     private final JButton start = named(new JButton(), "start");
     private final JButton reveal = named(new JButton(), "reveal");
     private final JButton hide = named(new JButton(), "hide");
+    private final JButton fold = named(new JButton(), "fold");
+    private final JButton check = named(new JButton(), "check");
+    private final JButton call = named(new JButton(), "call");
     private final JLabel error = named(new JLabel(" "), "error");
     private final JLabel status = named(new JLabel(), "status");
     private final JLabel pot = named(new JLabel(), "pot");
     private final JLabel deck = named(new JLabel(), "deck");
     private final JLabel handoff = named(new JLabel(), "handoff");
+    private final JLabel community = named(new JLabel(), "community");
+    private final JLabel phase = named(new JLabel(), "phase");
+    private final JLabel result = named(new JLabel(" "), "result");
     private final JLabel[] holes = new JLabel[2];
     private final JPanel seats = new JPanel(new GridLayout(2, 3, 12, 12));
     private final List<Player> humanViewers = new ArrayList<>();
-    private final ResourceBundle messages = ResourceBundle.getBundle("ui.messages", Locale.ROOT,
-            ResourceBundle.Control.getNoFallbackControl(ResourceBundle.Control.FORMAT_DEFAULT));
     private boolean rendering;
 
     public GamePanel(SetupSession session) {
         this.session = java.util.Objects.requireNonNull(session, "session");
+        for (String tag : messages.languages()) {
+            language.addItem(messages.languageName(tag));
+        }
+        language.setSelectedIndex(messages.languages().indexOf(selectedLanguage));
+        language.addActionListener(event -> {
+            if (!rendering && language.getSelectedIndex() >= 0) {
+                selectedLanguage = messages.languages().get(language.getSelectedIndex());
+                session.hideCards();
+                buildScreen();
+            }
+        });
         start.addActionListener(event -> startGame());
         humanCount.addActionListener(event -> startGame());
         viewers.addActionListener(event -> {
@@ -62,6 +85,9 @@ public final class GamePanel extends JPanel {
         });
         reveal.addActionListener(event -> { session.revealCards(); refresh(); });
         hide.addActionListener(event -> hidePrivateCards());
+        fold.addActionListener(event -> submitAction(ActionType.FOLD));
+        check.addActionListener(event -> submitAction(ActionType.CHECK));
+        call.addActionListener(event -> submitAction(ActionType.CALL));
         setPreferredSize(new Dimension(1100, 740));
         buildScreen();
     }
@@ -74,12 +100,19 @@ public final class GamePanel extends JPanel {
 
     private void buildScreen() {
         removeAll();
+        setLocale(messages.locale(selectedLanguage));
+        putClientProperty("windowTitle", text("title"));
         setLayout(new BorderLayout(18, 18));
         setBackground(INK);
         setBorder(BorderFactory.createEmptyBorder(20, 22, 20, 22));
         JPanel header = transparent(new BorderLayout());
         JLabel title = label(text("title"), 27, Color.WHITE);
         header.add(title, BorderLayout.WEST);
+        JPanel languageChoice = transparent(new FlowLayout(FlowLayout.RIGHT));
+        languageChoice.add(label(text("language"), 14, Color.WHITE));
+        language.getAccessibleContext().setAccessibleName(text("language"));
+        languageChoice.add(language);
+        header.add(languageChoice, BorderLayout.EAST);
         add(header, BorderLayout.NORTH);
 
         JPanel sidebar = new JPanel();
@@ -98,7 +131,6 @@ public final class GamePanel extends JPanel {
         addRow(sidebar, start);
         error.setForeground(new Color(159, 34, 34));
         error.setFont(new Font(Font.DIALOG, Font.PLAIN, 12));
-        error.setText(" ");
         addRow(sidebar, error);
         sidebar.add(Box.createVerticalStrut(20));
         addRow(sidebar, label(text("privateHand"), 21, INK));
@@ -122,6 +154,17 @@ public final class GamePanel extends JPanel {
         hide.setText(text("hide"));
         privacy.add(reveal); privacy.add(hide);
         addRow(sidebar, privacy);
+        sidebar.add(Box.createVerticalStrut(10));
+        addRow(sidebar, label(text("actions"), 18, INK));
+        fold.setText(text("fold"));
+        check.setText(text("check"));
+        call.setText(text("call", 0));
+        JPanel actions = transparent(new GridLayout(1, 3, 5, 0));
+        for (JButton action : List.of(fold, check, call)) {
+            action.setMargin(new Insets(2, 4, 2, 4));
+        }
+        actions.add(fold); actions.add(check); actions.add(call);
+        addRow(sidebar, actions);
         sidebar.add(Box.createVerticalGlue());
         addRow(sidebar, new JLabel(wrapped(text("privacyNote"))));
         add(sidebar, BorderLayout.WEST);
@@ -139,8 +182,14 @@ public final class GamePanel extends JPanel {
         table.add(summary, BorderLayout.NORTH);
         seats.setOpaque(false);
         table.add(seats, BorderLayout.CENTER);
-        JPanel footer = transparent(new GridLayout(2, 1, 0, 12));
-        footer.add(label(text("community"), 15, Color.WHITE));
+        JPanel footer = transparent(new GridLayout(4, 1, 0, 8));
+        community.setForeground(Color.WHITE);
+        community.setFont(new Font(Font.DIALOG, Font.BOLD, 16));
+        phase.setForeground(Color.WHITE);
+        result.setForeground(GOLD);
+        footer.add(community);
+        footer.add(phase);
+        footer.add(result);
         footer.add(label(text("preview"), 13, new Color(224, 232, 226)));
         table.add(footer, BorderLayout.SOUTH);
         add(table, BorderLayout.CENTER);
@@ -151,9 +200,25 @@ public final class GamePanel extends JPanel {
         session.hideCards();
         try {
             session.start(Integer.parseInt(humanCount.getText().trim()));
-            error.setText(" ");
+            session.playBotTurns();
+            errorKey = null;
         } catch (IllegalArgumentException invalid) {
-            error.setText(text("invalidCount"));
+            errorKey = "invalidCount";
+        }
+        refresh();
+    }
+
+    private void submitAction(ActionType type) {
+        SetupView view = session.getView().orElse(null);
+        if (view == null || view.getCurrentActorSeat() < 0) {
+            return;
+        }
+        try {
+            session.submitAction(new ActionRequest(view.getPlayers().get(view.getCurrentActorSeat()).getId(), type));
+            session.playBotTurns();
+            errorKey = null;
+        } catch (IllegalArgumentException | IllegalStateException | UnsupportedOperationException invalid) {
+            errorKey = "invalidAction";
         }
         refresh();
     }
@@ -161,6 +226,7 @@ public final class GamePanel extends JPanel {
     private void refresh() {
         rendering = true;
         try {
+            error.setText(errorKey == null ? " " : text(errorKey));
             SetupView view = session.getView().orElse(null);
             seats.removeAll(); viewers.removeAllItems(); humanViewers.clear();
             for (int seat = 0; seat < 6; seat++) {
@@ -175,14 +241,24 @@ public final class GamePanel extends JPanel {
             hide.setEnabled(started && !view.getHoleCards().isEmpty());
             if (started) {
                 for (int i = 0; i < humanViewers.size(); i++) {
-                    if (humanViewers.get(i).getSeat() == view.getViewerSeat()) viewers.setSelectedIndex(i);
+                    if (humanViewers.get(i).getSeat() == view.getViewerSeat()) {
+                        viewers.setSelectedIndex(i);
+                    }
                 }
             }
-            status.setText(started ? text("firstActor", playerName(view.getPlayers().get(view.getCurrentActorSeat()))) : text("waiting"));
+            int actor = started ? view.getCurrentActorSeat() : -1;
+            status.setText(actor >= 0 ? text("currentActor", playerName(view.getPlayers().get(actor)))
+                    : started ? text("result.awaitingSettlement") : text("waiting"));
             pot.setText(started ? text("pot", view.getPot()) : text("pot", 0));
             deck.setText(started ? text("deck", view.getRemainingCardCount()) : text("notDealt"));
             handoff.setText(wrapped(started ? text("handoff", playerName(view.getPlayers().get(view.getViewerSeat()))) : text("startHint")));
             handoff.setMaximumSize(new Dimension(Integer.MAX_VALUE, handoff.getPreferredSize().height));
+            renderActions(view);
+            community.setText(!started || view.getCommunityCards().isEmpty() ? text("community")
+                    : text("communityDealt", view.getCommunityCards().stream().map(GamePanel::cardText)
+                    .collect(Collectors.joining("   "))));
+            phase.setText(started ? text("phase." + view.getPhase().name()) : " ");
+            result.setText(session.getResult().map(comparison -> resultText(comparison, view)).orElse(" "));
             for (int i = 0; i < 2; i++) {
                 Card card = started && !view.getHoleCards().isEmpty() ? view.getHoleCards().get(i) : null;
                 holes[i].setText(card == null ? "--" : cardText(card));
@@ -194,8 +270,31 @@ public final class GamePanel extends JPanel {
         revalidate(); repaint();
     }
 
+    private void renderActions(SetupView view) {
+        int actor = view == null ? -1 : view.getCurrentActorSeat();
+        boolean mayAct = actor >= 0 && view.getViewerSeat() == actor
+                && view.getPlayers().get(actor).getType() == PlayerType.HUMAN;
+        Set<ActionType> available = mayAct ? session.getAvailableActions() : Set.of();
+        fold.setText(text("fold"));
+        check.setText(text("check"));
+        long toCall = actor < 0 ? 0 : Math.min(view.getCurrentBet() - view.getRoundContribution(actor),
+                view.getPlayers().get(actor).getChipStack());
+        call.setText(text("call", toCall));
+        fold.setEnabled(available.contains(ActionType.FOLD));
+        check.setEnabled(available.contains(ActionType.CHECK));
+        call.setEnabled(available.contains(ActionType.CALL));
+    }
+
+    private String resultText(ShowdownResult comparison, SetupView view) {
+        String winners = comparison.getWinnerIds().stream().map(id -> view.getPlayers().stream()
+                .filter(player -> player.getId().equals(id)).findFirst().orElseThrow())
+                .map(this::playerName).collect(Collectors.joining(", "));
+        return text(comparison.isUncontested() ? "result.uncontested" : "result.contested",
+                winners, text("result.awaitingSettlement"));
+    }
+
     private JPanel seatPanel(int seat, Player player, SetupView view) {
-        JPanel panel = new JPanel(new GridLayout(4, 1, 0, 6));
+        JPanel panel = new JPanel(new GridLayout(5, 1, 0, 6));
         panel.setBackground(new Color(237, 242, 236));
         boolean acting = view != null && seat == view.getCurrentActorSeat();
         panel.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(acting ? GOLD : new Color(120, 153, 136), acting ? 3 : 1), BorderFactory.createEmptyBorder(12, 10, 12, 10)));
@@ -203,11 +302,19 @@ public final class GamePanel extends JPanel {
         panel.add(named(new JLabel(player == null ? "--" : text("chips", player.getChipStack())), "seatStack" + seat));
         String role = " ";
         if (view != null) {
-            if (seat == view.getPositions().getDealerSeat()) role = text("dealer");
-            if (seat == view.getPositions().getSmallBlindSeat()) role = text("smallBlind");
-            if (seat == view.getPositions().getBigBlindSeat()) role = text("bigBlind");
+            if (seat == view.getPositions().getDealerSeat()) {
+                role = text("dealer");
+            }
+            if (seat == view.getPositions().getSmallBlindSeat()) {
+                role = text("smallBlind");
+            }
+            if (seat == view.getPositions().getBigBlindSeat()) {
+                role = text("bigBlind");
+            }
         }
         panel.add(new JLabel(role));
+        panel.add(named(new JLabel(view == null ? "--" : text("status." + view.getStatuses().get(seat).name())),
+                "seatStatus" + seat));
         panel.add(named(label(player == null ? "--" : "▧  ▧", 25, FELT), "seatCards" + seat));
         return panel;
     }
@@ -217,7 +324,7 @@ public final class GamePanel extends JPanel {
     }
 
     private String text(String key, Object... arguments) {
-        return new MessageFormat(messages.getString(key), Locale.ENGLISH).format(arguments);
+        return messages.text(selectedLanguage, key, arguments);
     }
 
     private static String cardText(Card card) {

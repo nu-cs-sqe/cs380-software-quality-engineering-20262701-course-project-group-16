@@ -2,7 +2,8 @@
 
 This contract covers immutable state, match initialization, seat order, action messages and
 player-specific views. `GameSetup` prepares the table; Member A supplies the shared card/deck model and shuffling/dealing primitives.
-The application initializer and Swing setup session now connect setup and dealing. Hand evaluation remains later work. The betting engine will validate actions, produce
+The application initializer and Swing setup session now connect setup and dealing. Hand evaluation and closed-state winner/tie resolution are implemented through the
+existing HandEvaluator interface; see [showdown](showdown.md). Settlement stays separate. The betting engine validates actions and produces
 accepted results, advance streets, handle pots and settle hands. CI builds and tests pushes and pull requests.
 
 ## Settings and seats
@@ -66,7 +67,7 @@ after the dealer. It returns a `PREFLOP` snapshot with two hole cards per player
 and the immutable 40-card remainder in deal order, preserving the table's chips,
 statuses, positions and actor. Its injected constructor accepts GameConfig and
 separate dealer/deck Random sources; see the [initializer BVA](../bva/GameInitializer.md).
-The Swing interface still needs to call this coordinator.
+The Swing interface calls this coordinator through SetupSession and SetupView.
 
 ## Current state and chip accounting
 
@@ -198,7 +199,7 @@ The shared immutable value class is `domain.model.Card`, with `Rank` and `Suit` 
 Cards compare by rank and suit, so separately constructed equal values identify the
 same physical card. Member A's `Deck` creates the 52 combinations and supplies shuffle
 and deal operations. The duplicate `domain.Card` enum was removed during integration.
-The evaluator handles rank ordering and ace-low straights when implemented.
+PokerHandEvaluator handles rank ordering, kickers and ace-low straights.
 
 The internal state holds all hole cards and the remaining deck. Cards cannot occur in
 more than one stored location. Burned/discarded cards may be absent from the snapshot;
@@ -211,7 +212,8 @@ GameView botInput = state.viewFor(botPlayerId);
 
 The [setup integration cases](../bva/setup-integration.md) compose `Deck` with these
 snapshots. They transfer the undealt order into the immutable state and verify duplicate
-rejection by value. They do not claim that the setup controller or UI is wired yet.
+rejection by value. GameInitializer and the Swing SetupSession now use these real components; see
+[setup design](game-setup.md).
 
 `GameView` contains public state and `PlayerView` records. Only the selected viewer's
 hole cards are included; every opponent's hole-card list is empty. The view exposes no
@@ -238,3 +240,12 @@ remainingStacks + totalPot = 6000
 
 This is executable case **GU-12** in `GameSetupTest`; the setup BVA also covers human
 counts 0, 1, 2, 5, 6 and 7. Each class has [BVA cases](../bva/README.md) mapped to JUnit IDs.
+
+
+## Played-hand session follow-up
+
+SetupSession now owns action submission, automatic closed-round advancement,
+uncontested/showdown comparison and a temporary legal check/call bot policy.
+It publishes immutable display/result/action snapshots and never exposes the
+remaining deck or awards the pot. See the [played-hand contract](played-hand.md)
+and [session BVA](../bva/SessionBetting.md).

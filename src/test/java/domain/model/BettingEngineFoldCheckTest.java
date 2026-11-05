@@ -294,9 +294,7 @@ class BettingEngineFoldCheckTest {
     @Test
     @DisplayName("BE-SEQUENCE01: real dealing plus call/fold/check preserves the big blind option")
     void controlledPreflopSequenceEndsAtPot100WithFiveLiveHands() {
-        Random dealer = new Random() {
-            @Override public int nextInt(int bound) { return 0; }
-        };
+        Random dealer = new SeatZeroRandom();
         GameState initial = new GameInitializer(new GameConfig(), dealer, new Random(7)).start(2);
         List<Object> original = snapshot(initial);
         GameState state = initial;
@@ -391,5 +389,14 @@ class BettingEngineFoldCheckTest {
                     player.getHoleCards(), player.getRoundContribution(), player.getHandContribution()));
         }
         return values;
+    }
+
+    private static final class SeatZeroRandom extends Random {
+        private static final long serialVersionUID = 1L;
+
+        @Override
+        public int nextInt(int bound) {
+            return 0;
+        }
     }
 }

@@ -10,9 +10,9 @@ permissions:
 
 jobs:
   build:
-    name: Build and test
+    name: Build, test and analyze
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Check out repository
@@ -27,19 +27,29 @@ jobs:
             25
           cache: gradle
 
-      - name: Build and run tests
+      - name: Build, test, Checkstyle, SpotBugs and coverage
         run: >-
           bash ./gradlew --no-daemon
           -Porg.gradle.java.installations.fromEnv=JAVA_HOME_11_X64,JAVA_HOME
           clean build
 
-      - name: Save test reports
+      - name: Mutation testing for Kevin components
+        run: >-
+          bash ./gradlew --no-daemon
+          -Porg.gradle.java.installations.fromEnv=JAVA_HOME_11_X64,JAVA_HOME
+          pitest
+
+      - name: Save test and quality reports
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: test-reports
+          name: quality-reports
           path: |
             build/reports/tests/test/
             build/test-results/test/
+            build/reports/checkstyle/
+            build/reports/spotbugs/
+            build/reports/jacoco/
+            build/reports/pitest/
           if-no-files-found: ignore
           retention-days: 14

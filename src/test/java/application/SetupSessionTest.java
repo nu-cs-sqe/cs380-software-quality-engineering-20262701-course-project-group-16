@@ -3,7 +3,6 @@ package application;
 import domain.model.GameConfig;
 import domain.model.GameState;
 import domain.model.PlayerType;
-import java.util.List;
 import java.util.Random;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;

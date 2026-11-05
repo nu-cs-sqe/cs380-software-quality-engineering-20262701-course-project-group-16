@@ -27,9 +27,7 @@ class CheckThroughHandIntegrationTest {
     @CsvSource({"BE-PFI01, false, 21", "BE-PFI02, true, 19"})
     void setupAndPlayerActionsReachShowdownWithConservedChips(String caseId,
             boolean foldOnFlop, int expectedActions) {
-        Random dealer = new Random() {
-            @Override public int nextInt(int bound) { return 0; }
-        };
+        Random dealer = new SeatZeroRandom();
         GameState initial = new GameInitializer(new GameConfig(), dealer, new Random(7)).start(2);
         GameState state = initial;
         List<AcceptedAction> accepted = new ArrayList<>();
@@ -126,6 +124,15 @@ class CheckThroughHandIntegrationTest {
             case TURN: return BettingStreet.TURN;
             case RIVER: return BettingStreet.RIVER;
             default: throw new IllegalArgumentException("Expected a postflop betting street.");
+        }
+    }
+
+    private static final class SeatZeroRandom extends Random {
+        private static final long serialVersionUID = 1L;
+
+        @Override
+        public int nextInt(int bound) {
+            return 0;
         }
     }
 }

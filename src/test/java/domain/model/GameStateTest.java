@@ -1,8 +1,5 @@
 package domain.model;
 
-import domain.model.Card;
-import domain.model.Rank;
-import domain.model.Suit;
 
 import static org.junit.jupiter.api.Assertions.*;
 import java.util.*;

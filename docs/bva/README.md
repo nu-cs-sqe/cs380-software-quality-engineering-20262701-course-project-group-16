@@ -9,7 +9,12 @@ privacy and immutability cases.
 | --- | --- |
 | `Card` | [Card.md](Card.md) |
 | `Deck` | [Deck.md](Deck.md) |
-| `HandEvaluator` (planned interface) | [HandEvaluator.md](HandEvaluator.md) |
+| `HandEvaluator` (interface contract) | [HandEvaluator.md](HandEvaluator.md) |
+| `PokerHandEvaluator` | [PokerHandEvaluator.md](PokerHandEvaluator.md) |
+| `ShowdownResolver` | [ShowdownResolver.md](ShowdownResolver.md) |
+| `ShowdownResult` | [ShowdownResult.md](ShowdownResult.md) |
+| `Localizations` | [Localizations.md](Localizations.md) |
+| `GamePanel` localization behavior | [GamePanelLocalization.md](GamePanelLocalization.md) |
 | `Player` | [Player.md](Player.md) |
 | `GameConfig` | [GameConfig.md](GameConfig.md) |
 | `ActionRequest` | [ActionRequest.md](ActionRequest.md) |
@@ -24,7 +29,8 @@ privacy and immutability cases.
 | `GameState` | [GameState.md](GameState.md) |
 | `GameSetup` | [GameSetup.md](GameSetup.md) |
 | `GameInitializer` | [GameInitializer.md](GameInitializer.md) |
-| `SetupSession` | [SetupSession.md](SetupSession.md) |
+| `SetupSession` | [SetupSession.md](SetupSession.md), [played-hand lifecycle](SessionBetting.md) |
+| `GamePanel` played flow | [PlayedGamePanel.md](PlayedGamePanel.md) |
 | `GameView` | [GameView.md](GameView.md) |
 | `PlayerView` | [PlayerView.md](PlayerView.md) |
 | `PlayStats` | [PlayStats.md](PlayStats.md) |
@@ -32,6 +38,7 @@ privacy and immutability cases.
 | `StatsContext` | [StatsContext.md](StatsContext.md) |
 
 [Combined setup integration cases](setup-integration.md) cover the card/deck-to-state boundary.
+[Showdown integration](../design/showdown.md) covers the initialized-card-to-result boundary.
 
 ---
 
