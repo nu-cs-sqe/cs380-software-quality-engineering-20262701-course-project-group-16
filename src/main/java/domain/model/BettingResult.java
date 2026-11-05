@@ -1,16 +1,20 @@
 package domain.model;
 
-/** API scaffold for the immutable output of one accepted engine action. */
+/** Immutable output of one accepted engine action, created after engine validation. */
 public final class BettingResult {
+    private final GameState state;
+    private final AcceptedAction acceptedAction;
+
     BettingResult(GameState state, AcceptedAction acceptedAction) {
-        throw new UnsupportedOperationException("TDD RED checkpoint: result construction is not implemented.");
+        this.state = state;
+        this.acceptedAction = acceptedAction;
     }
 
     public GameState getState() {
-        throw new UnsupportedOperationException("TDD RED checkpoint: result state is not implemented.");
+        return state;
     }
 
     public AcceptedAction getAcceptedAction() {
-        throw new UnsupportedOperationException("TDD RED checkpoint: accepted result is not implemented.");
+        return acceptedAction;
     }
 }

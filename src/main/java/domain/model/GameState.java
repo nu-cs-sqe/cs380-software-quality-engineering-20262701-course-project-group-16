@@ -26,6 +26,7 @@ public final class GameState {
     private final List<Card> communityCards;
     private final List<Card> remainingDeck;
     private final BettingProgress betting;
+    private final BettingHistory history;
 
     /**
      * Creates a validated snapshot. A null actor means there are no pending decisions.
@@ -36,8 +37,20 @@ public final class GameState {
     public GameState(GameConfig config, String handId, GamePhase phase, List<PlayerState> players,
             HandPositions positions, String currentActorId, List<Card> communityCards,
             List<Card> remainingDeck, BettingProgress betting) {
+        this(config, handId, phase, players, positions, currentActorId, communityCards,
+                remainingDeck, betting, new BettingHistory());
+    }
+
+    /**
+     * Creates the same immutable snapshot with explicit engine-recorded betting provenance.
+     * Use this overload to preserve aggression/c-bet history in later snapshots.
+     * @throws IllegalArgumentException for invalid state or inconsistent history
+     */
+    public GameState(GameConfig config, String handId, GamePhase phase, List<PlayerState> players,
+            HandPositions positions, String currentActorId, List<Card> communityCards,
+            List<Card> remainingDeck, BettingProgress betting, BettingHistory history) {
         if (config == null || handId == null || handId.isBlank() || phase == null
-                || positions == null || betting == null) {
+                || positions == null || betting == null || history == null) {
             throw new IllegalArgumentException("Settings, hand identity, phase, positions and betting are required.");
         }
         this.config = config;
@@ -49,10 +62,40 @@ public final class GameState {
         this.communityCards = copyCards(communityCards);
         this.remainingDeck = copyCards(remainingDeck);
         this.betting = betting;
+        this.history = history;
         validatePositions();
         validateCards();
         validateChipTotal();
         validateBetting();
+        validateHistory();
+    }
+
+    public BettingHistory getBettingHistory() {
+        return history;
+    }
+
+    private void validateHistory() {
+        Optional<String> aggressorId = history.getFinalPreflopAggressorId();
+        if (aggressorId.isEmpty()) {
+            return;
+        }
+        if (phase == GamePhase.SETUP) {
+            throw new IllegalArgumentException("Betting history cannot precede dealing.");
+        }
+        PlayerState aggressor = players.stream()
+                .filter(player -> player.getPlayer().getId().equals(aggressorId.orElseThrow()))
+                .findFirst().orElseThrow(() -> new IllegalArgumentException("Unknown preflop aggressor."));
+        if (phase != GamePhase.COMPLETION && aggressor.getStatus() == PlayerStatus.ELIMINATED) {
+            throw new IllegalArgumentException("An eliminated seat did not participate in this hand.");
+        }
+        if (history.getFlopCBetAmount().isPresent()) {
+            long amount = history.getFlopCBetAmount().orElseThrow();
+            if (phase == GamePhase.PREFLOP
+                    || (phase == GamePhase.FLOP && aggressor.getRoundContribution() < amount)
+                    || (phase != GamePhase.COMPLETION && aggressor.getHandContribution() < amount)) {
+                throw new IllegalArgumentException("The recorded flop c-bet is inconsistent with this hand.");
+            }
+        }
     }
 
     private static List<PlayerState> copyPlayers(List<PlayerState> players) {

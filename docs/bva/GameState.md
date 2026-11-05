@@ -81,3 +81,29 @@ Grouped assertions exercise the public getters at the stated boundary; no mutabl
 
 `viewFor(String)` is covered by GV-01–GV-08 in [GameView.md](GameView.md).
 This analysis replaces the earlier basic snapshot analysis after the full state API migration.
+
+## Explicit betting-history extension
+
+The original constructor supplies empty history for unraised hands. The new
+constructor accepts immutable engine provenance; callers must preserve it when
+constructing later snapshots. These cases also cover getBettingHistory.
+
+| ID | Public methods | Input/system state | Expected output | Status / JUnit method |
+| --- | --- | --- | --- | --- |
+| GS-H01 | GameState(original constructor); getBettingHistory | Original constructor without explicit history | Empty history; previous constructor behavior preserved | Implemented, GREEN; `existingStateConstructorRemainsCompatible` |
+| GS-H02 | GameState(..., BettingHistory); getBettingHistory | Explicit null history | IllegalArgumentException | Implemented, GREEN; `nullStateHistoryIsRejected` |
+| GS-H03 | GameState(..., BettingHistory); getBettingHistory | History references unknown aggressor | IllegalArgumentException | Implemented, GREEN; `unknownAggressorIsRejected` |
+| GS-H04 | GameState(..., BettingHistory); getBettingHistory | SETUP with recorded preflop aggressor | IllegalArgumentException; no accepted action before dealing | Implemented, GREEN; `setupCannotHaveAnAggressor` |
+| GS-H05 | GameState(..., BettingHistory); getBettingHistory | PREFLOP with aggressor p1 and no c-bet, then with c-bet 20 | First accepted and getter retains p1; latter rejected | Implemented, GREEN; `preflopHistoryCannotAlreadyContainACBet` |
+| GS-H06-19 | GameState(..., BettingHistory); getBettingHistory | FLOP with recorded c-bet 20 and aggressor round contribution 19 | IllegalArgumentException; insufficient actual commitment | Implemented, GREEN; `flopHistoryMustBeBackedByCommittedChips(19)` |
+| GS-H06-20 | GameState(..., BettingHistory); getBettingHistory | FLOP with recorded c-bet 20 and aggressor round contribution 20 | Retain c-bet 20 | Implemented, GREEN; `flopHistoryMustBeBackedByCommittedChips(20)` |
+| GS-H06-21 | GameState(..., BettingHistory); getBettingHistory | FLOP with recorded c-bet 20 and aggressor round contribution 21 | Retain c-bet 20 | Implemented, GREEN; `flopHistoryMustBeBackedByCommittedChips(21)` |
+| GS-H07 | GameState(..., BettingHistory); getBettingHistory | Aggressor seat already ELIMINATED before completion | IllegalArgumentException | Implemented, GREEN; `anEliminatedAggressorIsRejectedBeforeCompletion` |
+| GS-H08 | GameState(..., BettingHistory); getBettingHistory | COMPLETION after historical aggressor eliminated and all chips awarded | Historical aggressor/c-bet retained even though current commitments are zero | Implemented, GREEN; `completedHistoryCanOutlivePlayerElimination` |
+| GS-H09-FLOP | GameState(..., BettingHistory); getBettingHistory; BettingEngine.advanceStreet | Advance closed FLOP with explicit p0/c-bet 20 | New TURN retains both provenance values; old state unchanged | Implemented, GREEN; `advancingDoesNotLoseBettingHistory(FLOP)` |
+| GS-H09-TURN | GameState(..., BettingHistory); getBettingHistory; BettingEngine.advanceStreet | Advance closed TURN with explicit p0/c-bet 20 | New RIVER retains both provenance values; old state unchanged | Implemented, GREEN; `advancingDoesNotLoseBettingHistory(TURN)` |
+| GS-H09-RIVER | GameState(..., BettingHistory); getBettingHistory; BettingEngine.advanceStreet | Advance closed RIVER with explicit p0/c-bet 20 | New SHOWDOWN retains both provenance values; old state unchanged | Implemented, GREEN; `advancingDoesNotLoseBettingHistory(RIVER)` |
+| GS-H10-TURN | GameState(..., BettingHistory); getBettingHistory | TURN history c-bet 41 but aggressor hand commitment 40 | IllegalArgumentException; inconsistent historic investment | Implemented, GREEN; `historicalCBetRequiresEnoughHandCommitment(TURN)` |
+| GS-H10-RIVER | GameState(..., BettingHistory); getBettingHistory | RIVER history c-bet 41 but aggressor hand commitment 40 | IllegalArgumentException; inconsistent historic investment | Implemented, GREEN; `historicalCBetRequiresEnoughHandCommitment(RIVER)` |
+
+Tests: [BettingHistoryTest](../../src/test/java/domain/model/BettingHistoryTest.java).
