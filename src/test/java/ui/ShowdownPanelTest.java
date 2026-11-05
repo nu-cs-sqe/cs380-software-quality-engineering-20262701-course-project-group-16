@@ -214,7 +214,8 @@ class ShowdownPanelTest {
     private static void onEdt(Runnable action) throws InterruptedException, InvocationTargetException {
         try { SwingUtilities.invokeAndWait(action); }
         catch (InvocationTargetException failure) {
-            if (failure.getCause() instanceof AssertionError) throw (AssertionError) failure.getCause();
+            Throwable cause = failure.getCause();
+            if (cause instanceof AssertionError) throw (AssertionError) cause;
             throw failure;
         }
     }
