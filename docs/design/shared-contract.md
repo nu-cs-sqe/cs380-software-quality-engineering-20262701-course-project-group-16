@@ -116,12 +116,41 @@ Only `BET` and `RAISE` carry a positive target amount. The target is the player'
 contribution for this round: **raise to**, not **raise by**. The caller never supplies a
 separate chip deduction. With prior contribution 10 and current bet 20, a call adds 10;
 a raise to 60 adds 50. These calculations and minimum-raise/stack/turn checks belong to
-the future betting engine, not to the request data object.
+engine operations, not to the request data object. The current `BettingEngine`
+implements unraised preflop FOLD/CHECK/CALL and postflop CHECK/FOLD; BET/RAISE,
+raised preflop decisions and postflop CALL remain later increments.
+A CALL adds `min(currentBet - roundContribution, remainingStack)`
+when chips are owed. A short or exact-stack call leaves zero chips, sets ALL_IN
+and produces an accepted CALL with `becameAllIn=true`. It removes the caller's
+decision/raising rights while retaining their participation, cards and commitments.
+The betting level and full raise size do not change. No street transition or pot
+settlement occurs automatically. See the [engine BVA](../bva/BettingEngine.md).
 
 After legal validation, the engine constructs `AcceptedAction` with hand/player IDs,
 street, resolved type, actual chips added, resulting round contribution, whether this
 action made the player all-in, and explicit `StatsContext`. Its constructor checks
 structural consistency; constructing it is not itself a legality check against a game.
+
+`GameState.getBettingHistory()` returns immutable engine provenance. The original
+constructor supplies empty history for unraised hands. The new overload accepts
+`BettingHistory(finalPreflopAggressorId, flopCBetAmount)`: null means no aggressor,
+zero means no recorded actual c-bet, and a positive amount records that bet's
+original flop target. Its bettor is the final preflop aggressor. Unknown or
+eliminated current-hand aggressors, pre-deal aggression, preflop c-bets and
+insufficient backing commitments are rejected. Completed hands may retain
+historical values after payouts/elimination. Callers constructing later snapshots
+must pass the same provenance explicitly; engine operations already do so.
+
+For FLOP CHECK/FOLD, an opening c-bet opportunity requires that actor to be the
+recorded aggressor, unopened betting, betting rights and another ACTIVE player.
+Facing a c-bet requires an explicitly recorded actual c-bet, chips owed and the
+original betting level. A subsequent raise is not a direct fold to the original
+c-bet. Ordinary opening bets and equal-sized turn/river bets create no flop
+opportunity. These facts populate accepted `StatsContext`; action requests do
+not contain caller-supplied statistics flags. Because RAISE/BET are still future
+actions, current unraised integration hands naturally have empty provenance.
+Future implementations must record those accepted events before emitting c-bet
+context; the engine does not infer them from contribution sizes alone.
 
 There is no generic `ALL_IN` action type. Resolve it to `CALL`, `BET` or `RAISE`.
 Forced blinds use `FORCED_POST`, including a blind that exhausts a stack. They are never
@@ -133,6 +162,35 @@ Three-bet and c-bet eligibility are engine-provided context. The stats component
 not infer raise levels from sizes or reconstruct action legality. Hand completion,
 contested showdown payouts and uncalled refunds remain distinct engine events; see
 [statistics requirements](../requirements/player-statistics.md).
+
+## Street advancement and burn cards
+
+`BettingEngine.advanceStreet(before)` returns a new `GameState` directly, without
+an `AcceptedAction` or statistics action. Each call advances one closed round:
+PREFLOP → FLOP → TURN → RIVER → SHOWDOWN. Pending decisions must be empty, at
+least two participants must remain, and every ACTIVE player's round commitment
+must match the current bet. Folded and short all-in players need not match it.
+An uncontested hand awaits settlement instead of further dealing.
+
+Burn the first remaining card, then deal three flop cards or one turn/river
+card. Burned cards leave the stored card locations. These operations require
+four remaining cards before the flop and two before turn/river; insufficient
+decks are rejected before changing any state. Entering SHOWDOWN burns/deals no
+cards, so an empty remaining deck is valid there.
+
+Starting a new betting street resets every `roundContribution` and `currentBet`
+to zero, and `lastFullRaiseSize` to the configured big blind. `handContribution`,
+stacks, statuses, seats, positions, hole cards and hand ID are preserved. With
+at least two ACTIVE players, their IDs become the pending/raising sets and the
+first actor is clockwise after the dealer; heads-up this is the non-dealer.
+With zero/one ACTIVE players and multiple participants, no artificial check
+decision is created. Repeated advances run out the board for all-in hands.
+
+SHOWDOWN has no actor, pending decisions or raising rights. It preserves the
+river's round accounting and whole-hand commitments until a later evaluation
+and settlement operation. No winner, payout, profile aggregate or new hand is
+produced by advancement. SETUP, SHOWDOWN and COMPLETION cannot advance using
+this method. All earlier snapshots remain unchanged on success or rejection.
 
 ## Card contract and private information
 
