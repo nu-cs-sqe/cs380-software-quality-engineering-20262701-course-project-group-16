@@ -35,12 +35,7 @@ public final class GameSetup {
             throw new IllegalArgumentException("Human count must be between one and six.");
         }
         String matchId = UUID.randomUUID().toString();
-        List<PlayerState> players = new ArrayList<>();
-        for (int seat = 0; seat < config.getSeatCount(); seat++) {
-            PlayerType type = seat < humanCount ? PlayerType.HUMAN : PlayerType.BOT;
-            Player player = new Player(matchId + ":player:" + seat, seat, type, config.getStartingChips());
-            players.add(new PlayerState(player, PlayerStatus.ACTIVE, List.of(), 0, 0));
-        }
+        List<PlayerState> players = createPlayers(matchId, humanCount);
         int dealer = dealerRandom.nextInt(players.size());
         HandPositions positions = new SeatOrder(players).positionsFor(dealer);
         postBlind(players, positions.getSmallBlindSeat(), config.getSmallBlind());
@@ -48,9 +43,21 @@ public final class GameSetup {
         Set<String> active = players.stream().filter(PlayerState::canAct)
                 .map(state -> state.getPlayer().getId()).collect(Collectors.toSet());
         int actorSeat = new SeatOrder(players).firstPreflopActor(dealer).orElseThrow();
-        BettingProgress betting = new BettingProgress(config.getBigBlind(), config.getBigBlind(), active, active);
+        BettingProgress betting = new BettingProgress(config.getBigBlind(),
+                config.getBigBlind(), active, active);
         return new GameState(config, matchId + ":hand:1", GamePhase.SETUP, players, positions,
                 players.get(actorSeat).getPlayer().getId(), List.of(), List.of(), betting);
+    }
+
+    private List<PlayerState> createPlayers(String matchId, int humanCount) {
+        List<PlayerState> players = new ArrayList<>();
+        for (int seat = 0; seat < config.getSeatCount(); seat++) {
+            PlayerType type = seat < humanCount ? PlayerType.HUMAN : PlayerType.BOT;
+            Player player = new Player(matchId + ":player:" + seat, seat, type,
+                    config.getStartingChips());
+            players.add(new PlayerState(player, PlayerStatus.ACTIVE, List.of(), 0, 0));
+        }
+        return players;
     }
 
     private static void postBlind(List<PlayerState> players, int seat, long amount) {

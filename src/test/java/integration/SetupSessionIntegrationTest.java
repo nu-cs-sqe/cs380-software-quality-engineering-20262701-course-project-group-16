@@ -1,4 +1,8 @@
-package application;
+package integration;
+
+import application.GameInitializer;
+import application.SetupSession;
+import application.SetupView;
 
 import domain.model.GameConfig;
 import domain.model.GameState;
@@ -9,7 +13,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import static org.junit.jupiter.api.Assertions.*;
 
-class SetupSessionTest {
+class SetupSessionIntegrationTest {
     @Test
     void rejectsNullInitializer() {
         assertThrows(IllegalArgumentException.class, () -> new SetupSession(null));

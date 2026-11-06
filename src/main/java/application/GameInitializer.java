@@ -1,20 +1,17 @@
 package application;
 
 import domain.model.GameConfig;
-import domain.model.GamePhase;
 import domain.model.GameSetup;
 import domain.model.GameState;
-import domain.model.PlayerState;
-import domain.model.Card;
-import domain.model.Deck;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Objects;
 import java.util.Random;
+import java.util.function.IntFunction;
+import java.util.function.UnaryOperator;
 
 /** Combines table setup and dealing into the first preflop state of a new match. */
 public final class GameInitializer {
-    private final GameSetup setup;
-    private final Random deckRandom;
+    private final IntFunction<GameState> createTable;
+    private final UnaryOperator<GameState> dealCards;
 
     /** Uses the default match settings and normal random sources. */
     public GameInitializer() {
@@ -29,41 +26,24 @@ public final class GameInitializer {
         if (config == null || dealerRandom == null || deckRandom == null) {
             throw new IllegalArgumentException("Settings and both random sources are required.");
         }
-        this.setup = new GameSetup(config, dealerRandom);
-        this.deckRandom = deckRandom;
+        this.createTable = new GameSetup(config, dealerRandom)::create;
+        this.dealCards = new InitialDeal(deckRandom)::deal;
+    }
+
+    // Package composition boundary: setup owns validation; dealing owns cards and snapshots.
+    GameInitializer(IntFunction<GameState> createTable, UnaryOperator<GameState> dealCards) {
+        this.createTable = Objects.requireNonNull(createTable, "createTable");
+        this.dealCards = Objects.requireNonNull(dealCards, "dealCards");
     }
 
     /**
      * Starts a new six-seat match, dealing two rounds clockwise after the dealer.
-     * Returns a PREFLOP state with two cards per player and 40 cards remaining.
-     * Each call starts a separate match; it does not resume or advance an existing hand.
+     * Returns a PREFLOP state with two cards per player.
+     * Each call starts a separate match, which does not resue any state from previous call.
      * @throws IllegalArgumentException unless humanCount is between one and six
      */
     public GameState start(int humanCount) {
-        GameState table = setup.create(humanCount);
-        Deck deck = new Deck(deckRandom);
-        deck.shuffle();
-
-        List<List<Card>> hands = new ArrayList<>();
-        int seatCount = table.getConfig().getSeatCount();
-        for (int seat = 0; seat < seatCount; seat++) {
-            hands.add(new ArrayList<>());
-        }
-        for (int round = 0; round < 2; round++) {
-            for (int distance = 1; distance <= seatCount; distance++) {
-                int seat = (table.getDealerSeat() + distance) % seatCount;
-                hands.get(seat).addAll(deck.deal(1));
-            }
-        }
-
-        List<PlayerState> dealtPlayers = new ArrayList<>();
-        for (PlayerState player : table.getPlayerStates()) {
-            dealtPlayers.add(new PlayerState(player.getPlayer(), player.getStatus(),
-                    hands.get(player.getPlayer().getSeat()),
-                    player.getRoundContribution(), player.getHandContribution()));
-        }
-        return new GameState(table.getConfig(), table.getHandId(), GamePhase.PREFLOP,
-                dealtPlayers, table.getPositions(), table.getCurrentActorId().orElseThrow(),
-                table.getCommunityCards(), deck.deal(deck.remainingCards()), table.getBettingProgress());
+        GameState table = createTable.apply(humanCount);
+        return dealCards.apply(table);
     }
 }

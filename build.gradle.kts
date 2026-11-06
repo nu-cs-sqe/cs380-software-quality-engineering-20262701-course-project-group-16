@@ -57,6 +57,7 @@ val kevinClasses = listOf(
     "domain.model.ShowdownResolver",
     "domain.model.ShowdownResult",
     "application.GameInitializer",
+    "application.InitialDeal",
     "application.SetupSession",
     "application.SetupView",
     "localization.Localizations"
@@ -130,7 +131,7 @@ pitest {
         "domain.model.PokerHandEvaluatorTest", "domain.model.PokerHandRankingTest",
         "domain.model.ShowdownResolverTest",
         "domain.model.ShowdownResultTest", "application.GameInitializerTest",
-        "application.SetupSessionTest", "application.SetupViewTest",
+        "integration.GameInitializerIntegrationTest", "integration.SetupSessionIntegrationTest", "application.SetupViewTest",
         "integration.SetupIntegrationTest", "integration.ShowdownIntegrationTest",
         "localization.LocalizationsTest"
     ))

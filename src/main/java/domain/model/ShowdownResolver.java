@@ -30,7 +30,8 @@ public final class ShowdownResolver {
         if (state.getPhase() == GamePhase.SETUP || state.getPhase() == GamePhase.COMPLETION
                 || !state.getBettingProgress().getPlayersToAct().isEmpty()
                 || !state.getBettingProgress().getPlayersAllowedToRaise().isEmpty()) {
-            throw new IllegalStateException("A result requires a dealt hand with no pending decisions.");
+            throw new IllegalStateException(
+                "A result requires a dealt hand with no pending decisions.");
         }
         List<PlayerState> eligible = state.getPlayerStates().stream()
                 .filter(PlayerState::isParticipating).collect(Collectors.toList());

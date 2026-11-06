@@ -38,7 +38,8 @@ public final class Localizations {
 
     /**
      * Loads UTF-8 resources from a supplied application resource loader.
-     * @throws IllegalArgumentException for null loaders, invalid configuration, or incomplete messages
+     * @throws IllegalArgumentException for null loaders, invalid configuration,
+     *     or incomplete messages
      */
     public static Localizations load(ClassLoader loader) {
         if (loader == null) {
@@ -51,12 +52,7 @@ public final class Localizations {
         Set<String> expectedConfig = new HashSet<>(Set.of("languages", "default"));
         for (String entry : required(config, "languages").split(",", -1)) {
             String language = entry.trim();
-            Locale locale;
-            try {
-                locale = new Locale.Builder().setLanguageTag(language).build();
-            } catch (java.util.IllformedLocaleException invalid) {
-                throw new IllegalArgumentException("Invalid language tag: " + language, invalid);
-            }
+            Locale locale = parseLocale(language);
             if (locale.getLanguage().isEmpty() || locales.containsValue(locale)) {
                 throw new IllegalArgumentException("Empty or duplicate language: " + language);
             }
@@ -67,9 +63,25 @@ public final class Localizations {
             bundles.put(language, read(loader, required(config, bundleKey)));
         }
         String defaultLanguage = required(config, "default");
-        if (!bundles.containsKey(defaultLanguage) || !config.stringPropertyNames().equals(expectedConfig)) {
-            throw new IllegalArgumentException("The default and bundle entries must match configured languages.");
+        if (!bundles.containsKey(defaultLanguage)
+                || !config.stringPropertyNames().equals(expectedConfig)) {
+            throw new IllegalArgumentException(
+                "The default and bundle entries must match configured languages.");
         }
+        validateTranslations(languages, defaultLanguage, locales, bundles);
+        return new Localizations(languages, defaultLanguage, locales, bundles);
+    }
+
+    private static Locale parseLocale(String language) {
+        try {
+            return new Locale.Builder().setLanguageTag(language).build();
+        } catch (java.util.IllformedLocaleException invalid) {
+            throw new IllegalArgumentException("Invalid language tag: " + language, invalid);
+        }
+    }
+
+    private static void validateTranslations(List<String> languages, String defaultLanguage,
+            Map<String, Locale> locales, Map<String, Properties> bundles) {
         Properties reference = bundles.get(defaultLanguage);
         required(reference, "languageName");
         for (String language : languages) {
@@ -77,15 +89,22 @@ public final class Localizations {
             if (!messages.stringPropertyNames().equals(reference.stringPropertyNames())) {
                 throw new IllegalArgumentException("Translation keys differ for " + language);
             }
-            for (String key : reference.stringPropertyNames()) {
-                Map<Integer, Set<String>> expected = argumentTypes(required(reference, key), locales.get(defaultLanguage));
-                Map<Integer, Set<String>> actual = argumentTypes(required(messages, key), locales.get(language));
-                if (!expected.equals(actual)) {
-                    throw new IllegalArgumentException("Incompatible message arguments: " + key + " in " + language);
-                }
+            validateMessageArguments(reference, locales.get(defaultLanguage), messages,
+                    locales.get(language), language);
+        }
+    }
+
+    private static void validateMessageArguments(Properties reference, Locale referenceLocale,
+            Properties messages, Locale locale, String language) {
+        for (String key : reference.stringPropertyNames()) {
+            Map<Integer, Set<String>> expected = argumentTypes(required(reference, key),
+                    referenceLocale);
+            Map<Integer, Set<String>> actual = argumentTypes(required(messages, key), locale);
+            if (!expected.equals(actual)) {
+                throw new IllegalArgumentException(
+                        "Incompatible message arguments: " + key + " in " + language);
             }
         }
-        return new Localizations(languages, defaultLanguage, locales, bundles);
     }
 
     /** Configured language tags in selector order; the returned list is immutable. */
@@ -149,7 +168,8 @@ public final class Localizations {
                 return properties;
             }
         } catch (IOException failure) {
-            throw new IllegalArgumentException("Cannot read localization resource: " + path, failure);
+            throw new IllegalArgumentException(
+                "Cannot read localization resource: " + path, failure);
         }
     }
 
@@ -167,42 +187,63 @@ public final class Localizations {
         return types;
     }
 
-    /** Scans actual format elements; quoted braces are literals and doubled quotes toggle twice. */
-    private static void collectArgumentTypes(String pattern, Locale locale, Map<Integer, Set<String>> types) {
+    private static void collectArgumentTypes(String pattern, Locale locale,
+            Map<Integer, Set<String>> types) {
         Format[] formats = new MessageFormat(pattern, locale).getFormats();
+        List<String> elements = formatElements(pattern);
+        for (int occurrence = 0; occurrence < elements.size(); occurrence++) {
+            recordArgumentType(elements.get(occurrence), types);
+            collectChoiceArgumentTypes(formats[occurrence], locale, types);
+        }
+    }
+
+    /** Quoted braces are literals; doubled apostrophes toggle the quote state twice. */
+    private static List<String> formatElements(String pattern) {
+        List<String> elements = new ArrayList<>();
         boolean quoted = false;
         int depth = 0;
         int start = 0;
-        int occurrence = 0;
         for (int i = 0; i < pattern.length(); i++) {
             char character = pattern.charAt(i);
             if (character == '\'') {
                 quoted = !quoted;
-            } else if (!quoted) {
-                if (character == '{') {
-                    if (depth == 0) {
-                        start = i + 1;
-                    }
-                    depth++;
-                } else if (character == '}' && depth > 0) {
-                    depth--;
-                    if (depth == 0) {
-                        String[] parts = pattern.substring(start, i).split(",", 3);
-                        int index = Integer.parseInt(parts[0]);
-                        String type = parts.length > 1 ? parts[1].trim().toLowerCase(Locale.ROOT) : "";
-                        types.computeIfAbsent(index, ignored -> new HashSet<>()).add(type);
-                        Format format = formats[occurrence++];
-                        if (format instanceof ChoiceFormat) {
-                            for (Object branch : ((ChoiceFormat) format).getFormats()) {
-                                String nested = (String) branch;
-                                // MessageFormat reparses a choice output only when it contains an opening brace.
-                                if (nested.indexOf('{') >= 0) {
-                                    collectArgumentTypes(nested, locale, types);
-                                }
-                            }
-                        }
-                    }
+                continue;
+            }
+            if (quoted) {
+                continue;
+            }
+            if (character == '{') {
+                if (depth == 0) {
+                    start = i + 1;
                 }
+                depth++;
+            } else if (character == '}' && depth > 0) {
+                depth--;
+                if (depth == 0) {
+                    elements.add(pattern.substring(start, i));
+                }
+            }
+        }
+        return elements;
+    }
+
+    private static void recordArgumentType(String element, Map<Integer, Set<String>> types) {
+        String[] parts = element.split(",", 3);
+        int index = Integer.parseInt(parts[0]);
+        String type = parts.length > 1 ? parts[1].trim().toLowerCase(Locale.ROOT) : "";
+        types.computeIfAbsent(index, ignored -> new HashSet<>()).add(type);
+    }
+
+    private static void collectChoiceArgumentTypes(Format format, Locale locale,
+            Map<Integer, Set<String>> types) {
+        if (!(format instanceof ChoiceFormat)) {
+            return;
+        }
+        for (Object branch : ((ChoiceFormat) format).getFormats()) {
+            String nested = (String) branch;
+            // MessageFormat reparses a choice output only if it contains an opening brace.
+            if (nested.indexOf('{') >= 0) {
+                collectArgumentTypes(nested, locale, types);
             }
         }
     }

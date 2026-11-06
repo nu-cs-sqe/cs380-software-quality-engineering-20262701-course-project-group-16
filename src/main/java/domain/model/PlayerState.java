@@ -12,7 +12,8 @@ public final class PlayerState {
     private final long handContribution;
 
     /** @throws IllegalArgumentException for inconsistent status, cards or chip amounts */
-    public PlayerState(Player player, PlayerStatus status, List<Card> cards, long round, long hand) {
+    public PlayerState(Player player, PlayerStatus status, List<Card> cards,
+            long round, long hand) {
         if (player == null || status == null || round < 0 || hand < round
                 || player.getChipStack() > Long.MAX_VALUE - hand) {
             throw new IllegalArgumentException("Invalid player, status or contribution.");
@@ -30,15 +31,18 @@ public final class PlayerState {
         this.handContribution = hand;
     }
 
-    private static void validateStatus(long chips, PlayerStatus status, long hand, List<Card> cards) {
+    private static void validateStatus(long chips, PlayerStatus status, long hand,
+            List<Card> cards) {
         if ((status == PlayerStatus.ACTIVE || status == PlayerStatus.FOLDED) && chips == 0) {
             throw new IllegalArgumentException("A zero-stack live player must be marked all-in.");
         }
         if (status == PlayerStatus.ALL_IN && (chips != 0 || hand == 0)) {
-            throw new IllegalArgumentException("An all-in player has zero remaining chips and a commitment.");
+            throw new IllegalArgumentException(
+                "An all-in player has zero remaining chips and a commitment.");
         }
         if (status == PlayerStatus.ELIMINATED && (chips != 0 || hand != 0 || !cards.isEmpty())) {
-            throw new IllegalArgumentException("An eliminated seat has no chips, commitments or cards.");
+            throw new IllegalArgumentException(
+                "An eliminated seat has no chips, commitments or cards.");
         }
     }
 
@@ -48,5 +52,7 @@ public final class PlayerState {
     public long getRoundContribution() { return roundContribution; }
     public long getHandContribution() { return handContribution; }
     public boolean canAct() { return status == PlayerStatus.ACTIVE; }
-    public boolean isParticipating() { return status == PlayerStatus.ACTIVE || status == PlayerStatus.ALL_IN; }
+    public boolean isParticipating() {
+        return status == PlayerStatus.ACTIVE || status == PlayerStatus.ALL_IN;
+    }
 }

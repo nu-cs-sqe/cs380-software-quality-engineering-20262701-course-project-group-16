@@ -75,21 +75,44 @@ the final November 3 check. These are historical scopes, not individual targets.
 Setup checks preserve the 10/20 blinds, 6,000-chip total, correct positions,
 two-card hands, 40-card remainder and private views.
 
+### Add tests and simplify setup (November 6)
+
+Branch: `refactor/instructor-feedback`. Each task has a separate checkpoint commit.
+
+| Task | Status | Work and verification |
+| --- | --- | --- |
+| Simplify setup methods (`34effa7`) | Done | Extract clockwise dealing, hand allocation, player copying/creation and configuration validation into named helpers. Existing setup/dealing and BVA tests preserve behavior. |
+| Add isolated tests (`7b61f41`) | Done | Inject setup/deal operations; retain original real-component cases under integration test names and add 11 isolated coordinator cases. Include extracted InitialDeal in quality scope. |
+| Fix null handling (`00819a8`) | Done | Use Optional for session/actor/statistics-hand absence and empty lists for hidden cards; remove nullable UI rendering arguments. Preserve public validation and legacy actor input compatibility. Existing lifecycle/privacy/state tests cover these paths. |
+| Simplify localization (`55bd93d`) | Done | Split element scanning, argument recording and nested-choice handling; extract translation validation. Enforce 100-character production Java lines and wrap existing long lines without behavior changes. |
+
 ### Verification and progress evaluation
 
-Latest UI checkpoint verification: **November 5**, local `bash ./gradlew build`
-passed using JDK 17 for Gradle 9.7.1 and JDK 11 for compilation/tests. The new
-component's 18 cases raise the team suite from 735 to 753. CI remains configured
-with JDK 25 plus JDK 11. The PIT measurement below is the recorded November 3
-core-component run; mutation analysis was not rerun for this exempt Swing view.
+Historical checkpoints: the November 5 result-display build passed 753 tests;
+the November 6 setup/test refactoring build passed 746 tests. These are separate
+branch measurements. Both the 18 result-display cases and 11 isolated coordinator
+cases are retained in the combined branch.
+
+Latest verification: **November 6**, local `build pitest` passed on
+`feature/showdown-display` after merging main `e8c66ff`. The report retains both
+setup/test refactoring and result-display work. Gradle 9.7.1 used JDK 17;
+compilation/tests used JDK 11. CI uses JDK 25 plus JDK 11; check its result on the PR.
 
 | Check | Recorded result |
 | --- | --- |
-| Team tests, Nov 5 | **753 passing**, zero failures/errors/skips. |
-| Checkstyle / SpotBugs | Zero unexcluded main/test findings; reviewed exceptions documented. |
-| Kevin-only JaCoCo: nine classes | **100%**: 319/319 lines, 184/184 branches, 153/153 complexity counters, 1,748/1,748 instructions, 61/61 methods. |
-| PIT, Nov 3 core measurement | **178/186 killed (95.70%)**; eight reviewed survivors; zero uncovered/time-out/error mutants. |
-| UI / review | English/Chinese offscreen layouts and card concealment checked; code review found no remaining actionable findings after the argument-validation fix. |
+| Team tests | **764 passing**, zero failures/errors/skips; includes 18 result-display and 11 isolated coordinator cases. |
+| Checkstyle / SpotBugs | Zero main/test findings after documented exceptions; production Java lines limited to 100 characters. |
+| Kevin-only JaCoCo: ten classes | **100%**: 353 lines, 182 branches, 167 complexity counters, 1,856 instructions and 76 methods covered; includes extracted InitialDeal. |
+| PIT | **190/197 killed (96.45%)**; seven reviewed survivors; no uncovered/time-out/error mutants. See [quality results](quality.md). |
+| UI | Existing English/Chinese UI/privacy tests pass; native focus/font walkthrough remains pending. |
+
+The refactoring preserves behavior. The 11 new coordinator cases were run
+first against an unimplemented injection boundary and all failed as expected,
+then passed after implementation. Existing BVA/integration tests protect the
+method, null-flow and parser refactors; these are not claimed as new feature
+RED cycles. Original setup/dealing integration cases and their historical
+checkpoint commits remain recorded above. PR status and remote checks are tracked
+on GitHub.
 
 Kevin's comparison, bilingual setup and separate result component are complete.
 The new result component was reviewed with no actionable findings; English/Chinese
@@ -97,8 +120,8 @@ six-way ties and a Chinese uncontested result fit the inspected offscreen layout
 Estella's betting/street work is now on `feature/basic-betting`; her session/result
 connection and GamePanel attachment remain the next shared checkpoint. Integration
 uses real game components, controlled Random stubs and one fail-fast evaluator
-stub for the uncontested path; no game components are mocked. The showdown
-fixtures supply the engine boundary, so they do not establish played-hand
+stub for the uncontested path. Coordinator unit tests stub setup/deal operations;
+integration tests run real components. The showdown fixtures supply the engine boundary, so they do not establish played-hand
 progression or result-screen readiness. Coverage is Kevin-scoped; JaCoCo
 complexity counters do not prove independent basis-path execution. Mutation
 survivor reasoning, including the hash-contract acceptance question, remains in

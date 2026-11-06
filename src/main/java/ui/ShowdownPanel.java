@@ -52,7 +52,8 @@ public final class ShowdownPanel extends JPanel {
      * Renders using public identity/seat information only; no live game model is retained.
      * Call again with the selected language after a language change.
      * @throws NullPointerException if view or result is null
-     * @throws IllegalArgumentException for a different hand, unknown winner, or unsupported language
+     * @throws IllegalArgumentException for a different hand, unknown winner,
+     *     or unsupported language
      */
     public void showResult(GameView view, ShowdownResult result, String language) {
         Objects.requireNonNull(view, "view");
@@ -65,9 +66,10 @@ public final class ShowdownPanel extends JPanel {
         for (String winnerId : result.getWinnerIds()) {
             PlayerView winner = view.getPlayers().stream()
                     .filter(player -> player.getId().equals(winnerId)).findFirst()
-                    .orElseThrow(() -> new IllegalArgumentException("A winner is missing from the view."));
-            names.add(MESSAGES.text(language, winner.getType() == PlayerType.HUMAN ? "human" : "bot",
-                    winner.getSeat() + 1));
+                    .orElseThrow(() ->
+                            new IllegalArgumentException("A winner is missing from the view."));
+            names.add(MESSAGES.text(language,
+                    winner.getType() == PlayerType.HUMAN ? "human" : "bot", winner.getSeat() + 1));
         }
         String key = result.isUncontested() ? "result.uncontested"
                 : names.size() == 1 ? "result.winner" : "result.tie";
