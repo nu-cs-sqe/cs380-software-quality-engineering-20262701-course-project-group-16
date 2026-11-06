@@ -60,3 +60,12 @@ See [catalog BVA](../bva/Localizations.md) and
 [UI localization cases](../bva/GamePanelLocalization.md) for executable coverage
 and the RED checkpoint. Headless Swing tests cover component behavior; native
 window focus and font/layout checks remain manual desktop verification.
+
+## Simplify message validation
+
+Message argument validation separates top-level element scanning, argument-type
+recording and recursive ChoiceFormat branch inspection. The scanner retains
+MessageFormat quoting/nesting rules; it does not use a placeholder regex. Catalog
+loading separately validates language tags, translation keys and argument types.
+Existing quote, repeated-argument, reordered-argument and nested-choice fixtures
+remain regression coverage. Production Checkstyle now enforces 100-character lines.

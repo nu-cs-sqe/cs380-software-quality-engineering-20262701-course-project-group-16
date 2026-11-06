@@ -74,24 +74,44 @@ the final November 3 check. These are historical scopes, not individual targets.
 Setup checks preserve the 10/20 blinds, 6,000-chip total, correct positions,
 two-card hands, 40-card remainder and private views.
 
+### Add tests and simplify setup (November 6)
+
+Branch: `refactor/instructor-feedback`. Each task has a separate checkpoint commit.
+
+| Task | Status | Work and verification |
+| --- | --- | --- |
+| Simplify setup methods (`34effa7`) | Done | Extract clockwise dealing, hand allocation, player copying/creation and configuration validation into named helpers. Existing setup/dealing and BVA tests preserve behavior. |
+| Add isolated tests (`7b61f41`) | Done | Inject setup/deal operations; retain original real-component cases under integration test names and add 11 isolated coordinator cases. Include extracted InitialDeal in quality scope. |
+| Fix null handling (`00819a8`) | Done | Use Optional for session/actor/statistics-hand absence and empty lists for hidden cards; remove nullable UI rendering arguments. Preserve public validation and legacy actor input compatibility. Existing lifecycle/privacy/state tests cover these paths. |
+| Simplify localization (`55bd93d`) | Done | Split element scanning, argument recording and nested-choice handling; extract translation validation. Enforce 100-character production Java lines and wrap existing long lines without behavior changes. |
+
 ### Verification and progress evaluation
 
-Last implementation verification: **November 3**, local `clean build pitest --continue`,
-16 tasks executed successfully. Gradle 9.7.1 used JDK 17 locally; compilation/tests
-used JDK 11. CI is configured with JDK 25 plus the JDK 11 toolchain.
+Latest verification: **November 6**, local `build pitest` passed on
+`refactor/instructor-feedback` after adding tests and simplifying the code.
+Gradle 9.7.1 used JDK 17; compilation/tests used JDK 11. CI is configured with
+JDK 25 plus JDK 11. These results describe the local run; check remote CI on the PR.
 
 | Check | Recorded result |
 | --- | --- |
-| Team tests | **735 passing**, zero failures/errors/skips. |
-| Checkstyle / SpotBugs | Zero unexcluded main/test findings; reviewed exceptions documented. |
-| Kevin-only JaCoCo: nine classes | **100%**: 319/319 lines, 184/184 branches, 153/153 complexity counters, 1,748/1,748 instructions, 61/61 methods. |
-| PIT | **178/186 killed (95.70%)**; eight reviewed survivors; zero uncovered/time-out/error mutants. |
-| UI / review | English/Chinese offscreen layouts and card concealment checked; code review found no remaining actionable findings after the argument-validation fix. |
+| Team tests | **746 passing**, zero failures/errors/skips; includes 11 new isolated coordinator cases. |
+| Checkstyle / SpotBugs | Zero main/test findings after documented exceptions; production Java lines limited to 100 characters. |
+| Kevin-only JaCoCo: ten classes | **100%**: 353 lines, 182 branches, 167 complexity counters, 1,856 instructions and 76 methods covered; includes extracted InitialDeal. |
+| PIT | **190/197 killed (96.45%)**; seven reviewed survivors; no uncovered/time-out/error mutants. See [quality results](quality.md). |
+| UI | Existing English/Chinese UI/privacy tests pass; native focus/font walkthrough remains pending. |
+
+The refactoring preserves behavior. The 11 new coordinator cases were run
+first against an unimplemented injection boundary and all failed as expected,
+then passed after implementation. Existing BVA/integration tests protect the
+method, null-flow and parser refactors; these are not claimed as new feature
+RED cycles. Original setup/dealing integration cases and their historical
+checkpoint commits remain recorded above. PR status and remote checks are tracked
+on GitHub.
 
 Kevin's comparison and supported bilingual setup flow are complete. Integration
 uses real game components, controlled Random stubs and one fail-fast evaluator
-stub for the uncontested path; no game components are mocked. The showdown
-fixtures supply the engine boundary, so they do not establish played-hand
+stub for the uncontested path. Coordinator unit tests stub setup/deal operations;
+integration tests run real components. The showdown fixtures supply the engine boundary, so they do not establish played-hand
 progression or result-screen readiness. Coverage is Kevin-scoped; JaCoCo
 complexity counters do not prove independent basis-path execution. Mutation
 survivor reasoning, including the hash-contract acceptance question, remains in

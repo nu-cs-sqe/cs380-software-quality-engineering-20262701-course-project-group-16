@@ -19,7 +19,8 @@ public final class SeatOrder {
         for (PlayerState state : players) {
             if (state == null || bySeat[state.getPlayer().getSeat()] != null
                     || !ids.add(state.getPlayer().getId())) {
-                throw new IllegalArgumentException("Players, seats and IDs must be unique and non-null.");
+                throw new IllegalArgumentException(
+                    "Players, seats and IDs must be unique and non-null.");
             }
             bySeat[state.getPlayer().getSeat()] = state;
         }
