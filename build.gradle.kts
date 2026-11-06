@@ -49,8 +49,9 @@ application {
     mainClass.set("ui.Main")
 }
 
-// Kevin's executable components only; this is not a whole-team coverage score.
-val kevinClasses = listOf(
+// Ten-class scope with InitialDeal and shared session integration follow-ups.
+// This is not a whole-team coverage or mutation score.
+val measuredClasses = listOf(
     "domain.model.Card",
     "domain.model.Deck",
     "domain.model.PokerHandEvaluator",
@@ -62,7 +63,7 @@ val kevinClasses = listOf(
     "application.SetupView",
     "localization.Localizations"
 )
-val kevinClassFiles = kevinClasses.flatMap {
+val measuredClassFiles = measuredClasses.flatMap {
     val path = it.replace('.', '/')
     listOf("$path.class", "$path\$*.class")
 }
@@ -74,7 +75,7 @@ jacoco {
 tasks.named<JacocoReport>("jacocoTestReport") {
     dependsOn(tasks.test)
     classDirectories.setFrom(sourceSets.main.get().output.classesDirs.asFileTree.matching {
-        include(kevinClassFiles)
+        include(measuredClassFiles)
         exclude("domain/model/ShowdownResult\$Status.class")
     })
     reports {
@@ -124,15 +125,17 @@ tasks.withType<SpotBugsTask>().configureEach {
 pitest {
     pitestVersion.set("1.22.1")
     junit5PluginVersion.set("1.2.3")
-    targetClasses.set(kevinClasses.flatMap { listOf(it, "$it\$*") }.toSet())
+    targetClasses.set(measuredClasses.flatMap { listOf(it, "$it\$*") }.toSet())
     excludedClasses.set(setOf("domain.model.ShowdownResult\$Status"))
     targetTests.set(setOf(
         "domain.model.CardTest", "domain.model.DeckTest", "domain.model.DeckSetupTest",
         "domain.model.PokerHandEvaluatorTest", "domain.model.PokerHandRankingTest",
         "domain.model.ShowdownResolverTest",
         "domain.model.ShowdownResultTest", "application.GameInitializerTest",
-        "integration.GameInitializerIntegrationTest", "integration.SetupSessionIntegrationTest", "application.SetupViewTest",
-        "integration.SetupIntegrationTest", "integration.ShowdownIntegrationTest",
+        "integration.GameInitializerIntegrationTest",
+        "integration.SetupSessionIntegrationTest", "application.SessionBettingTest",
+        "application.SetupViewTest", "integration.SetupIntegrationTest",
+        "integration.ShowdownIntegrationTest", "integration.PlayedHandIntegrationTest",
         "localization.LocalizationsTest"
     ))
     threads.set(2)

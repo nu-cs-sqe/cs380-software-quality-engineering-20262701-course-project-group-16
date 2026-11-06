@@ -49,6 +49,9 @@ comparison; add English/Chinese support; configure and measure quality checks.
 | Done | Kevin | Connect real initialized cards/state to known-winner and board-tie showdown fixtures, preserving chips and the original state. | `428b161`; two integration cases; fixtures supply a closed SHOWDOWN state. |
 | Done | Kevin | English/Chinese discovery, selection, UTF-8 messages, locale formatting and privacy on language changes; new locales need resources/configuration only. | RED `132e255` → GREEN `f6ad8e5`; hardening `7717b89`; argument-validation RED `c72b794` → GREEN `025baef`; 69 focused cases; [localization](design/localization.md). |
 | Done | Kevin / shared quality | Configure Checkstyle/SpotBugs, scoped JaCoCo/PIT and CI report uploads; fix findings and review survivors. | `7e65692`, `c7dac83`; measurement records `5b4b092`, `377a143`; [quality results](quality.md). |
+| Done locally; awaiting review | Estella | Connect BettingEngine actions/turns/streets to the real showdown resolver through one SetupSession; handle uncontested/all-in runout and atomic failure/retry. | [Session BVA](bva/SessionBetting.md); [played-hand flow](design/played-hand.md). |
+| Done locally; awaiting review | Estella | Add Swing legal actions, automatic temporary check/call bots, public board/status, private handoffs and English/Chinese pending results. | [Played-screen cases](bva/PlayedGamePanel.md); two real played winner/tie integration cases. |
+| Done locally; awaiting review | Estella / shared quality | Preserve setup/privacy checks, update mutation test selection and review findings; final939 tests pass with clean static checks. | [Local TDD record](tdd/week6-session.md); [current shared-scope measurements](quality.md). |
 | Done | Kevin | Update README, BVA/design contracts and weekly report with checkpoint evidence and open dependencies. | `8a322f9`, report cleanup `42a02d5`; [BVA index](bva/README.md). |
 | Done, component only | Kevin | Reusable English/Chinese showdown display: winner/ties/uncontested, awaiting settlement, stale-input guards and clearing. Reads public names only; session attachment remains pending. | Branch `feature/showdown-display`; RED `2493bf3` → GREEN `750e7c4`; 18 cases; [result contract](design/showdown.md). |
 
@@ -98,6 +101,9 @@ Latest verification: **November 6**, local `build pitest` passed on
 setup/test refactoring and result-display work. Gradle 9.7.1 used JDK 17;
 compilation/tests used JDK 11. CI uses JDK 25 plus JDK 11; check its result on the PR.
 
+These are the main-branch measurements before integrating the played-hand
+branch. Its earlier local runs are recorded separately below.
+
 | Check | Recorded result |
 | --- | --- |
 | Team tests | **764 passing**, zero failures/errors/skips; includes 18 result-display and 11 isolated coordinator cases. |
@@ -127,9 +133,63 @@ complexity counters do not prove independent basis-path execution. Mutation
 survivor reasoning, including the hash-contract acceptance question, remains in
 [quality.md](quality.md).
 
+### Estella's local integration verification — November 5
+
+The pending integration of main at 11a4e00 with feature/basic-betting now runs the
+supported played flow through Swing to a real winner/tie result awaiting
+settlement. **939 tests pass**, zero failures/errors/skips; Checkstyle and
+SpotBugs have0 main/test unexcluded findings. The new 42 cases extend the 897-case
+merged baseline. TDD ran RED before session/UI implementations; the record is
+local and is not claimed as separate RED/GREEN Git commits.
+
+The controlled call/fold/check hand ends with 21 accepted actions, five live
+participants, pot 100, stacks 5,900 and 32 remaining cards. Tests also verify
+uncontested endings, all-in runout, rejected-action preservation, atomic
+comparison retry, human privacy and both languages. Automatic bots only check
+or call; no opponent cards/equity are used. Pending actions are logged once;
+no payout, settled completion or completed-hand statistics are fabricated.
+
+Nine-class shared-scope JaCoCo counters are all covered; PIT kills219/227
+mutants (96.48%), retaining the eight documented baseline survivors. Session
+43/43 and view 18/18 mutants are killed. These are not whole-game quality
+measurements or proof of independent basis paths. See [quality.md](quality.md)
+and [TDD evidence](tdd/week6-session.md). Offscreen English/Chinese layouts were
+inspected; native focus/teammate walkthrough and new remote CI remain pending.
+
+### Call-button layout follow-up — November 5
+
+A larger button font could wrap Call below the action row and clip it. The
+screen now keeps Fold/Check/Call in one row, with compact margins and labels
+set before measuring row height. Two bilingual visibility cases were added:
+English failed before the fix; both pass afterward. The full build now passes
+**941 tests**, with zero Checkstyle/SpotBugs main/test findings. This UI-only
+follow-up does not extend the mutation measurement scope. See
+[UI-PLAY06](bva/PlayedGamePanel.md#call-button-visibility-regression).
+
+### Reconcile PR15 with the instructor refactor (November 6)
+
+The local merge targets main e8c66ff while retaining the played-hand flow and
+Call-button visibility fix. Keep the injected initializer/dealer seam, renamed
+unit/integration tests, Optional session/actor state and smaller rendering helpers.
+Production Java still follows the 100-character Checkstyle rule; no checks or
+SpotBugs exclusions were weakened. The UI uses a non-null explicit error enum.
+
+Local verification: **952 tests pass**, zero failures/errors/skips, with clean
+Checkstyle and SpotBugs reports. The ten-class shared scope has zero missed
+JaCoCo counters. PIT kills 230/237 mutants (97.05%), retaining the seven documented
+baseline survivors. These are scoped counters, not full-game/basis-path proof.
+A separate combined-source check including PR16's 18 result-panel tests passes
+**970 tests** and static checks. The inline result keys are namespaced separately
+from ShowdownPanel's single-argument messages to preserve both consumers.
+
+No merge commit or push was performed. Each branch's GitHub warning remains
+until its owner stages, commits and pushes the local resolution. Instructor
+refactor results (746), earlier played-flow results (941), and this combined
+branch result (952) are different checkpoints, not conflicting measurements.
+
 ### Remaining work and next steps
 
-- [ ] **Estella + Kevin:** Connect betting/turn/street progression to showdown and Swing results; test the played flow in both languages, including uncontested/all-in runout paths. Payouts/side pots and equity bots remain later work.
+- [x] **Estella (local):** Connect betting/turn/street progression to showdown and Swing results; test both languages plus uncontested/all-in runout. Awaiting user commit, remote CI and teammate review. Payouts/side pots and equity bots remain later work.
 - [ ] **Together:** Walk through native desktop focus-loss privacy and cross-platform fonts/layout.
 - [ ] **Together:** Complete [game rules](requirements/game-rules.md), reconcile proposed 5/10 versus implemented 10/20 blinds/button policy, confirm board assignees/status/PR links and record instructor-meeting evidence.
 - [ ] **Together:** Review rubric interpretation and mutation survivors with the instructor; obtain partner-owned quality measurements separately.

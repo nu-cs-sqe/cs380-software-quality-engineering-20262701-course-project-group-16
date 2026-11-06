@@ -21,12 +21,16 @@ privacy and immutability cases.
 | `AcceptedAction` | [AcceptedAction.md](AcceptedAction.md) |
 | `PlayerState` | [PlayerState.md](PlayerState.md) |
 | `BettingProgress` | [BettingProgress.md](BettingProgress.md) |
+| `BettingHistory` | [BettingHistory.md](BettingHistory.md) |
+| `BettingEngine` (preflop/postflop actions and street advancement) | [BettingEngine.md](BettingEngine.md) |
+| `BettingResult` | [BettingResult.md](BettingResult.md) |
 | `HandPositions` | [HandPositions.md](HandPositions.md) |
 | `SeatOrder` | [SeatOrder.md](SeatOrder.md) |
 | `GameState` | [GameState.md](GameState.md) |
 | `GameSetup` | [GameSetup.md](GameSetup.md) |
 | `GameInitializer` | [GameInitializer.md](GameInitializer.md) |
-| `SetupSession` | [SetupSession.md](SetupSession.md) |
+| `SetupSession` | [SetupSession.md](SetupSession.md), [played-hand lifecycle](SessionBetting.md) |
+| `GamePanel` played flow | [PlayedGamePanel.md](PlayedGamePanel.md) |
 | `GameView` | [GameView.md](GameView.md) |
 | `PlayerView` | [PlayerView.md](PlayerView.md) |
 | `PlayStats` | [PlayStats.md](PlayStats.md) |

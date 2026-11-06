@@ -1,4 +1,4 @@
-# Quality checks and Kevin's measurement scope
+# Quality checks and measurement scope
 
 The Gradle `check` lifecycle runs JUnit tests, Checkstyle on main/test sources,
 SpotBugs on main/test bytecode and the scoped JaCoCo report. `build` includes
@@ -91,7 +91,13 @@ change. Shared Checkstyle violations are fixed in source instead of baselined.
 
 ## Scope and interpretation
 
-JaCoCo and PIT both include Kevin's `Card`, `Deck`, `PokerHandEvaluator`,
+SetupSession and SetupView include shared played-hand integration. The
+current configured scope has ten classes, including extracted InitialDeal.
+Earlier nine-class results below are historical, not current full-game
+coverage. PIT retains the renamed integration tests and the new session
+and played-hand tests.
+
+JaCoCo and PIT include `Card`, `Deck`, `PokerHandEvaluator`,
 `ShowdownResolver`, `ShowdownResult`, `GameInitializer`, `InitialDeal`, `SetupSession` and
 `SetupView` and `Localizations`, including their nested classes. `SetupView` remains in the scope
 even though a display DTO could qualify for a view exemption: its private-card
@@ -103,10 +109,10 @@ test executions across mutants separately from the JUnit suite count. It uses th
 workers, HTML/XML output and deterministic report paths. A mutant may hang a
 loop; timeout permits twice its baseline test duration plus two seconds.
 
-Excluded from **Kevin's metric denominator**:
+Excluded from the **nine-class metric denominator**:
 
 - Partner-owned domain state, betting and statistics components; their test
-  execution is retained, but their coverage must not be attributed to Kevin.
+  execution is retained, but their coverage is not established by this scope.
 - `HandEvaluator`, an interface without executable default methods, and the
   `Rank`/`Suit` and nested `ShowdownResult.Status` enums, whose constants have no hand-written branching behavior.
 - Swing `ui` classes and launch code, using the rubric's UI exemption; headless
@@ -122,7 +128,7 @@ not automatically remove equivalent mutants or justify survivors/timeouts.
 There is no invented score threshold or forced green metric gate: actual
 findings and rubric gaps must remain visible until assessed.
 
-## Measured results
+## Instructor-refactor baseline (November 6)
 
 Verified locally on **November 6, 2026**, on `feature/showdown-display`, after
 merging main `e8c66ff` with the bilingual result-display component. This includes
@@ -207,6 +213,56 @@ review rather than an unqualified automated success claim.
 References: [Java 11 stable list sorting](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/List.html#sort(java.util.Comparator)),
 [Java 11 hash-code contract](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Object.html#hashCode()).
 
+
+## Shared session follow-up — November 5,2026
+
+After integrating main with Estella's betting branch, local `clean build --continue`
+and `pitest` pass on JDK 25 with Java 11 compilation/tests. The full suite is
+**939 tests**, zero failures/errors/skips. Checkstyle reports0 main / 0 test
+violations; SpotBugs reports0 main / 0 test unexcluded findings,0 analysis errors
+and 0 missing classes. No exclusions or failing baselines were added.
+
+The same nine-class measurement scope now includes shared session follow-ups;
+it must not be attributed wholly to Kevin or treated as full-game coverage.
+Current JaCoCo counts: **2,093 instructions,218 branches,392 lines,189 covered
+complexity counters,80 methods,9 classes**, all with 0 missed. SetupSession
+covers83/83 lines,44/44 branches and 41/41 complexity counters; SetupView covers
+36/36 lines,2/2 branches and 19/19 complexity counters. These counters do not
+establish independent basis paths or coverage of betting/state/statistics
+classes outside the documented scope.
+
+Current PIT: **227 generated,219 killed,8 survived**, raw **96.48%**. There are
+no uncovered, timed-out, non-viable or run-error mutants. The selected 13 test
+classes run 1,329 test executions across mutants; this is distinct from the 939
+JUnit cases. PIT line coverage is393/393; its line denominator differs from
+JaCoCo. The session's43/43 mutants and view's18/18 mutants are killed. The same
+8 baseline survivors remain in the earlier review table, including the unresolved
+hash-contract acceptance question; none is hidden or newly declared equivalent.
+
+The first follow-up mutation run found two actionable gaps: checking the view's
+20-chip preflop betting level, and concealing a revealed hand when playBotTurns
+selects the human actor without executing a bot action. Both now have direct
+behavior assertions. A separate actor-empty guard was redundant: session state
+is published only after advancing closed rounds or producing a result; it was
+removed rather than manufacturing invalid states to cover it. The explicit
+fault/retry test verifies failed comparison does not publish the candidate or
+append a duplicate action.
+
+See the [local TDD record](tdd/week6-session.md) for RED/GREEN results and scope.
+Headless English/Chinese played flows and offscreen startup/flop/result layouts
+were checked. Native focus delivery and cross-platform fonts still require the
+team's walkthrough. New remote CI and peer-review evidence remain pending push.
+
+
+### Call-button layout regression — November 5
+
+The later UI-only fix keeps the third action button visible when larger fonts
+would otherwise wrap it below a fixed-height row. English/Chinese bounds and
+label-fit tests extend the full suite to **941 passing tests**, with no
+failures/errors/skips. Checkstyle and SpotBugs remain clean, without added
+exclusions. The earlier mutation measurements are retained as historical
+results; mutation testing was not rerun for this Swing-only layout change.
+
 ## Add tests and simplify initialization
 
 InitialDeal is included in Kevin's coverage/mutation scope; moving work out of
@@ -216,3 +272,28 @@ tests. All initialization/localization mutants are killed in this run. The old
 extra-hand-allocation mutant is now killed because dealing traverses the actual
 hand collection; an extra allocated seat changes the deal and fails integration
 checks. This was a structural refactor, not a new user-visible requirement.
+
+
+## PR15 reconciliation with main e8c66ff (November 6)
+
+Full build: 952 tests, zero failures/errors/skips; Checkstyle 0 main / 0 test,
+SpotBugs 0 main / 0 test unexcluded findings, zero analysis errors/missing classes.
+The 100-character production rule is retained. No new suppression was added.
+
+The shared ten-class scope includes InitialDeal and the shared session/view;
+it is not a whole-game measurement. JaCoCo covers 2,216/2,216 instructions,
+216/216 branches, 438/438 lines, 204/204 complexity counters, 96/96 methods and
+10/10 classes. These counters do not prove independent basis paths. PIT
+produces 237 mutants: 230 killed and 7 survivors (97.05%), with no uncovered,
+timeout or error mutants. Its line coverage is 439/439. Fourteen selected test
+classes ran 1,379 test executions in this run. The seven baseline survivors
+are the six evaluator mutants plus the contract-preserving hash-code mutant
+already documented above; the previous eight-survivor figure belongs to the
+November 5 scope before the instructor refactor killed the allocation mutant.
+
+A separate combined-source build includes the 18 ShowdownPanel cases from PR16:
+970 tests and static checks pass. That is a compatibility check, not a merged
+Git history or remote CI result. The two result displays retain separate
+resource keys because one formats a message plus settlement status and the
+other formats winner names alone. Null-flow refactors, privacy/error states,
+accepted-action logging and the visible Call button remain covered.

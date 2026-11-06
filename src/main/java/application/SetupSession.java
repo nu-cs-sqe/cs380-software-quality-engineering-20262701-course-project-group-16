@@ -1,14 +1,31 @@
 package application;
 
 import domain.model.GameState;
+import domain.model.GamePhase;
 import domain.model.Player;
+import domain.model.PlayerState;
 import domain.model.PlayerType;
+import domain.model.AcceptedAction;
+import domain.model.ActionRequest;
+import domain.model.ActionType;
+import domain.model.BettingEngine;
+import domain.model.BettingResult;
+import domain.model.ShowdownResolver;
+import domain.model.ShowdownResult;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.Optional;
+import java.util.Set;
 
-/** Owns a setup preview and controls explicit private-card handoffs. Use on the UI thread. */
+/** Owns one played hand and explicit private-card handoffs. Use on the UI thread. */
 public final class SetupSession {
     private final GameInitializer initializer;
+    private final BettingEngine engine;
+    private final ShowdownResolver resolver;
+    private final List<AcceptedAction> acceptedActions = new ArrayList<>();
     private Optional<GameState> state = Optional.empty();
+    private Optional<ShowdownResult> result = Optional.empty();
     private int viewerSeat;
     private boolean cardsRevealed;
 
@@ -18,11 +35,95 @@ public final class SetupSession {
 
     /** @throws IllegalArgumentException if initializer is null */
     public SetupSession(GameInitializer initializer) {
-        if (initializer == null) {
-            throw new IllegalArgumentException("A game initializer is required.");
+        this(initializer, new BettingEngine(), new ShowdownResolver());
+    }
+
+    /** @throws IllegalArgumentException if any collaborator is null */
+    public SetupSession(GameInitializer initializer, BettingEngine engine,
+            ShowdownResolver resolver) {
+        if (initializer == null || engine == null || resolver == null) {
+            throw new IllegalArgumentException(
+                    "Initializer, betting engine and resolver are required.");
         }
         this.initializer = initializer;
+        this.engine = engine;
+        this.resolver = resolver;
     }
+
+    /**
+     * Accepts one request, advances closed rounds and compares a finished hand.
+     * Rejection preserves the hand/result/log but conceals private cards.
+     * @return the one committed action; transitions never invent player actions
+     * @throws IllegalStateException before start or after a result
+     * @throws IllegalArgumentException for null, illegal or out-of-turn requests
+     * @throws UnsupportedOperationException for actions outside the supported engine scope
+     */
+    public AcceptedAction submitAction(ActionRequest request) {
+        hideCards();
+        GameState match = requireMatch();
+        if (result.isPresent()) {
+            throw new IllegalStateException("This hand already has a result awaiting settlement.");
+        }
+        BettingResult accepted = engine.apply(match, request);
+        GameState candidate = advanceClosedRounds(accepted.getState());
+        Optional<ShowdownResult> comparison = compareIfFinished(candidate);
+        state = Optional.of(candidate);
+        result = comparison;
+        acceptedActions.add(accepted.getAcceptedAction());
+        selectActingHuman();
+        return accepted.getAcceptedAction();
+    }
+
+    /**
+     * Runs a temporary legal CHECK/CALL bot policy until a human decision or result.
+     * Uses no opponent cards/equity. Each returned action was committed once.
+     * @throws IllegalStateException if no match exists
+     */
+    public List<AcceptedAction> playBotTurns() {
+        GameState match = requireMatch();
+        List<AcceptedAction> played = new ArrayList<>();
+        while (match.getCurrentActorSeat().isPresent()) {
+            Player actor = match.getPlayers()
+                    .get(match.getCurrentActorSeat().orElseThrow());
+            if (actor.getType() == PlayerType.HUMAN) {
+                break;
+            }
+            ActionType type = getAvailableActions().contains(ActionType.CHECK)
+                    ? ActionType.CHECK : ActionType.CALL;
+            played.add(submitAction(new ActionRequest(actor.getId(), type)));
+            match = requireMatch();
+        }
+        selectActingHuman();
+        return List.copyOf(played);
+    }
+
+    /**
+     * Immutable supported actions, or empty before start/after a result.
+     * The pure engine validates discarded snapshots; queries commit no observations.
+     */
+    public Set<ActionType> getAvailableActions() {
+        if (state.isEmpty() || result.isPresent()) {
+            return Set.of();
+        }
+        GameState match = state.orElseThrow();
+        Set<ActionType> available = EnumSet.noneOf(ActionType.class);
+        for (ActionType type : List.of(ActionType.FOLD, ActionType.CHECK, ActionType.CALL)) {
+            try {
+                engine.apply(match,
+                        new ActionRequest(match.getCurrentActorId().orElseThrow(), type));
+                available.add(type);
+            } catch (IllegalArgumentException | UnsupportedOperationException unavailable) {
+                // Legality belongs to the engine; the discarded result is never committed.
+            }
+        }
+        return Set.copyOf(available);
+    }
+
+    /** Comparison only; no pots paid or completed-hand statistics aggregated. */
+    public Optional<ShowdownResult> getResult() { return result; }
+
+    /** Immutable current-hand log, cleared only by a successful restart; excludes blinds. */
+    public List<AcceptedAction> getAcceptedActions() { return List.copyOf(acceptedActions); }
 
     /**
      * Starts a new match with cards hidden. A rejected restart preserves the previous match.
@@ -30,7 +131,10 @@ public final class SetupSession {
      */
     public void start(int humanCount) {
         hideCards();
-        state = Optional.of(initializer.start(humanCount));
+        GameState started = initializer.start(humanCount);
+        state = Optional.of(started);
+        result = Optional.empty();
+        acceptedActions.clear();
         viewerSeat = 0; // Setup assigns at least one human, starting at seat zero.
     }
 
@@ -64,6 +168,38 @@ public final class SetupSession {
     /** Returns immutable display data; empty until a match has been started. */
     public Optional<SetupView> getView() {
         return state.map(match -> new SetupView(match, viewerSeat, cardsRevealed));
+    }
+
+    private GameState advanceClosedRounds(GameState candidate) {
+        while (candidate.getCurrentActorId().isEmpty() && participantCount(candidate) > 1
+                && candidate.getPhase() != GamePhase.SHOWDOWN) {
+            candidate = engine.advanceStreet(candidate);
+        }
+        return candidate;
+    }
+
+    private static long participantCount(GameState candidate) {
+        return candidate.getPlayerStates().stream().filter(PlayerState::isParticipating).count();
+    }
+
+    private void selectActingHuman() {
+        GameState match = requireMatch();
+        if (match.getCurrentActorSeat().isPresent()) {
+            int actor = match.getCurrentActorSeat().orElseThrow();
+            if (match.getPlayers().get(actor).getType() == PlayerType.HUMAN
+                    && viewerSeat != actor) {
+                hideCards();
+                viewerSeat = actor;
+            }
+        }
+    }
+
+    private Optional<ShowdownResult> compareIfFinished(GameState candidate) {
+        if (candidate.getPhase() == GamePhase.SHOWDOWN
+                || participantCount(candidate) == 1) {
+            return Optional.of(resolver.resolve(candidate));
+        }
+        return Optional.empty();
     }
 
     private GameState requireMatch() {

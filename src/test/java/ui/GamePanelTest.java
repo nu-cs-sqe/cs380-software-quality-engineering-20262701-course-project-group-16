@@ -41,9 +41,9 @@ class GamePanelTest {
             assertEquals("Bot 4", find(panel, "seatName3", JLabel.class).getText());
             assertEquals("Chips: 990", find(panel, "seatStack1", JLabel.class).getText());
             assertEquals("Chips: 980", find(panel, "seatStack2", JLabel.class).getText());
-            assertEquals("Pot: 30", find(panel, "pot", JLabel.class).getText());
+            assertEquals("Pot: 90", find(panel, "pot", JLabel.class).getText());
             assertEquals("Deck remaining: 40", find(panel, "deck", JLabel.class).getText());
-            assertTrue(find(panel, "status", JLabel.class).getText().contains("Bot 4"));
+            assertTrue(find(panel, "status", JLabel.class).getText().contains("Human 1"));
             assertEquals(2, find(panel, "viewers", JComboBox.class).getItemCount());
             assertEquals("--", find(panel, "hole0", JLabel.class).getText());
         });
@@ -147,9 +147,9 @@ class GamePanelTest {
             assertEquals(language == 0 ? "Human 1" : "玩家 1", find(panel, "seatName0", JLabel.class).getText());
             assertEquals(language == 0 ? "Bot 4" : "电脑 4", find(panel, "seatName3", JLabel.class).getText());
             assertEquals(language == 0 ? "Chips: 990" : "筹码：990", find(panel, "seatStack1", JLabel.class).getText());
-            assertEquals(language == 0 ? "Pot: 30" : "底池：30", find(panel, "pot", JLabel.class).getText());
+            assertEquals(language == 0 ? "Pot: 90" : "底池：90", find(panel, "pot", JLabel.class).getText());
             assertEquals(language == 0 ? "Deck remaining: 40" : "剩余牌数：40", find(panel, "deck", JLabel.class).getText());
-            assertEquals(language == 0 ? "First turn: Bot 4" : "首先行动：电脑 4", find(panel, "status", JLabel.class).getText());
+            assertEquals(language == 0 ? "Turn: Human 1" : "当前行动：玩家 1", find(panel, "status", JLabel.class).getText());
             find(panel, "reveal", JButton.class).doClick();
             assertEquals("A ♥", find(panel, "hole0", JLabel.class).getText());
             find(panel, "viewers", JComboBox.class).setSelectedIndex(1);

@@ -1,5 +1,8 @@
 # SetupSession BVA
 
+The Week 6 played-hand extension is covered in [SessionBetting.md](SessionBetting.md).
+The 20 original setup/privacy cases below remain in the suite.
+
 The application session owns the internal GameState. SetupView is an immutable
 read model containing public player records and only the selected human's cards
 after explicit reveal. It never retains the internal GameState. Cards are hidden

@@ -4,14 +4,10 @@ A Java desktop no-limit Texas Hold'em game with six seats for 1–6 humans and b
 filling the remaining seats. Players share one computer and use virtual chips.
 A match ends when one player holds all the chips.
 
-**Status:** The Swing setup preview initializes seats, chips, dealer, blinds and
-hole cards, with English/Chinese selection and private-card handoffs. Best-five
-hand evaluation and eligible winner/tie comparison are implemented in the
-model. A reusable `ui.ShowdownPanel` renders bilingual results for session
-integration; it is not yet attached to the game window. Betting actions, street
-progression, played-hand result display, pot
-settlement and equity bots remain future integration work; the full game is
-not yet playable.
+**Status:** A controlled hand can now run through fold/check/call actions,
+street progression and real winner/tie comparison in Swing, in English or Chinese.
+Bots use a temporary check/call policy. Results await settlement: bets/raises,
+postflop calls, payouts, repeated-hand matches and equity bots remain unfinished.
 
 ## Contributors
 
@@ -60,12 +56,15 @@ installation directory and add
 
 Test reports appear at `build/reports/tests/test/index.html`.
 
-## Run the setup preview
+## Run the supported hand demo
 
 With the JDKs configured above, run `bash ./gradlew run` (Windows:
 `.\gradlew.bat run`) on a computer with a desktop display. Enter 1–6 human
 players, select English or Chinese, and choose **Start Game**; bots fill the remaining seats. The highlighted
-seat is the first actor. Select a human in **Private hand** and pass the computer
+seat is the current human actor; bots act automatically. Use the enabled
+**Fold**, **Check** or **Call** control, then pass the computer to the next human.
+The board and winner/tie result update as rounds finish. Select a human in
+**Private hand** and pass the computer
 to that person before choosing **Reveal cards**. Switching humans, restarting
 or leaving the window hides the cards. Language changes also hide cards while
 preserving the match. English is the explicit default, independent of the
@@ -73,8 +72,9 @@ computer's language settings. Add future languages through resources/configurati
 see [localization](docs/design/localization.md).
 
 This is shared-computer privacy by handoff, not authentication: anyone using the
-computer can select another human. Betting controls and bot turns are not
-implemented. Tests run headlessly, without opening a desktop window.
+computer can select another human. Actions are enabled only for the current
+human viewer. Results leave chips committed until settlement is implemented.
+Tests run headlessly, without opening a desktop window.
 
 ## Application initialization
 
@@ -97,8 +97,9 @@ and required status-check enforcement still need verification after push.
 
 Run `bash ./gradlew build` for tests/static checks/coverage and
 `bash ./gradlew pitest` for mutation testing. The team suite and shared static
-checks run across the project; coverage/PIT scores currently measure Kevin's
-ten documented executable components (including the extracted InitialDeal). [Quality results](docs/quality.md)
+checks run across the project; coverage/PIT use ten documented components,
+including InitialDeal and the shared session. These are not full-game metrics.
+[Quality results](docs/quality.md)
 list exact scope, report paths, adapted Checkstyle rules and reviewed SpotBugs
 exceptions. There is no invented metric threshold that hides findings.
 
@@ -109,6 +110,7 @@ exceptions. There is no invented metric threshold that hides findings.
 - [Card/deck and setup integration](docs/design/game-setup.md)
 - [Boundary value analysis](docs/bva/README.md)
 - [Hand evaluation and showdown boundary](docs/design/showdown.md)
+- [Played-hand application flow](docs/design/played-hand.md)
 - [Localization](docs/design/localization.md)
 - [Quality checks and measured results](docs/quality.md)
 - [Weekly planning and progress](docs/weekly-reports.md)
@@ -118,16 +120,16 @@ exceptions. There is no invented metric threshold that hides findings.
 
 ### Code Coverage
 
-Coverage is configured and measured for Kevin's components. The rubric targets
+Coverage uses the original nine-class scope, including the shared session follow-up. The rubric targets
 100% cyclomatic coverage, with View/Main/Enum exemptions. JaCoCo line, branch
 and covered-complexity counters are reported separately; these do not prove
 independent basis-path execution. The exact class scope and results are in
-[quality.md](docs/quality.md); partner-owned components are outside Kevin's
-metric denominator, not excluded from tests or shared static analysis.
+[quality.md](docs/quality.md); betting/state/statistics components remain outside this measurement scope,
+while their tests and shared static checks still run.
 
 ### Mutation Testing
 
-PIT uses the DEFAULTS operator group on Kevin's documented scope. The target
+PIT uses the DEFAULTS operator group on the documented nine-class scope. The target
 is to kill every non-equivalent mutant. Actual raw scores and each surviving
 mutant's reasoning remain visible in [quality.md](docs/quality.md), including
 the unresolved acceptance of a contract-preserving constant hash. Survivor reasoning and acceptance limits are documented alongside the raw score.

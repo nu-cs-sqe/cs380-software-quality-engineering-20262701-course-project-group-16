@@ -4,7 +4,8 @@
 
 Initialize a Texas Hold'em game so it is ready for the first preflop turn. This document separates the completed Member A components from the remaining setup integration.
 
-Member A's Week 5 components are implemented: immutable cards with value equality, a full 52-card deck, controlled shuffling, validated dealing, and immutable returned hands. The six-player dealing sequence is tested. The application GameInitializer now combines table setup and dealing into a PREFLOP state. The Swing setup preview now calls that initializer and displays the dealt state. Full betting/action execution is still future work.
+Member A's Week 5 components are implemented: immutable cards with value equality, a full 52-card deck, controlled shuffling, validated dealing, and immutable returned hands. The six-player dealing sequence is tested. The application GameInitializer now combines table setup and dealing into a PREFLOP state. The Swing setup preview now calls that initializer and displays the dealt state. The shared session now executes supported fold/check/call actions, advances streets
+and displays results awaiting settlement; see [played-hand flow](played-hand.md).
 
 ## Requirements
 
@@ -68,13 +69,14 @@ The team selected 1,000 starting chips per player, fixed 10/20 blinds, a random 
 
 - `handContribution` includes `roundContribution`; the pot is derived from whole-hand contributions.
 - Use `GameInitializer.start(humanCount)` through SetupSession to create the first PREFLOP snapshot.
-- Private-card handoffs are implemented; executing the first turn, including a bot turn, remains future work.
+- Private-card handoffs and first-turn execution are implemented; bots use a temporary legal check/call policy.
 
 Hand evaluation and eligible winner/tie comparison are now implemented. The
 existing `HandEvaluator.compare` contract is preserved: seven distinct non-null
 cards per holding, unchanged inputs, and signed strength comparison. See
 [showdown design](showdown.md) and [evaluator BVA](../bva/PokerHandEvaluator.md).
-Full betting, street advancement and payouts still require the engine.
+Supported street progression is now connected through SetupSession; bets/raises
+and payouts remain future work.
 
 ## Using the deck in setup
 
@@ -119,8 +121,9 @@ existing GameSetup tests and SETUP contract remain unchanged. The Swing session 
 Launch `ui.Main` using `bash ./gradlew run`. `Main` creates the window on the
 Swing event thread and hides private cards when the window deactivates.
 `GamePanel` accepts a human count, displays six occupied seats, chips,
-dealer/blinds, first actor, pot and deck remainder, and leaves community cards
-empty. It clearly identifies this as a setup preview without betting actions.
+dealer/blinds, first actor, pot and deck remainder, and begins with community cards
+empty. Fold/check/call controls, public board/status updates and real pending
+results are now connected through the session; bots act automatically.
 
 `SetupSession` owns the real GameState and calls GameInitializer. Its immutable
 SetupView contains public players, positions, pot/remainder and only explicitly

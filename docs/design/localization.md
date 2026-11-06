@@ -1,6 +1,6 @@
 # Setup localization
 
-The current setup/private-hand preview supports English and Simplified Chinese.
+The supported setup-to-result flow uses English and Simplified Chinese.
 A language selector is available before starting and remains available afterward.
 English is the explicit startup default, independent of the JVM locale. Selecting
 a language rebuilds the screen with translated labels and dynamic messages,
@@ -13,7 +13,7 @@ UTF-8 bundles directly. This avoids ResourceBundle fallback to the host language
 All labels, handoff messages, validation, roles, seat names, chip/pot/deck counts
 and preview notices use message keys. Standard poker rank letters and suit
 symbols are shared card notation. MessageFormat uses the selected locale for
-numeric arguments, including future result messages.
+numeric arguments, including call amounts and result messages.
 
 ## Add another language
 
@@ -51,10 +51,12 @@ and call `text(languageTag, key, arguments...)`. The API also exposes
 selection and formatting. `result.awaitingSettlement` is supplied in both
 bundles for consumers that need a pending result message.
 
-This change covers the implemented setup and private-hand flow. There is no
-betting/action execution or settlement/result screen wired to an engine in this
-preview. Localization of a real result flow remains pending that integration;
-this work does not fabricate winners, payouts or a result UI.
+The played screen now uses the same catalog for fold/check/call controls, public
+board cards, phase/status labels, and winner/tie/uncontested results awaiting
+settlement. Language changes translate the current result without replaying
+any actions. Payouts and additional betting behavior remain unimplemented.
+See [played-hand flow](played-hand.md) and
+[bilingual played-screen cases](../bva/PlayedGamePanel.md).
 
 See [catalog BVA](../bva/Localizations.md) and
 [UI localization cases](../bva/GamePanelLocalization.md) for executable coverage
