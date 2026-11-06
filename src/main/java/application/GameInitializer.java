@@ -38,8 +38,8 @@ public final class GameInitializer {
 
     /**
      * Starts a new six-seat match, dealing two rounds clockwise after the dealer.
-     * Returns a PREFLOP state with two cards per player and 40 cards remaining.
-     * Each call starts a separate match; it does not resume or advance an existing hand.
+     * Returns a PREFLOP state with two cards per player.
+     * Each call starts a separate match, which does not resue any state from previous call.
      * @throws IllegalArgumentException unless humanCount is between one and six
      */
     public GameState start(int humanCount) {
