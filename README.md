@@ -7,7 +7,9 @@ A match ends when one player holds all the chips.
 **Status:** The Swing setup preview initializes seats, chips, dealer, blinds and
 hole cards, with English/Chinese selection and private-card handoffs. Best-five
 hand evaluation and eligible winner/tie comparison are implemented in the
-model. Betting actions, street progression, played-hand result display, pot
+model. A reusable `ui.ShowdownPanel` renders bilingual results for session
+integration; it is not yet attached to the game window. Betting actions, street
+progression, played-hand result display, pot
 settlement and equity bots remain future integration work; the full game is
 not yet playable.
 

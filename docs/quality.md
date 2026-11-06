@@ -124,21 +124,24 @@ findings and rubric gaps must remain visible until assessed.
 
 ## Measured results
 
-Verified locally on **November 6, 2026**, on `refactor/instructor-feedback`,
-after adding isolated tests and simplifying setup, null handling and localization:
+Verified locally on **November 6, 2026**, on `feature/showdown-display`, after
+merging main `e8c66ff` with the bilingual result-display component. This includes
+the isolated tests and setup, null-handling and localization refactoring:
 
 ```sh
 bash ./gradlew --no-daemon build pitest
 ```
 
 Gradle ran on JDK 17; source compilation and JUnit execution used the JDK 11
-toolchain. The command exited 0 in 1 minute 38 seconds (15 actionable tasks,
-12 executed and three up-to-date). Reports use the standard paths above;
-local log: `/private/tmp/instructor-item4.log`.
+toolchain. The command exited 0 in 55 seconds (15 actionable tasks,
+14 executed and one up-to-date). Reports use the standard paths above;
+local log: `/private/tmp/showdown-main-merge.log`.
 
-- Full team suite: **746 tests**, zero failures, errors or skips. This includes
-  11 new isolated initialization cases; the original 16 initializer and 20
-  session cases remain real-component integration tests.
+- Full team suite: **764 tests**, zero failures, errors or skips. This includes
+  18 bilingual result-display and 11 isolated initialization cases; the original
+  16 initializer and 20 session cases remain real-component integration tests.
+  The result panel is included in the team suite and static checks, while Swing
+  remains outside Kevin's coverage/mutation denominator.
 - Checkstyle: **0 main / 0 test violations**, including the new 100-character
   production line limit. This is an adapted style, not full Google/Sun compliance.
 - SpotBugs: **0 main / 0 test unexcluded findings**, zero analysis errors and
@@ -150,7 +153,7 @@ local log: `/private/tmp/instructor-item4.log`.
 - PIT: **197 generated; 190 killed; seven survived**; raw score **96.45%**.
   Zero uncovered, timed-out, non-viable, memory-error or run-error mutants.
   PIT line coverage: **354/354** (its line counting differs from JaCoCo).
-  It selected 12 test classes and ran 1,030 test executions across mutants.
+  It selected 12 test classes and ran 1,085 test executions across mutants.
 
 | Kevin component | JaCoCo lines | Branches | Covered complexity | PIT killed / generated |
 | --- | --- | --- | --- | --- |
@@ -164,6 +167,9 @@ local log: `/private/tmp/instructor-item4.log`.
 | SetupSession | 28/28 | 6/6 | 15/15 | 11/11 |
 | SetupView | 19/19 | 2/2 | 9/9 | 8/8 |
 | Localizations | 125/125 | 68/68 | 54/54 | 59/59 |
+
+Earlier branch checkpoints: the November 5 result-display build passed 753 tests;
+the November 6 refactoring build passed 746. The combined suite above retains both.
 
 Previous measurement (November 3): 735 tests; nine scoped classes; 319 lines,
 184 branches and 153 complexity counters covered; PIT 178/186 killed with eight
