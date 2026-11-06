@@ -21,3 +21,40 @@ cross-platform font/layout rendering still need a manual desktop check.
 Coverage hardening now runs 52 focused cases (35 catalog and 17 UI); all pass.
 
 Complete placeholder validation now runs 69 focused cases (52 catalog and 17 UI).
+
+## ShowdownPanel result-display checkpoint
+
+This separate Swing view consumes the existing `GameView` and `ShowdownResult`;
+it does not execute betting actions or alter the session. UI classes use the
+course view exemption, but the following behavior cases document this boundary.
+All fixtures use the real resolver, state, cards and filtered view on the Swing
+event thread. The supplied view includes the viewer's private cards; expected
+result text contains public player names only.
+
+| ID | Public method / state | Expected behavior | Test / status |
+| --- | --- | --- | --- |
+| UI-R01 | constructor; no result | Hidden panel and empty result messages | startsHiddenWithoutAStaleWinner; passing at RED |
+| UI-R02a–b | showResult; one winner; English/Chinese | Localized Human 1 winner and awaiting-settlement status; unchanged pot/chips | rendersRealResultWithLocalizedPublicNames, SINGLE; GREEN |
+| UI-R03a–b | showResult; two tied players; English/Chinese | Both public names in seat order with tie message | rendersRealResultWithLocalizedPublicNames, TWO_WAY; GREEN |
+| UI-R04a–b | showResult; six-way board tie; English/Chinese | All six names, including bots, without hole cards or payouts | rendersRealResultWithLocalizedPublicNames, SIX_WAY; GREEN |
+| UI-R05a–b | showResult; sole participant before complete board; English/Chinese | Uncontested Bot 6 message; awaiting settlement | rendersRealResultWithLocalizedPublicNames, UNCONTESTED; GREEN |
+| UI-R06 | showResult again with another language | Replace all translated messages, preserving the supplied result | rerenderingInAnotherLanguageReplacesEveryResultMessage; GREEN |
+| UI-R07 | clearResult, then show next hand | Clear old messages/hide, then display the new winner only | clearingAndShowingAnotherHandRemovesThePreviousWinner; GREEN |
+| UI-R08 | showResult; different hand IDs | IllegalArgumentException; keep previous valid display | rejectsResultFromAnotherHandWithoutReplacingTheDisplay; GREEN |
+| UI-R09 | showResult; winner absent from supplied view | IllegalArgumentException; do not show an unrelated player/raw ID | rejectsWinnerIdsMissingFromTheSuppliedPublicView; GREEN |
+| UI-R10a–b | showResult; null view/result | NullPointerException; keep previous valid display | rejectsNullViewOrResult; GREEN |
+| UI-R11a–c | showResult; null/empty/unconfigured locale | IllegalArgumentException; keep previous valid display | rejectsUnsupportedLanguageWithoutReplacingTheDisplay; GREEN |
+
+Observed RED `2493bf3`: 18 invocations, 17 expected assertion failures, one
+initial-state pass, zero errors/skips. GREEN: all 18 cases pass; full project
+build passes 753 tests with zero failures/errors/skips. Checkstyle and SpotBugs
+main/test checks have no findings or analysis errors. The test-helper cast
+finding was fixed in source using a checked local Throwable; no suppression was
+added. English/Chinese six-way ties and a Chinese uncontested result were
+rendered with Java 11 and visually inspected at 680×200.
+
+The panel retains no GameView/ShowdownResult and never reads hole cards. The
+existing 17 GamePanel cases still verify private-card handoff/hiding behavior.
+The application must clear the result between hands and render it again using
+the selected language. Attaching it to Estella's session result is a later
+integration checkpoint; these tests do not claim a played result screen.

@@ -53,6 +53,7 @@ comparison; add English/Chinese support; configure and measure quality checks.
 | Done locally; awaiting review | Estella | Add Swing legal actions, automatic temporary check/call bots, public board/status, private handoffs and English/Chinese pending results. | [Played-screen cases](bva/PlayedGamePanel.md); two real played winner/tie integration cases. |
 | Done locally; awaiting review | Estella / shared quality | Preserve setup/privacy checks, update mutation test selection and review findings; final939 tests pass with clean static checks. | [Local TDD record](tdd/week6-session.md); [current shared-scope measurements](quality.md). |
 | Done | Kevin | Update README, BVA/design contracts and weekly report with checkpoint evidence and open dependencies. | `8a322f9`, report cleanup `42a02d5`; [BVA index](bva/README.md). |
+| Done, component only | Kevin | Reusable English/Chinese showdown display: winner/ties/uncontested, awaiting settlement, stale-input guards and clearing. Reads public names only; session attachment remains pending. | Branch `feature/showdown-display`; RED `2493bf3` → GREEN `750e7c4`; 18 cases; [result contract](design/showdown.md). |
 
 **Branches:** Initializer `feature/setup-dealing`; session/Swing `feature/swing-setup`
 (merged through PR #11); Kevin branch `feature/hand-evaluation`, based on
@@ -90,17 +91,22 @@ Branch: `refactor/instructor-feedback`. Each task has a separate checkpoint comm
 
 ### Verification and progress evaluation
 
+Historical checkpoints: the November 5 result-display build passed 753 tests;
+the November 6 setup/test refactoring build passed 746 tests. These are separate
+branch measurements. Both the 18 result-display cases and 11 isolated coordinator
+cases are retained in the combined branch.
+
 Latest verification: **November 6**, local `build pitest` passed on
-`refactor/instructor-feedback` after adding tests and simplifying the code.
-Gradle 9.7.1 used JDK 17; compilation/tests used JDK 11. CI is configured with
-JDK 25 plus JDK 11. These results describe the local run; check remote CI on the PR.
+`feature/showdown-display` after merging main `e8c66ff`. The report retains both
+setup/test refactoring and result-display work. Gradle 9.7.1 used JDK 17;
+compilation/tests used JDK 11. CI uses JDK 25 plus JDK 11; check its result on the PR.
 
 These are the main-branch measurements before integrating the played-hand
 branch. Its earlier local runs are recorded separately below.
 
 | Check | Recorded result |
 | --- | --- |
-| Team tests | **746 passing**, zero failures/errors/skips; includes 11 new isolated coordinator cases. |
+| Team tests | **764 passing**, zero failures/errors/skips; includes 18 result-display and 11 isolated coordinator cases. |
 | Checkstyle / SpotBugs | Zero main/test findings after documented exceptions; production Java lines limited to 100 characters. |
 | Kevin-only JaCoCo: ten classes | **100%**: 353 lines, 182 branches, 167 complexity counters, 1,856 instructions and 76 methods covered; includes extracted InitialDeal. |
 | PIT | **190/197 killed (96.45%)**; seven reviewed survivors; no uncovered/time-out/error mutants. See [quality results](quality.md). |
@@ -114,7 +120,11 @@ RED cycles. Original setup/dealing integration cases and their historical
 checkpoint commits remain recorded above. PR status and remote checks are tracked
 on GitHub.
 
-Kevin's comparison and supported bilingual setup flow are complete. Integration
+Kevin's comparison, bilingual setup and separate result component are complete.
+The new result component was reviewed with no actionable findings; English/Chinese
+six-way ties and a Chinese uncontested result fit the inspected offscreen layout.
+Estella's betting/street work is now on `feature/basic-betting`; her session/result
+connection and GamePanel attachment remain the next shared checkpoint. Integration
 uses real game components, controlled Random stubs and one fail-fast evaluator
 stub for the uncontested path. Coordinator unit tests stub setup/deal operations;
 integration tests run real components. The showdown fixtures supply the engine boundary, so they do not establish played-hand
