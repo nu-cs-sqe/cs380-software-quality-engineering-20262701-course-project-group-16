@@ -52,7 +52,7 @@ The initial rules check naming, imports, braces, indentation, whitespace,
 modifier order, fall-through, equals/hashCode pairing and source-file hygiene.
 Indentation is four spaces, matching this repository; compact accessor/constructor methods remain allowed by the brace-placement rule. Mandatory Javadoc, import
 ordering and complexity quotas are deferred until team agreement;
-production Java now has a 100-character line limit after instructor review;
+production Java has a 100-character line limit;
 this is an explicitly adapted starter, not a claim of full Sun/Google compliance.
 Tests use a separate `checkstyle-test.xml` retaining file/import hygiene,
 type names, modifier checks and error-prone construct checks. Existing BVA IDs
@@ -125,7 +125,7 @@ findings and rubric gaps must remain visible until assessed.
 ## Measured results
 
 Verified locally on **November 6, 2026**, on `refactor/instructor-feedback`,
-after all four instructor-review changes:
+after adding isolated tests and simplifying setup, null handling and localization:
 
 ```sh
 bash ./gradlew --no-daemon build pitest
@@ -174,9 +174,8 @@ not current measurements. InitialDeal stays measured after extraction. All
 Existing localization fault-path fixtures cover missing/invalid resources,
 IOException cause and stream closure, quoted braces/apostrophes, repeated or
 reordered arguments, type compatibility and nested choice outputs. They still
-pass after parser extraction. Independent read-only code review found no
-remaining actionable issues in the four review fixes. Native desktop focus
-and cross-platform layout checks remain a separate manual team task.
+pass after parser extraction. Native desktop focus and cross-platform layout
+checks remain a separate manual team task.
 
 ## Mutation survivor review
 
@@ -190,7 +189,7 @@ for every public method.
 | `PokerHandEvaluator.bestFive`, outer `a/b/c/d` loop boundaries | 4 | Changing `<` to `<=` adds an iteration whose next nested loop is empty (`b=4`, `c=5`, `d=6` or `e=7`). No five-card candidate or result changes. |
 | `PokerHandEvaluator.rankFive`, equal-count comparator branch forced false | 1 | Ranks enter the list in descending order. The alternative count comparator returns zero for equal multiplicities; Java's stable `List.sort` preserves their descending input order, producing the same group order. |
 | `PokerHandEvaluator.score`, five-position loop boundary | 1 | The sixth iteration appends a zero base-15 digit because kickers have at most five entries. Every private score becomes exactly 15 times its previous value; all scores stay below 103 million, so no integer overflow or comparison-order change occurs. |
-| `Card.hashCode`, integer return replaced by zero | 1 | Contract-preserving alternative, **not identical hash output**: a constant hash still satisfies equal objects having equal hashes. Different cards need not have distinct hashes. It can degrade hash-table performance; no hash-dispersion or performance requirement is currently specified. This case remains explicit for instructor/reviewer acceptance. |
+| `Card.hashCode`, integer return replaced by zero | 1 | Contract-preserving alternative, **not identical hash output**: a constant hash still satisfies equal objects having equal hashes. Different cards need not have distinct hashes. It can degrade hash-table performance; no hash-dispersion or performance requirement is currently specified. Acceptance of contract equivalence for this case remains pending. |
 
 The six evaluator survivors are behaviorally equivalent under the current public
 contracts; the hash-code survivor requires acceptance of contract equivalence
@@ -202,7 +201,7 @@ review rather than an unqualified automated success claim.
 References: [Java 11 stable list sorting](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/List.html#sort(java.util.Comparator)),
 [Java 11 hash-code contract](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Object.html#hashCode()).
 
-## Instructor review follow-up
+## Add tests and simplify initialization
 
 InitialDeal is included in Kevin's coverage/mutation scope; moving work out of
 GameInitializer did not remove it from the denominator. PIT includes both the

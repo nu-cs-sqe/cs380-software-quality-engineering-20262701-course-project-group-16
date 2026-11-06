@@ -27,7 +27,7 @@ snapshot. Existing chip, blind, status and betting data must be retained.
 | INIT-S01 | Constructor; start | Starting stack 2, blinds 1/2, dealer 0 | BB has two cards, zero chips and ALL_IN status; excluded from pending actors; pot 3, total 12 | Yes - `dealsToAnAllInBlindWithoutChangingItsStatus` (passing) |
 | INIT-S02 | start | Start one-human match, reject seven humans, then start six-human match on same initializer | Fresh full deck and identities per match; correct continuing shuffle sequence; previous state unchanged | Yes - `repeatedStartsUseFreshDecksAndPreserveEarlierMatches` (passing) |
 
-## Test isolation after instructor review
+## Add isolated initialization tests
 
 `application.GameInitializerTest` isolates orchestration with supplied setup/deal
 operations. Its 11 cases check requested counts, setup-before-dealing, exception

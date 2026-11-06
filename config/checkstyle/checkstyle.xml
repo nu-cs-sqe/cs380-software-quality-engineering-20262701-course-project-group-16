@@ -3,7 +3,7 @@
     "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
     "https://checkstyle.org/dtds/configuration_1_3.dtd">
 <!-- Sun/Google starter checks adapted to the project's four-space Java style.
-     Production Java lines are limited to 100 characters after instructor review.
+     Production Java lines are limited to 100 characters.
      No mandatory Javadoc, import ordering or complexity quota. -->
 <module name="Checker">
     <property name="charset" value="UTF-8"/>

@@ -74,23 +74,23 @@ the final November 3 check. These are historical scopes, not individual targets.
 Setup checks preserve the 10/20 blinds, 6,000-chip total, correct positions,
 two-card hands, 40-card remainder and private views.
 
-### Instructor review follow-up (November 6)
+### Add tests and simplify setup (November 6)
 
-Branch: `refactor/instructor-feedback`. Each review item has its own local commit.
+Branch: `refactor/instructor-feedback`. Each task has a separate checkpoint commit.
 
-| Item | Status | Work and verification |
+| Task | Status | Work and verification |
 | --- | --- | --- |
-| 1: Method size (`34effa7`) | Done | Extract clockwise dealing, hand allocation, player copying/creation and configuration validation into named helpers. Existing setup/dealing and BVA tests preserve behavior. |
-| 2: Test isolation (`7b61f41`) | Done | Inject setup/deal operations; retain original real-component cases under integration test names and add 11 isolated coordinator cases. Include extracted InitialDeal in quality scope. |
-| 3: Null flow (`00819a8`) | Done | Use Optional for session/actor/statistics-hand absence and empty lists for hidden cards; remove nullable UI rendering arguments. Preserve public validation and legacy actor input compatibility. Existing lifecycle/privacy/state tests cover these paths. |
-| 4: Localization readability | Done | Split element scanning, argument recording and nested-choice handling; extract translation validation. Enforce 100-character production Java lines and wrap existing long lines without behavior changes. |
+| Simplify setup methods (`34effa7`) | Done | Extract clockwise dealing, hand allocation, player copying/creation and configuration validation into named helpers. Existing setup/dealing and BVA tests preserve behavior. |
+| Add isolated tests (`7b61f41`) | Done | Inject setup/deal operations; retain original real-component cases under integration test names and add 11 isolated coordinator cases. Include extracted InitialDeal in quality scope. |
+| Fix null handling (`00819a8`) | Done | Use Optional for session/actor/statistics-hand absence and empty lists for hidden cards; remove nullable UI rendering arguments. Preserve public validation and legacy actor input compatibility. Existing lifecycle/privacy/state tests cover these paths. |
+| Simplify localization (`55bd93d`) | Done | Split element scanning, argument recording and nested-choice handling; extract translation validation. Enforce 100-character production Java lines and wrap existing long lines without behavior changes. |
 
 ### Verification and progress evaluation
 
 Latest verification: **November 6**, local `build pitest` passed on
-`refactor/instructor-feedback` after all four review fixes. Gradle 9.7.1 used JDK
-17; compilation/tests used JDK 11. CI remains configured with JDK 25 plus JDK 11;
-remote CI for these unpushed commits has not run.
+`refactor/instructor-feedback` after adding tests and simplifying the code.
+Gradle 9.7.1 used JDK 17; compilation/tests used JDK 11. CI is configured with
+JDK 25 plus JDK 11. These results describe the local run; check remote CI on the PR.
 
 | Check | Recorded result |
 | --- | --- |
@@ -98,15 +98,15 @@ remote CI for these unpushed commits has not run.
 | Checkstyle / SpotBugs | Zero main/test findings after documented exceptions; production Java lines limited to 100 characters. |
 | Kevin-only JaCoCo: ten classes | **100%**: 353 lines, 182 branches, 167 complexity counters, 1,856 instructions and 76 methods covered; includes extracted InitialDeal. |
 | PIT | **190/197 killed (96.45%)**; seven reviewed survivors; no uncovered/time-out/error mutants. See [quality results](quality.md). |
-| Review / UI | Independent review found no actionable issues. Existing English/Chinese UI/privacy tests pass; native focus/font walkthrough remains pending. |
+| UI | Existing English/Chinese UI/privacy tests pass; native focus/font walkthrough remains pending. |
 
-The review changes preserve behavior. The 11 new coordinator cases were run
+The refactoring preserves behavior. The 11 new coordinator cases were run
 first against an unimplemented injection boundary and all failed as expected,
 then passed after implementation. Existing BVA/integration tests protect the
 method, null-flow and parser refactors; these are not claimed as new feature
 RED cycles. Original setup/dealing integration cases and their historical
-checkpoint commits remain recorded above. All four review commits are local;
-pushing and PR review remain Kevin's next step.
+checkpoint commits remain recorded above. PR status and remote checks are tracked
+on GitHub.
 
 Kevin's comparison and supported bilingual setup flow are complete. Integration
 uses real game components, controlled Random stubs and one fail-fast evaluator

@@ -183,7 +183,7 @@ remainingStacks + totalPot = 6000
 This is executable case **GU-12** in `GameSetupTest`; the setup BVA also covers human
 counts 0, 1, 2, 5, 6 and 7. Each class has [BVA cases](../bva/README.md) mapped to JUnit IDs.
 
-## Absence and validation (instructor review, November 6)
+## Fix null handling and validate inputs (November 6)
 
 Use Optional for an absent actor, active statistics hand or session match, and
 empty immutable lists for hidden/undealt cards. The Swing layer preserves the

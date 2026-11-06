@@ -147,7 +147,7 @@ restart, language changes and the focus-loss callback. Offscreen renders check
 layout; native focus delivery and a teammate desktop walkthrough remain manual
 checks. [Quality results](../quality.md) report the latest measured suite.
 
-## Instructor review: test boundaries
+## Separate setup and dealing tests
 
 GameInitializer accepts setup/deal operations at its package composition boundary.
 The public constructors still wire real GameSetup and InitialDeal with the same

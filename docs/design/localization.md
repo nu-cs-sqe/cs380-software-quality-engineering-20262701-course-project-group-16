@@ -61,7 +61,7 @@ See [catalog BVA](../bva/Localizations.md) and
 and the RED checkpoint. Headless Swing tests cover component behavior; native
 window focus and font/layout checks remain manual desktop verification.
 
-## Readability after instructor review
+## Simplify message validation
 
 Message argument validation separates top-level element scanning, argument-type
 recording and recursive ChoiceFormat branch inspection. The scanner retains
