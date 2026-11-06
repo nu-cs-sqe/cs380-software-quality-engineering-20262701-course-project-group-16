@@ -120,8 +120,8 @@ exceptions. There is no invented metric threshold that hides findings.
 
 ### Code Coverage
 
-Coverage uses the original nine-class scope, including the shared session follow-up. The rubric targets
-100% cyclomatic coverage, with View/Main/Enum exemptions. JaCoCo line, branch
+Coverage uses the documented ten-class scope, including InitialDeal and the
+shared session/view. The rubric targets 100% cyclomatic coverage, with View/Main/Enum exemptions. JaCoCo line, branch
 and covered-complexity counters are reported separately; these do not prove
 independent basis-path execution. The exact class scope and results are in
 [quality.md](docs/quality.md); betting/state/statistics components remain outside this measurement scope,
@@ -129,7 +129,7 @@ while their tests and shared static checks still run.
 
 ### Mutation Testing
 
-PIT uses the DEFAULTS operator group on the documented nine-class scope. The target
+PIT uses the DEFAULTS operator group on the documented ten-class scope. The target
 is to kill every non-equivalent mutant. Actual raw scores and each surviving
 mutant's reasoning remain visible in [quality.md](docs/quality.md), including
 the unresolved acceptance of a contract-preserving constant hash. Survivor reasoning and acceptance limits are documented alongside the raw score.

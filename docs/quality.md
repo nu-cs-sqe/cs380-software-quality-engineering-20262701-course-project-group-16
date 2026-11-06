@@ -8,6 +8,27 @@ no `ignoreFailures`, global suppression or baseline hiding existing warnings. Re
 CI uploads test, coverage, mutation and static-analysis reports even after a
 failed step.
 
+## Current merged results — November 6, 2026
+
+Verified main `ac70b3b` with `build pitest`: Gradle 9.7.1 on JDK 17 and
+Java 11 compilation/tests. The local run exited 0 in 1 minute 19 seconds;
+log: `/private/tmp/current-progress-check.log`. Its matching
+[GitHub CI run](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/actions/runs/42232032730)
+also completed successfully.
+
+| Check | Result |
+| --- | --- |
+| Full team JUnit suite | 970 tests; zero failures, errors or skips. |
+| Checkstyle / SpotBugs | Zero main/test unexcluded findings; zero analysis errors or missing classes. |
+| Shared ten-class JaCoCo scope | 2,216 instructions, 216 branches, 438 lines, 204 complexity counters, 96 methods and ten classes; zero missed counters. |
+| PIT | 237 generated, 230 killed, seven survived (97.05%); no uncovered, time-out or error mutants. PIT line coverage 439/439; 14 selected test classes and 1,436 executions across mutants. |
+
+These scoped metrics include InitialDeal and the shared application session/view,
+not the whole betting/state/statistics engine or Swing. They do not prove
+independent basis-path execution. The seven survivors are the six evaluator
+cases and hash-code contract case documented below. Earlier branch measurements
+are preserved as history; the current merged results supersede their counts.
+
 ## Reproduce
 
 Gradle 9.7.1 requires a runtime JDK of at least 17; this computer uses JDK 17,
@@ -128,7 +149,7 @@ not automatically remove equivalent mutants or justify survivors/timeouts.
 There is no invented score threshold or forced green metric gate: actual
 findings and rubric gaps must remain visible until assessed.
 
-## Instructor-refactor baseline (November 6)
+## Setup and result-component baseline (November 6)
 
 Verified locally on **November 6, 2026**, on `feature/showdown-display`, after
 merging main `e8c66ff` with the bilingual result-display component. This includes
@@ -181,7 +202,7 @@ Previous measurement (November 3): 735 tests; nine scoped classes; 319 lines,
 184 branches and 153 complexity counters covered; PIT 178/186 killed with eight
 survivors. Refactoring changes the denominators, so those historical values are
 not current measurements. InitialDeal stays measured after extraction. All
-197 current mutants are accounted for below; none was excluded to improve a score.
+197 component-baseline mutants are accounted for below; none was excluded to improve a score.
 
 Existing localization fault-path fixtures cover missing/invalid resources,
 IOException cause and stream closure, quoted braces/apostrophes, repeated or
@@ -191,7 +212,7 @@ checks remain a separate manual team task.
 
 ## Mutation survivor review
 
-The current 197-mutant `DEFAULTS` run retained seven survivors; none is hidden
+The 197-mutant component-baseline `DEFAULTS` run retained seven survivors; none is hidden
 by a PIT exclusion. The review below reasons about the published component contracts.
 It does not change PIT's raw mutation score or prove literal output identity
 for every public method.
@@ -214,7 +235,7 @@ References: [Java 11 stable list sorting](https://docs.oracle.com/en/java/javase
 [Java 11 hash-code contract](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Object.html#hashCode()).
 
 
-## Shared session follow-up — November 5,2026
+## Earlier shared session follow-up — November 5, 2026
 
 After integrating main with Estella's betting branch, local `clean build --continue`
 and `pitest` pass on JDK 25 with Java 11 compilation/tests. The full suite is
@@ -274,7 +295,7 @@ hand collection; an extra allocated seat changes the deal and fails integration
 checks. This was a structural refactor, not a new user-visible requirement.
 
 
-## PR15 reconciliation with main e8c66ff (November 6)
+## Earlier PR15 reconciliation with main e8c66ff (November 6)
 
 Full build: 952 tests, zero failures/errors/skips; Checkstyle 0 main / 0 test,
 SpotBugs 0 main / 0 test unexcluded findings, zero analysis errors/missing classes.
@@ -289,11 +310,11 @@ timeout or error mutants. Its line coverage is 439/439. Fourteen selected test
 classes ran 1,379 test executions in this run. The seven baseline survivors
 are the six evaluator mutants plus the contract-preserving hash-code mutant
 already documented above; the previous eight-survivor figure belongs to the
-November 5 scope before the instructor refactor killed the allocation mutant.
+November 5 scope before the setup refactoring killed the allocation mutant.
 
 A separate combined-source build includes the 18 ShowdownPanel cases from PR16:
-970 tests and static checks pass. That is a compatibility check, not a merged
-Git history or remote CI result. The two result displays retain separate
+970 tests and static checks passed at that earlier compatibility checkpoint.
+The merged-history and CI verification are now recorded at the top of this file. The two result displays retain separate
 resource keys because one formats a message plus settlement status and the
 other formats winner names alone. Null-flow refactors, privacy/error states,
 accepted-action logging and the visible Call button remain covered.

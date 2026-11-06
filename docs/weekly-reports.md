@@ -49,11 +49,11 @@ comparison; add English/Chinese support; configure and measure quality checks.
 | Done | Kevin | Connect real initialized cards/state to known-winner and board-tie showdown fixtures, preserving chips and the original state. | `428b161`; two integration cases; fixtures supply a closed SHOWDOWN state. |
 | Done | Kevin | English/Chinese discovery, selection, UTF-8 messages, locale formatting and privacy on language changes; new locales need resources/configuration only. | RED `132e255` → GREEN `f6ad8e5`; hardening `7717b89`; argument-validation RED `c72b794` → GREEN `025baef`; 69 focused cases; [localization](design/localization.md). |
 | Done | Kevin / shared quality | Configure Checkstyle/SpotBugs, scoped JaCoCo/PIT and CI report uploads; fix findings and review survivors. | `7e65692`, `c7dac83`; measurement records `5b4b092`, `377a143`; [quality results](quality.md). |
-| Done locally; awaiting review | Estella | Connect BettingEngine actions/turns/streets to the real showdown resolver through one SetupSession; handle uncontested/all-in runout and atomic failure/retry. | [Session BVA](bva/SessionBetting.md); [played-hand flow](design/played-hand.md). |
-| Done locally; awaiting review | Estella | Add Swing legal actions, automatic temporary check/call bots, public board/status, private handoffs and English/Chinese pending results. | [Played-screen cases](bva/PlayedGamePanel.md); two real played winner/tie integration cases. |
-| Done locally; awaiting review | Estella / shared quality | Preserve setup/privacy checks, update mutation test selection and review findings; final939 tests pass with clean static checks. | [Local TDD record](tdd/week6-session.md); [current shared-scope measurements](quality.md). |
+| Done, merged through PR #15 | Estella | Connect BettingEngine actions/turns/streets to the real showdown resolver through one SetupSession; handle uncontested/all-in runout and atomic failure/retry. | [Session BVA](bva/SessionBetting.md); [played-hand flow](design/played-hand.md). |
+| Done, merged through PR #15 | Estella | Add Swing legal actions, automatic temporary check/call bots, public board/status, private handoffs and English/Chinese pending results. | [Played-screen cases](bva/PlayedGamePanel.md); two real played winner/tie integration cases. |
+| Done, merged through PR #15 | Estella / shared quality | Preserve setup/privacy checks, update mutation test selection and review findings; initial local checkpoint passed 939 tests with clean static checks; current merged verification is recorded below. | [Local TDD record](tdd/week6-session.md); [current shared-scope measurements](quality.md). |
 | Done | Kevin | Update README, BVA/design contracts and weekly report with checkpoint evidence and open dependencies. | `8a322f9`, report cleanup `42a02d5`; [BVA index](bva/README.md). |
-| Done, component only | Kevin | Reusable English/Chinese showdown display: winner/ties/uncontested, awaiting settlement, stale-input guards and clearing. Reads public names only; session attachment remains pending. | Branch `feature/showdown-display`; RED `2493bf3` → GREEN `750e7c4`; 18 cases; [result contract](design/showdown.md). |
+| Done, component only | Kevin | Reusable English/Chinese showdown display: winner/ties/uncontested, awaiting settlement, stale-input guards and clearing. Reads public names only; the played-hand screen uses its own translated inline result. | Branch `feature/showdown-display`; RED `2493bf3` → GREEN `750e7c4`; 18 cases; [result contract](design/showdown.md). |
 
 **Branches:** Initializer `feature/setup-dealing`; session/Swing `feature/swing-setup`
 (merged through PR #11); Kevin branch `feature/hand-evaluation`, based on
@@ -96,21 +96,19 @@ the November 6 setup/test refactoring build passed 746 tests. These are separate
 branch measurements. Both the 18 result-display cases and 11 isolated coordinator
 cases are retained in the combined branch.
 
-Latest verification: **November 6**, local `build pitest` passed on
-`feature/showdown-display` after merging main `e8c66ff`. The report retains both
-setup/test refactoring and result-display work. Gradle 9.7.1 used JDK 17;
-compilation/tests used JDK 11. CI uses JDK 25 plus JDK 11; check its result on the PR.
+Latest verification: **November 6**, merged main `ac70b3b`, local `build pitest`.
+Gradle 9.7.1 ran on JDK 17; compilation/tests used JDK 11. The matching
+[GitHub CI run](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/actions/runs/42232032730)
+completed successfully. Earlier `c077d84` measurements were 764 tests and PIT
+190/197; those component-stage results remain in [quality history](quality.md).
 
-These are the main-branch measurements before integrating the played-hand
-branch. Its earlier local runs are recorded separately below.
-
-| Check | Recorded result |
+| Check | Current merged result |
 | --- | --- |
-| Team tests | **764 passing**, zero failures/errors/skips; includes 18 result-display and 11 isolated coordinator cases. |
+| Team tests | **970 passing**, zero failures/errors/skips; includes real engine, session, played-hand and bilingual UI cases. |
 | Checkstyle / SpotBugs | Zero main/test findings after documented exceptions; production Java lines limited to 100 characters. |
-| Kevin-only JaCoCo: ten classes | **100%**: 353 lines, 182 branches, 167 complexity counters, 1,856 instructions and 76 methods covered; includes extracted InitialDeal. |
-| PIT | **190/197 killed (96.45%)**; seven reviewed survivors; no uncovered/time-out/error mutants. See [quality results](quality.md). |
-| UI | Existing English/Chinese UI/privacy tests pass; native focus/font walkthrough remains pending. |
+| Shared measured scope: ten classes | **100%** counters: 438 lines, 216 branches, 204 complexity, 2,216 instructions and 96 methods covered. Includes InitialDeal and the shared session/view; excludes betting/state/statistics and Swing from the metric denominator. |
+| PIT | **230/237 killed (97.05%)**; the same seven reviewed baseline survivors; no uncovered/time-out/error mutants. |
+| UI | English/Chinese played actions, winner/tie/uncontested results and privacy cases pass. Native focus/font walkthrough remains pending. |
 
 The refactoring preserves behavior. The 11 new coordinator cases were run
 first against an unimplemented injection boundary and all failed as expected,
@@ -120,20 +118,25 @@ RED cycles. Original setup/dealing integration cases and their historical
 checkpoint commits remain recorded above. PR status and remote checks are tracked
 on GitHub.
 
-Kevin's comparison, bilingual setup and separate result component are complete.
-The new result component was reviewed with no actionable findings; English/Chinese
-six-way ties and a Chinese uncontested result fit the inspected offscreen layout.
-Estella's betting/street work is now on `feature/basic-betting`; her session/result
-connection and GamePanel attachment remain the next shared checkpoint. Integration
-uses real game components, controlled Random stubs and one fail-fast evaluator
-stub for the uncontested path. Coordinator unit tests stub setup/deal operations;
-integration tests run real components. The showdown fixtures supply the engine boundary, so they do not establish played-hand
-progression or result-screen readiness. Coverage is Kevin-scoped; JaCoCo
-complexity counters do not prove independent basis-path execution. Mutation
-survivor reasoning, including the hash-contract acceptance question, remains in
-[quality.md](quality.md).
+The supported played-hand flow is merged through
+[PR #15](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/pull/15)
+into main `ac70b3b`. SetupSession connects legal FOLD/CHECK/CALL decisions,
+closed-round advancement, temporary CHECK/CALL bots and real winner/tie or
+uncontested comparison to the bilingual Swing screen. Results await settlement;
+no pot payout or completed-hand aggregation is claimed. The reusable
+ShowdownPanel from PR #16 is also retained; GamePanel uses separate inline result
+messages. Real integration and UI cases cover played winners/ties, all-in runout,
+rejection/atomic retry and privacy. Unit coordinator cases use controlled
+setup/deal operations. Native focus/font walkthrough remains pending.
+
+Full betting is still incomplete: BET/RAISE, raised preflop rounds and postflop
+CALL are explicitly unsupported. Payouts/side pots, next-hand rotation,
+elimination/match completion and equity bots remain later work. Scoped quality
+counters do not establish full-game or independent basis-path coverage.
 
 ### Estella's local integration verification — November 5
+
+Historical checkpoint; superseded by the merged-main verification above.
 
 The pending integration of main at 11a4e00 with feature/basic-betting now runs the
 supported played flow through Swing to a real winner/tie result awaiting
@@ -166,7 +169,9 @@ English failed before the fix; both pass afterward. The full build now passes
 follow-up does not extend the mutation measurement scope. See
 [UI-PLAY06](bva/PlayedGamePanel.md#call-button-visibility-regression).
 
-### Reconcile PR15 with the instructor refactor (November 6)
+### Merge setup/test changes into the played-hand flow (November 6)
+
+Historical reconciliation checkpoint; the final merge is recorded above.
 
 The local merge targets main e8c66ff while retaining the played-hand flow and
 Call-button visibility fix. Keep the injected initializer/dealer seam, renamed
@@ -182,19 +187,21 @@ A separate combined-source check including PR16's 18 result-panel tests passes
 **970 tests** and static checks. The inline result keys are namespaced separately
 from ShowdownPanel's single-argument messages to preserve both consumers.
 
-No merge commit or push was performed. Each branch's GitHub warning remains
-until its owner stages, commits and pushes the local resolution. Instructor
-refactor results (746), earlier played-flow results (941), and this combined
-branch result (952) are different checkpoints, not conflicting measurements.
+Those figures describe the earlier local reconciliation checkpoint. The resolved
+branches have since merged through PR #16 (`f6a5bf4`) and PR #15 (`ac70b3b`).
+Setup/test results (746), earlier played-flow results (941), reconciliation (952)
+and combined-source results (970) describe different checkpoints.
 
 ### Remaining work and next steps
 
-- [x] **Estella (local):** Connect betting/turn/street progression to showdown and Swing results; test both languages plus uncontested/all-in runout. Awaiting user commit, remote CI and teammate review. Payouts/side pots and equity bots remain later work.
+- [x] **Estella + Kevin:** Supported fold/check/call flow, streets, real results and bilingual Swing merged through PR #15/#16. CI passed for main `ac70b3b`; full betting and settlement remain below.
+- [ ] **Together:** Implement bets/raises and their action/reopening rules, including postflop calls; then complete pot/side-pot settlement and repeated-hand match flow.
+- [ ] **Together:** Split multi-step methods when changing them; `GamePanel.buildScreen` and `BettingEngine.advanceStreet` are candidates for focused rendering/transition helpers. Follow the [method-design guidance](design/README.md#method-design).
 - [ ] **Together:** Walk through native desktop focus-loss privacy and cross-platform fonts/layout.
 - [ ] **Together:** Complete [game rules](requirements/game-rules.md), reconcile proposed 5/10 versus implemented 10/20 blinds/button policy, confirm board assignees/status/PR links and record instructor-meeting evidence.
 - [ ] **Together:** Review rubric interpretation and mutation survivors with the instructor; obtain partner-owned quality measurements separately.
 - [x] **Kevin:** Implementation branch merged through PR #13 (`d2a78f3`).
-- [ ] **Together:** Confirm remote CI results and required review/check enforcement, including failure detection; local results alone do not establish these settings.
+- [ ] **Together:** CI passed for merged main [run 42232032730](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/actions/runs/42232032730); required review/check enforcement and deliberate failure detection still need separate verification.
 
 ## Future weekly report template
 

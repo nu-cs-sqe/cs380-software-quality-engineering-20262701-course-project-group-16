@@ -79,3 +79,13 @@ CI builds and tests pushes and pull requests.
 [Localization](localization.md) covers English/Chinese discovery, selection and
 private-card handoffs. [Quality checks](../quality.md) document Checkstyle,
 SpotBugs, scoped coverage and mutation results.
+
+## Method design
+
+Each new or changed method should do one named task. Keep orchestration readable
+by extracting independent validation, dealing, state transitions and rendering
+steps into private helpers. Keep constructors short and collaborators injectable
+where coordination needs isolated tests. Prefer explicit absence to nullable
+internal values, while retaining validation at public boundaries. Splitting a
+method should improve its responsibilities, not merely move lines elsewhere.
+Apply these method-design rules to future changes.
