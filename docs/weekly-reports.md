@@ -81,7 +81,8 @@ Branch: `refactor/instructor-feedback`. Each review item has its own local commi
 | Item | Status | Work and verification |
 | --- | --- | --- |
 | 1: Method size (`34effa7`) | Done | Extract clockwise dealing, hand allocation, player copying/creation and configuration validation into named helpers. Existing setup/dealing and BVA tests preserve behavior. |
-| 2: Test isolation | Done | Inject setup/deal operations; retain original real-component cases under integration test names and add 11 isolated coordinator cases. Include extracted InitialDeal in quality scope. |
+| 2: Test isolation (`7b61f41`) | Done | Inject setup/deal operations; retain original real-component cases under integration test names and add 11 isolated coordinator cases. Include extracted InitialDeal in quality scope. |
+| 3: Null flow | Done | Use Optional for session/actor/statistics-hand absence and empty lists for hidden cards; remove nullable UI rendering arguments. Preserve public validation and legacy actor input compatibility. Existing lifecycle/privacy/state tests cover these paths. |
 
 ### Verification and progress evaluation
 

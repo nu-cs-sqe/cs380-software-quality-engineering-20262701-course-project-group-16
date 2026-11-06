@@ -3,6 +3,7 @@ package domain.model;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.Set;
 
@@ -14,7 +15,7 @@ import java.util.Set;
 public final class PlayStats {
     private final Set<String> completedHandIds = new HashSet<>();
     private final List<StatsAction> pendingActions = new ArrayList<>();
-    private String activeHandId;
+    private Optional<String> activeHandId = Optional.empty();
     private boolean dealtIn;
     private long[] totals = new long[Counter.values().length];
 
@@ -38,7 +39,7 @@ public final class PlayStats {
      * @throws IllegalStateException if another hand is active or the ID was completed
      */
     public void beginHand(String handId, boolean dealtIn) {
-        if (activeHandId != null) {
+        if (activeHandId.isPresent()) {
             throw new IllegalStateException("A hand is already active.");
         }
         if (handId == null || handId.isBlank()) {
@@ -47,7 +48,7 @@ public final class PlayStats {
         if (completedHandIds.contains(handId)) {
             throw new IllegalStateException("This hand has already been completed.");
         }
-        activeHandId = handId;
+        activeHandId = Optional.of(handId);
         this.dealtIn = dealtIn;
     }
 
@@ -102,8 +103,8 @@ public final class PlayStats {
      */
     public void completeHand(String handId, boolean sawFlop, boolean reachedShowdown,
             long contestedShowdownPayout, long uncalledBetRefund) {
-        requireActiveHand();
-        if (!activeHandId.equals(handId)) {
+        String activeId = requireActiveHand();
+        if (!activeId.equals(handId)) {
             throw new IllegalArgumentException("Completion ID does not match the active hand.");
         }
         validateCompletion(sawFlop, reachedShowdown, contestedShowdownPayout, uncalledBetRefund);
@@ -112,9 +113,9 @@ public final class PlayStats {
         for (int index = 0; index < nextTotals.length; index++) {
             nextTotals[index] = Math.addExact(nextTotals[index], delta[index]);
         }
-        completedHandIds.add(activeHandId);
+        completedHandIds.add(activeId);
         totals = nextTotals;
-        activeHandId = null;
+        activeHandId = Optional.empty();
         dealtIn = false;
         pendingActions.clear();
     }
@@ -287,9 +288,7 @@ public final class PlayStats {
                 : OptionalDouble.of(100.0 * numerator / denominator);
     }
 
-    private void requireActiveHand() {
-        if (activeHandId == null) {
-            throw new IllegalStateException("No hand is active.");
-        }
+    private String requireActiveHand() {
+        return activeHandId.orElseThrow(() -> new IllegalStateException("No hand is active."));
     }
 }

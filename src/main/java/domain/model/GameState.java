@@ -21,13 +21,14 @@ public final class GameState {
     private final GamePhase phase;
     private final List<PlayerState> players;
     private final HandPositions positions;
-    private final String currentActorId;
+    private final Optional<String> currentActorId;
     private final List<Card> communityCards;
     private final List<Card> remainingDeck;
     private final BettingProgress betting;
 
     /**
-     * Creates a validated snapshot. A null actor means there are no pending decisions.
+     * Creates a validated snapshot. A null actor is accepted at this legacy boundary
+     * and converted immediately to Optional.empty(); internal state never stores null.
      * The remaining deck is in deal order; burned/discarded cards need not appear in it.
      * All six seats remain after elimination. Contributions hold unawarded chips only.
      * @throws IllegalArgumentException for missing/inconsistent state or unsafe chip totals
@@ -44,7 +45,7 @@ public final class GameState {
         this.phase = phase;
         this.players = copyPlayers(players);
         this.positions = positions;
-        this.currentActorId = currentActorId;
+        this.currentActorId = Optional.ofNullable(currentActorId);
         this.communityCards = copyCards(communityCards);
         this.remainingDeck = copyCards(remainingDeck);
         this.betting = betting;
@@ -145,12 +146,12 @@ public final class GameState {
             throw new IllegalArgumentException("Only active players may have pending decisions or raise rights.");
         }
         boolean pending = !betting.getPlayersToAct().isEmpty();
-        if ((currentActorId == null && pending) || (currentActorId != null
-                && (!pending || !betting.getPlayersToAct().contains(currentActorId)))) {
+        if (pending != currentActorId.isPresent()
+                || currentActorId.filter(id -> !betting.getPlayersToAct().contains(id)).isPresent()) {
             throw new IllegalArgumentException("The current actor must be a pending active player.");
         }
         if ((phase == GamePhase.SHOWDOWN || phase == GamePhase.COMPLETION)
-                && (pending || currentActorId != null || !betting.getPlayersAllowedToRaise().isEmpty())) {
+                && (pending || currentActorId.isPresent() || !betting.getPlayersAllowedToRaise().isEmpty())) {
             throw new IllegalArgumentException("A terminal phase has no betting decisions.");
         }
         if (phase == GamePhase.COMPLETION && getPot() != 0) {
@@ -179,10 +180,14 @@ public final class GameState {
     public int getDealerSeat() { return positions.getDealerSeat(); }
     public int getSmallBlindSeat() { return positions.getSmallBlindSeat(); }
     public int getBigBlindSeat() { return positions.getBigBlindSeat(); }
-    public Optional<String> getCurrentActorId() { return Optional.ofNullable(currentActorId); }
+    public Optional<String> getCurrentActorId() { return currentActorId; }
     public OptionalInt getCurrentActorSeat() {
-        return currentActorId == null ? OptionalInt.empty() : OptionalInt.of(players.stream()
-                .filter(state -> state.getPlayer().getId().equals(currentActorId))
+        if (currentActorId.isEmpty()) {
+            return OptionalInt.empty();
+        }
+        String actor = currentActorId.orElseThrow();
+        return OptionalInt.of(players.stream()
+                .filter(state -> state.getPlayer().getId().equals(actor))
                 .findFirst().orElseThrow().getPlayer().getSeat());
     }
     public List<Card> getCommunityCards() { return communityCards; }

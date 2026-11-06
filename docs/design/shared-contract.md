@@ -182,3 +182,18 @@ remainingStacks + totalPot = 6000
 
 This is executable case **GU-12** in `GameSetupTest`; the setup BVA also covers human
 counts 0, 1, 2, 5, 6 and 7. Each class has [BVA cases](../bva/README.md) mapped to JUnit IDs.
+
+## Absence and validation (instructor review, November 6)
+
+Use Optional for an absent actor, active statistics hand or session match, and
+empty immutable lists for hidden/undealt cards. The Swing layer preserves the
+session's Optional instead of converting it to null or passing nullable players
+and cards to rendering helpers. GameState's existing nullable actor constructor
+is retained for compatibility with engine callers; it converts to Optional at
+entry, and its public actor getters return Optional/OptionalInt.
+
+Player and other public constructors still reject invalid inputs once at their
+boundary. Removing those guards would weaken the established contract rather
+than prevent null flow. Internal code uses validated identities/types and explicit
+absence; Swing's setLocationRelativeTo(null) remains a documented JDK API request
+to center the window, not a missing application value.

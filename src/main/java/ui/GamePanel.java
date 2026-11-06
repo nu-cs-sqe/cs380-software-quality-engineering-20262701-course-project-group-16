@@ -13,6 +13,7 @@ import java.awt.Font;
 import java.awt.GridLayout;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -179,63 +180,104 @@ public final class GamePanel extends JPanel {
         rendering = true;
         try {
             error.setText(invalidInput ? text("invalidCount") : " ");
-            SetupView view = session.getView().orElse(null);
-            seats.removeAll(); viewers.removeAllItems(); humanViewers.clear();
+            Optional<SetupView> view = session.getView();
+            seats.removeAll();
+            viewers.removeAllItems();
+            humanViewers.clear();
             for (int seat = 0; seat < 6; seat++) {
-                Player player = view == null ? null : view.getPlayers().get(seat);
-                seats.add(seatPanel(seat, player, view));
-                if (player != null && player.getType() == PlayerType.HUMAN) {
-                    humanViewers.add(player); viewers.addItem(playerName(player));
-                }
+                seats.add(seatPanel(seat, view));
             }
-            boolean started = view != null;
-            viewers.setEnabled(started); reveal.setEnabled(started);
-            hide.setEnabled(started && !view.getHoleCards().isEmpty());
-            if (started) {
-                for (int i = 0; i < humanViewers.size(); i++) {
-                    if (humanViewers.get(i).getSeat() == view.getViewerSeat()) {
-                        viewers.setSelectedIndex(i);
-                    }
-                }
+            viewers.setEnabled(view.isPresent());
+            reveal.setEnabled(view.isPresent());
+            if (view.isPresent()) {
+                showMatch(view.orElseThrow());
+            } else {
+                showWaitingTable();
             }
-            status.setText(started ? text("firstActor", playerName(view.getPlayers().get(view.getCurrentActorSeat()))) : text("waiting"));
-            pot.setText(started ? text("pot", view.getPot()) : text("pot", 0));
-            deck.setText(started ? text("deck", view.getRemainingCardCount()) : text("notDealt"));
-            handoff.setText(wrapped(started ? text("handoff", playerName(view.getPlayers().get(view.getViewerSeat()))) : text("startHint")));
-            handoff.setMaximumSize(new Dimension(Integer.MAX_VALUE, handoff.getPreferredSize().height));
-            for (int i = 0; i < 2; i++) {
-                Card card = started && !view.getHoleCards().isEmpty() ? view.getHoleCards().get(i) : null;
-                holes[i].setText(card == null ? "--" : cardText(card));
-                holes[i].setForeground(card != null && (card.getSuit() == domain.model.Suit.HEARTS || card.getSuit() == domain.model.Suit.DIAMONDS) ? new Color(175, 40, 40) : INK);
-            }
+            handoff.setMaximumSize(new Dimension(Integer.MAX_VALUE,
+                    handoff.getPreferredSize().height));
         } finally {
             rendering = false;
         }
-        revalidate(); repaint();
+        revalidate();
+        repaint();
     }
 
-    private JPanel seatPanel(int seat, Player player, SetupView view) {
-        JPanel panel = new JPanel(new GridLayout(4, 1, 0, 6));
-        panel.setBackground(new Color(237, 242, 236));
-        boolean acting = view != null && seat == view.getCurrentActorSeat();
-        panel.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(acting ? GOLD : new Color(120, 153, 136), acting ? 3 : 1), BorderFactory.createEmptyBorder(12, 10, 12, 10)));
-        panel.add(named(label(player == null ? text("seat", seat + 1) : playerName(player), 17, INK), "seatName" + seat));
-        panel.add(named(new JLabel(player == null ? "--" : text("chips", player.getChipStack())), "seatStack" + seat));
-        String role = " ";
-        if (view != null) {
-            if (seat == view.getPositions().getDealerSeat()) {
-                role = text("dealer");
-            }
-            if (seat == view.getPositions().getSmallBlindSeat()) {
-                role = text("smallBlind");
-            }
-            if (seat == view.getPositions().getBigBlindSeat()) {
-                role = text("bigBlind");
+    private void showMatch(SetupView view) {
+        for (Player player : view.getPlayers()) {
+            if (player.getType() == PlayerType.HUMAN) {
+                humanViewers.add(player);
+                viewers.addItem(playerName(player));
             }
         }
-        panel.add(new JLabel(role));
-        panel.add(named(label(player == null ? "--" : "▧  ▧", 25, FELT), "seatCards" + seat));
+        for (int i = 0; i < humanViewers.size(); i++) {
+            if (humanViewers.get(i).getSeat() == view.getViewerSeat()) {
+                viewers.setSelectedIndex(i);
+            }
+        }
+        hide.setEnabled(!view.getHoleCards().isEmpty());
+        status.setText(text("firstActor",
+                playerName(view.getPlayers().get(view.getCurrentActorSeat()))));
+        pot.setText(text("pot", view.getPot()));
+        deck.setText(text("deck", view.getRemainingCardCount()));
+        handoff.setText(wrapped(text("handoff",
+                playerName(view.getPlayers().get(view.getViewerSeat())))));
+        showHoleCards(view.getHoleCards());
+    }
+
+    private void showWaitingTable() {
+        hide.setEnabled(false);
+        status.setText(text("waiting"));
+        pot.setText(text("pot", 0));
+        deck.setText(text("notDealt"));
+        handoff.setText(wrapped(text("startHint")));
+        showHoleCards(List.of());
+    }
+
+    private void showHoleCards(List<Card> cards) {
+        for (int i = 0; i < holes.length; i++) {
+            if (cards.isEmpty()) {
+                holes[i].setText("--");
+                holes[i].setForeground(INK);
+            } else {
+                Card card = cards.get(i);
+                holes[i].setText(cardText(card));
+                boolean red = card.getSuit() == domain.model.Suit.HEARTS
+                        || card.getSuit() == domain.model.Suit.DIAMONDS;
+                holes[i].setForeground(red ? new Color(175, 40, 40) : INK);
+            }
+        }
+    }
+
+    private JPanel seatPanel(int seat, Optional<SetupView> view) {
+        Optional<Player> player = view.map(match -> match.getPlayers().get(seat));
+        boolean acting = view.map(match -> seat == match.getCurrentActorSeat()).orElse(false);
+        JPanel panel = new JPanel(new GridLayout(4, 1, 0, 6));
+        panel.setBackground(new Color(237, 242, 236));
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(acting ? GOLD : new Color(120, 153, 136),
+                        acting ? 3 : 1),
+                BorderFactory.createEmptyBorder(12, 10, 12, 10)));
+        String name = player.map(this::playerName).orElseGet(() -> text("seat", seat + 1));
+        String stack = player.map(person -> text("chips", person.getChipStack())).orElse("--");
+        panel.add(named(label(name, 17, INK), "seatName" + seat));
+        panel.add(named(new JLabel(stack), "seatStack" + seat));
+        panel.add(new JLabel(view.map(match -> seatRole(seat, match)).orElse(" ")));
+        panel.add(named(label(player.isPresent() ? "▧  ▧" : "--", 25, FELT), "seatCards" + seat));
         return panel;
+    }
+
+    private String seatRole(int seat, SetupView view) {
+        if (seat == view.getPositions().getBigBlindSeat()) {
+            return text("bigBlind");
+        }
+        if (seat == view.getPositions().getSmallBlindSeat()) {
+            return text("smallBlind");
+        }
+        if (seat == view.getPositions().getDealerSeat()) {
+            return text("dealer");
+        }
+        return " ";
     }
 
     private String playerName(Player player) {

@@ -8,7 +8,7 @@ import java.util.Optional;
 /** Owns a setup preview and controls explicit private-card handoffs. Use on the UI thread. */
 public final class SetupSession {
     private final GameInitializer initializer;
-    private GameState state;
+    private Optional<GameState> state = Optional.empty();
     private int viewerSeat;
     private boolean cardsRevealed;
 
@@ -30,7 +30,7 @@ public final class SetupSession {
      */
     public void start(int humanCount) {
         hideCards();
-        state = initializer.start(humanCount);
+        state = Optional.of(initializer.start(humanCount));
         viewerSeat = 0; // Setup assigns at least one human, starting at seat zero.
     }
 
@@ -41,8 +41,8 @@ public final class SetupSession {
      */
     public void selectViewer(String playerId) {
         hideCards();
-        requireMatch();
-        Player viewer = state.getPlayers().stream()
+        GameState match = requireMatch();
+        Player viewer = match.getPlayers().stream()
                 .filter(player -> player.getId().equals(playerId) && player.getType() == PlayerType.HUMAN)
                 .findFirst().orElseThrow(() -> new IllegalArgumentException("Select a human in this match."));
         viewerSeat = viewer.getSeat();
@@ -61,12 +61,10 @@ public final class SetupSession {
 
     /** Returns immutable display data; empty until a match has been started. */
     public Optional<SetupView> getView() {
-        return state == null ? Optional.empty() : Optional.of(new SetupView(state, viewerSeat, cardsRevealed));
+        return state.map(match -> new SetupView(match, viewerSeat, cardsRevealed));
     }
 
-    private void requireMatch() {
-        if (state == null) {
-            throw new IllegalStateException("Start a match first.");
-        }
+    private GameState requireMatch() {
+        return state.orElseThrow(() -> new IllegalStateException("Start a match first."));
     }
 }
