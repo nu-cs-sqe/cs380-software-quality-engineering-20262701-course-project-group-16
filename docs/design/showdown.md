@@ -50,8 +50,37 @@ The 21 resolver cases use the real evaluator for contested results. A fail-fast
 HandEvaluator stub is used only to prove an uncontested result never calls it.
 No mocking framework or mock game/state components are used.
 
-Estella's action/street engine must supply the closed state and connect this
-result to the coordinator and Swing display. Until that code is available,
-setup-to-result play, all-in runout and result-screen integration remain open.
-Translation resources include an awaiting-settlement result message, but that
-alone does not constitute a playable bilingual result screen.
+Estella's betting/street implementation is available on `feature/basic-betting`.
+The application session connection supplies the closed state/result to Swing.
+Setup-to-result play, all-in runout and result-screen integration remain open
+until the connection is exercised together.
+
+## Bilingual result component
+
+`ui.ShowdownPanel` is a reusable Swing component, constructed/used on the event
+thread. Its public handoff is:
+
+```java
+ShowdownPanel resultPanel = new ShowdownPanel();
+resultPanel.showResult(view, result, selectedLanguage);
+// view: GameView for the current hand; result: the existing ShowdownResult
+// selectedLanguage: a configured tag such as "en" or "zh-CN"
+resultPanel.clearResult(); // on a new hand or while no result should be shown
+```
+
+The component shows localized human/bot seat names for one winner, tied winners
+or an uncontested winner, plus awaiting settlement. It reads only public
+identity/type/seat information and retains no view/result or hole cards. A
+mismatched hand, unknown winner or unsupported language is rejected before
+replacing an earlier valid display. Call showResult again after language changes;
+clearResult removes all old text and hides the panel.
+
+Checkpoint: RED `2493bf3`, GREEN `750e7c4`; 18 real-resolver component cases,
+753 passing project tests, clean Checkstyle/SpotBugs, and inspected Java 11
+English/Chinese renders. [UI boundary analysis](../bva/GamePanelLocalization.md)
+records the cases. No new dependencies, gameplay rules or payout logic were added.
+
+The panel is not attached to GamePanel in this checkpoint. Estella can attach it
+when her session exposes the matching GameView/ShowdownResult; retain the existing
+private-card hiding/handoff callbacks. This prepares a result view without
+changing her engine/session API or claiming the played-hand integration is done.
