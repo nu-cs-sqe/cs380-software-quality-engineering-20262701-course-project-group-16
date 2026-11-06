@@ -38,7 +38,8 @@ public final class GameState {
             List<Card> remainingDeck, BettingProgress betting) {
         if (config == null || handId == null || handId.isBlank() || phase == null
                 || positions == null || betting == null) {
-            throw new IllegalArgumentException("Settings, hand identity, phase, positions and betting are required.");
+            throw new IllegalArgumentException(
+                "Settings, hand identity, phase, positions and betting are required.");
         }
         this.config = config;
         this.handId = handId;
@@ -77,11 +78,13 @@ public final class GameState {
         try {
             expected = new SeatOrder(players).positionsFor(positions.getDealerSeat());
         } catch (IllegalStateException exception) {
-            throw new IllegalArgumentException("An unfinished hand requires two remaining players.", exception);
+            throw new IllegalArgumentException(
+                "An unfinished hand requires two remaining players.", exception);
         }
         if (positions.getSmallBlindSeat() != expected.getSmallBlindSeat()
                 || positions.getBigBlindSeat() != expected.getBigBlindSeat()) {
-            throw new IllegalArgumentException("Positions must follow clockwise and heads-up rules.");
+            throw new IllegalArgumentException(
+                "Positions must follow clockwise and heads-up rules.");
         }
     }
 
@@ -120,7 +123,8 @@ public final class GameState {
             if ((phase == GamePhase.SETUP && !cards.isEmpty())
                     || (phase != GamePhase.SETUP && phase != GamePhase.COMPLETION
                     && state.getStatus() != PlayerStatus.ELIMINATED && cards.size() != 2)) {
-                throw new IllegalArgumentException("Hole cards must match setup or dealt-hand status.");
+                throw new IllegalArgumentException(
+                    "Hole cards must match setup or dealt-hand status.");
             }
             addDistinct(seen, cards);
         }
@@ -129,43 +133,53 @@ public final class GameState {
     private static void addDistinct(Set<Card> seen, List<Card> cards) {
         for (Card card : cards) {
             if (!seen.add(card)) {
-                throw new IllegalArgumentException("A physical card cannot occur in two locations.");
+                throw new IllegalArgumentException(
+                    "A physical card cannot occur in two locations.");
             }
         }
     }
 
     private void validateBetting() {
-        long maximum = players.stream().mapToLong(PlayerState::getRoundContribution).max().orElseThrow();
-        if (betting.getCurrentBet() != maximum || betting.getLastFullRaiseSize() < config.getBigBlind()) {
+        long maximum = players.stream().mapToLong(PlayerState::getRoundContribution)
+                .max().orElseThrow();
+        if (betting.getCurrentBet() != maximum
+                || betting.getLastFullRaiseSize() < config.getBigBlind()) {
             throw new IllegalArgumentException("Current bet or last full raise is inconsistent.");
         }
         Set<String> eligible = players.stream().filter(PlayerState::canAct)
                 .map(state -> state.getPlayer().getId()).collect(Collectors.toSet());
         if (!eligible.containsAll(betting.getPlayersToAct())
                 || !eligible.containsAll(betting.getPlayersAllowedToRaise())) {
-            throw new IllegalArgumentException("Only active players may have pending decisions or raise rights.");
+            throw new IllegalArgumentException(
+                "Only active players may have pending decisions or raise rights.");
         }
         boolean pending = !betting.getPlayersToAct().isEmpty();
         if (pending != currentActorId.isPresent()
-                || currentActorId.filter(id -> !betting.getPlayersToAct().contains(id)).isPresent()) {
-            throw new IllegalArgumentException("The current actor must be a pending active player.");
+                || currentActorId.filter(id -> !betting.getPlayersToAct().contains(id))
+                        .isPresent()) {
+            throw new IllegalArgumentException(
+                "The current actor must be a pending active player.");
         }
         if ((phase == GamePhase.SHOWDOWN || phase == GamePhase.COMPLETION)
-                && (pending || currentActorId.isPresent() || !betting.getPlayersAllowedToRaise().isEmpty())) {
+                && (pending || currentActorId.isPresent()
+                || !betting.getPlayersAllowedToRaise().isEmpty())) {
             throw new IllegalArgumentException("A terminal phase has no betting decisions.");
         }
         if (phase == GamePhase.COMPLETION && getPot() != 0) {
-            throw new IllegalArgumentException("Completed hands must have awarded all committed chips.");
+            throw new IllegalArgumentException(
+                "Completed hands must have awarded all committed chips.");
         }
     }
 
     private void validateChipTotal() {
         try {
             if (getTotalChips() != config.getInitialTotalChips()) {
-                throw new IllegalArgumentException("Stacks plus commitments must conserve match chips.");
+                throw new IllegalArgumentException(
+                    "Stacks plus commitments must conserve match chips.");
             }
         } catch (ArithmeticException exception) {
-            throw new IllegalArgumentException("Chip totals exceed the supported long range.", exception);
+            throw new IllegalArgumentException(
+                "Chip totals exceed the supported long range.", exception);
         }
     }
 
@@ -173,7 +187,8 @@ public final class GameState {
     public String getHandId() { return handId; }
     public GamePhase getPhase() { return phase; }
     public List<Player> getPlayers() {
-        return players.stream().map(PlayerState::getPlayer).collect(Collectors.toUnmodifiableList());
+        return players.stream().map(PlayerState::getPlayer)
+                .collect(Collectors.toUnmodifiableList());
     }
     public List<PlayerState> getPlayerStates() { return players; }
     public HandPositions getPositions() { return positions; }
@@ -223,7 +238,8 @@ public final class GameState {
 
     /** @throws IllegalArgumentException if the viewer is not a player in this match */
     public GameView viewFor(String playerId) {
-        if (playerId == null || players.stream().noneMatch(state -> state.getPlayer().getId().equals(playerId))) {
+        if (playerId == null || players.stream()
+                .noneMatch(state -> state.getPlayer().getId().equals(playerId))) {
             throw new IllegalArgumentException("A view requires an existing player ID.");
         }
         return new GameView(this, playerId);

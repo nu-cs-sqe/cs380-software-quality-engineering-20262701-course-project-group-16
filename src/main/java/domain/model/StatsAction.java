@@ -25,7 +25,8 @@ public final class StatsAction {
     public StatsAction(boolean accepted, BettingStreet street, ResolvedActionType type,
             long chipsAdded, StatsContext context) {
         if (street == null || type == null || context == null || chipsAdded < 0) {
-            throw new IllegalArgumentException("Action fields must be present and chips nonnegative.");
+            throw new IllegalArgumentException(
+                "Action fields must be present and chips nonnegative.");
         }
 
         boolean addsChips = type == ResolvedActionType.CALL || type == ResolvedActionType.BET
@@ -65,7 +66,8 @@ public final class StatsAction {
 
     private static void validateStreet(BettingStreet street, ResolvedActionType type) {
         if (street == BettingStreet.PREFLOP && type == ResolvedActionType.BET) {
-            throw new IllegalArgumentException("A preflop opening raise must be resolved as RAISE.");
+            throw new IllegalArgumentException(
+                "A preflop opening raise must be resolved as RAISE.");
         }
 
         if (street != BettingStreet.PREFLOP && type == ResolvedActionType.FORCED_POST) {

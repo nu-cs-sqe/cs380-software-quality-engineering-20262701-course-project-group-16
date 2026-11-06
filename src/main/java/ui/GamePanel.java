@@ -318,7 +318,10 @@ public final class GamePanel extends JPanel {
         parent.add(Box.createVerticalStrut(10));
     }
     private static JLabel label(String text, int size, Color color) {
-        JLabel label = new JLabel(text); label.setFont(new Font(Font.DIALOG, Font.BOLD, size)); label.setForeground(color); return label;
+        JLabel label = new JLabel(text);
+        label.setFont(new Font(Font.DIALOG, Font.BOLD, size));
+        label.setForeground(color);
+        return label;
     }
     private static JPanel transparent(java.awt.LayoutManager layout) {
         JPanel panel = new JPanel(layout); panel.setOpaque(false); return panel;

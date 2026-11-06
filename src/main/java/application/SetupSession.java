@@ -43,8 +43,10 @@ public final class SetupSession {
         hideCards();
         GameState match = requireMatch();
         Player viewer = match.getPlayers().stream()
-                .filter(player -> player.getId().equals(playerId) && player.getType() == PlayerType.HUMAN)
-                .findFirst().orElseThrow(() -> new IllegalArgumentException("Select a human in this match."));
+                .filter(player -> player.getId().equals(playerId)
+                        && player.getType() == PlayerType.HUMAN)
+                .findFirst().orElseThrow(() ->
+                        new IllegalArgumentException("Select a human in this match."));
         viewerSeat = viewer.getSeat();
     }
 

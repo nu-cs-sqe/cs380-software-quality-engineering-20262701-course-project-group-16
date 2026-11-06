@@ -24,7 +24,8 @@ public final class ActionRequest {
         boolean needsAmount = type == ActionType.BET || type == ActionType.RAISE;
         if (needsAmount != targetAmount.isPresent()
                 || (targetAmount.isPresent() && targetAmount.getAsLong() <= 0)) {
-            throw new IllegalArgumentException("Only bets and raises require a positive round target.");
+            throw new IllegalArgumentException(
+                "Only bets and raises require a positive round target.");
         }
         this.playerId = playerId;
         this.type = type;

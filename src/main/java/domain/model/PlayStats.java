@@ -68,13 +68,15 @@ public final class PlayStats {
             return;
         }
         if (!dealtIn) {
-            throw new IllegalArgumentException("A nonparticipant cannot contribute accepted actions.");
+            throw new IllegalArgumentException(
+                "A nonparticipant cannot contribute accepted actions.");
         }
         if (!pendingActions.isEmpty()) {
             StatsAction previous = pendingActions.get(pendingActions.size() - 1);
             if (previous.getType() == ResolvedActionType.FOLD
                     || action.getStreet().compareTo(previous.getStreet()) < 0) {
-                throw new IllegalArgumentException("Action contradicts the accepted hand lifecycle.");
+                throw new IllegalArgumentException(
+                    "Action contradicts the accepted hand lifecycle.");
             }
         }
         for (StatsAction previous : pendingActions) {
@@ -82,7 +84,8 @@ public final class PlayStats {
             StatsContext next = action.getContext();
             if ((before.hasFlopCBetOpportunity() && next.hasFacedFlopCBetOpportunity())
                     || (before.hasFacedFlopCBetOpportunity() && next.hasFlopCBetOpportunity())) {
-                throw new IllegalArgumentException("A player cannot both open and face a flop c-bet.");
+                throw new IllegalArgumentException(
+                    "A player cannot both open and face a flop c-bet.");
             }
         }
         pendingActions.add(action);

@@ -25,7 +25,8 @@ public final class GameConfig {
     private static void validateSettings(long startingChips, long smallBlind, long bigBlind) {
         if (startingChips <= 0 || startingChips > Long.MAX_VALUE / SEAT_COUNT
                 || smallBlind <= 0 || smallBlind >= bigBlind || bigBlind > startingChips) {
-            throw new IllegalArgumentException("Require positive blinds below the starting stack and a safe total.");
+            throw new IllegalArgumentException(
+                "Require positive blinds below the starting stack and a safe total.");
         }
     }
 
