@@ -3,8 +3,8 @@
     <!-- Intentional injectable Random seams: callers can supply seeded/stub random
          sources. Copying them would break deterministic shuffle/dealer behavior. -->
     <Match>
-        <Class name="application.GameInitializer"/>
-        <Field name="deckRandom"/>
+        <Class name="application.InitialDeal"/>
+        <Field name="random"/>
         <Bug pattern="EI_EXPOSE_REP2"/>
     </Match>
     <Match>

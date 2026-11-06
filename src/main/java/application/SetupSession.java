@@ -24,8 +24,8 @@ public final class SetupSession {
     private final BettingEngine engine;
     private final ShowdownResolver resolver;
     private final List<AcceptedAction> acceptedActions = new ArrayList<>();
-    private GameState state;
-    private ShowdownResult result;
+    private Optional<GameState> state = Optional.empty();
+    private Optional<ShowdownResult> result = Optional.empty();
     private int viewerSeat;
     private boolean cardsRevealed;
 
@@ -39,9 +39,11 @@ public final class SetupSession {
     }
 
     /** @throws IllegalArgumentException if any collaborator is null */
-    public SetupSession(GameInitializer initializer, BettingEngine engine, ShowdownResolver resolver) {
+    public SetupSession(GameInitializer initializer, BettingEngine engine,
+            ShowdownResolver resolver) {
         if (initializer == null || engine == null || resolver == null) {
-            throw new IllegalArgumentException("Initializer, betting engine and resolver are required.");
+            throw new IllegalArgumentException(
+                    "Initializer, betting engine and resolver are required.");
         }
         this.initializer = initializer;
         this.engine = engine;
@@ -58,15 +60,14 @@ public final class SetupSession {
      */
     public AcceptedAction submitAction(ActionRequest request) {
         hideCards();
-        requireMatch();
-        if (result != null) {
+        GameState match = requireMatch();
+        if (result.isPresent()) {
             throw new IllegalStateException("This hand already has a result awaiting settlement.");
         }
-        BettingResult accepted = engine.apply(state, request);
+        BettingResult accepted = engine.apply(match, request);
         GameState candidate = advanceClosedRounds(accepted.getState());
-        ShowdownResult comparison = candidate.getPhase() == GamePhase.SHOWDOWN
-                || participantCount(candidate) == 1 ? resolver.resolve(candidate) : null;
-        state = candidate;
+        Optional<ShowdownResult> comparison = compareIfFinished(candidate);
+        state = Optional.of(candidate);
         result = comparison;
         acceptedActions.add(accepted.getAcceptedAction());
         selectActingHuman();
@@ -79,16 +80,18 @@ public final class SetupSession {
      * @throws IllegalStateException if no match exists
      */
     public List<AcceptedAction> playBotTurns() {
-        requireMatch();
+        GameState match = requireMatch();
         List<AcceptedAction> played = new ArrayList<>();
-        while (state.getCurrentActorSeat().isPresent()) {
-            Player actor = state.getPlayers().get(state.getCurrentActorSeat().orElseThrow());
+        while (match.getCurrentActorSeat().isPresent()) {
+            Player actor = match.getPlayers()
+                    .get(match.getCurrentActorSeat().orElseThrow());
             if (actor.getType() == PlayerType.HUMAN) {
                 break;
             }
             ActionType type = getAvailableActions().contains(ActionType.CHECK)
                     ? ActionType.CHECK : ActionType.CALL;
             played.add(submitAction(new ActionRequest(actor.getId(), type)));
+            match = requireMatch();
         }
         selectActingHuman();
         return List.copyOf(played);
@@ -99,13 +102,15 @@ public final class SetupSession {
      * The pure engine validates discarded snapshots; queries commit no observations.
      */
     public Set<ActionType> getAvailableActions() {
-        if (state == null || result != null) {
+        if (state.isEmpty() || result.isPresent()) {
             return Set.of();
         }
+        GameState match = state.orElseThrow();
         Set<ActionType> available = EnumSet.noneOf(ActionType.class);
         for (ActionType type : List.of(ActionType.FOLD, ActionType.CHECK, ActionType.CALL)) {
             try {
-                engine.apply(state, new ActionRequest(state.getCurrentActorId().orElseThrow(), type));
+                engine.apply(match,
+                        new ActionRequest(match.getCurrentActorId().orElseThrow(), type));
                 available.add(type);
             } catch (IllegalArgumentException | UnsupportedOperationException unavailable) {
                 // Legality belongs to the engine; the discarded result is never committed.
@@ -115,7 +120,7 @@ public final class SetupSession {
     }
 
     /** Comparison only; no pots paid or completed-hand statistics aggregated. */
-    public Optional<ShowdownResult> getResult() { return Optional.ofNullable(result); }
+    public Optional<ShowdownResult> getResult() { return result; }
 
     /** Immutable current-hand log, cleared only by a successful restart; excludes blinds. */
     public List<AcceptedAction> getAcceptedActions() { return List.copyOf(acceptedActions); }
@@ -127,8 +132,8 @@ public final class SetupSession {
     public void start(int humanCount) {
         hideCards();
         GameState started = initializer.start(humanCount);
-        state = started;
-        result = null;
+        state = Optional.of(started);
+        result = Optional.empty();
         acceptedActions.clear();
         viewerSeat = 0; // Setup assigns at least one human, starting at seat zero.
     }
@@ -140,10 +145,12 @@ public final class SetupSession {
      */
     public void selectViewer(String playerId) {
         hideCards();
-        requireMatch();
-        Player viewer = state.getPlayers().stream()
-                .filter(player -> player.getId().equals(playerId) && player.getType() == PlayerType.HUMAN)
-                .findFirst().orElseThrow(() -> new IllegalArgumentException("Select a human in this match."));
+        GameState match = requireMatch();
+        Player viewer = match.getPlayers().stream()
+                .filter(player -> player.getId().equals(playerId)
+                        && player.getType() == PlayerType.HUMAN)
+                .findFirst().orElseThrow(() ->
+                        new IllegalArgumentException("Select a human in this match."));
         viewerSeat = viewer.getSeat();
     }
 
@@ -160,7 +167,7 @@ public final class SetupSession {
 
     /** Returns immutable display data; empty until a match has been started. */
     public Optional<SetupView> getView() {
-        return state == null ? Optional.empty() : Optional.of(new SetupView(state, viewerSeat, cardsRevealed));
+        return state.map(match -> new SetupView(match, viewerSeat, cardsRevealed));
     }
 
     private GameState advanceClosedRounds(GameState candidate) {
@@ -176,18 +183,26 @@ public final class SetupSession {
     }
 
     private void selectActingHuman() {
-        if (state.getCurrentActorSeat().isPresent()) {
-            int actor = state.getCurrentActorSeat().orElseThrow();
-            if (state.getPlayers().get(actor).getType() == PlayerType.HUMAN && viewerSeat != actor) {
+        GameState match = requireMatch();
+        if (match.getCurrentActorSeat().isPresent()) {
+            int actor = match.getCurrentActorSeat().orElseThrow();
+            if (match.getPlayers().get(actor).getType() == PlayerType.HUMAN
+                    && viewerSeat != actor) {
                 hideCards();
                 viewerSeat = actor;
             }
         }
     }
 
-    private void requireMatch() {
-        if (state == null) {
-            throw new IllegalStateException("Start a match first.");
+    private Optional<ShowdownResult> compareIfFinished(GameState candidate) {
+        if (candidate.getPhase() == GamePhase.SHOWDOWN
+                || participantCount(candidate) == 1) {
+            return Optional.of(resolver.resolve(candidate));
         }
+        return Optional.empty();
+    }
+
+    private GameState requireMatch() {
+        return state.orElseThrow(() -> new IllegalStateException("Start a match first."));
     }
 }

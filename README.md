@@ -97,8 +97,9 @@ and required status-check enforcement still need verification after push.
 
 Run `bash ./gradlew build` for tests/static checks/coverage and
 `bash ./gradlew pitest` for mutation testing. The team suite and shared static
-checks run across the project; coverage/PIT scores currently measure the original nine documented executable components,
-including the shared session follow-up; they do not cover the entire game. [Quality results](docs/quality.md)
+checks run across the project; coverage/PIT use ten documented components,
+including InitialDeal and the shared session. These are not full-game metrics.
+[Quality results](docs/quality.md)
 list exact scope, report paths, adapted Checkstyle rules and reviewed SpotBugs
 exceptions. There is no invented metric threshold that hides findings.
 

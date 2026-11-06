@@ -30,12 +30,14 @@ public final class BettingEngine {
         }
         int consumed = next == GamePhase.FLOP ? 4 : 2;
         if (before.getRemainingDeck().size() < consumed) {
-            throw new IllegalArgumentException("The deck must contain the burn card and all cards to deal.");
+            throw new IllegalArgumentException(
+                    "The deck must contain the burn card and all cards to deal.");
         }
 
         List<PlayerState> players = resetRound(before.getPlayerStates());
         Set<String> pending = new HashSet<>();
-        players.stream().filter(PlayerState::canAct).forEach(player -> pending.add(player.getPlayer().getId()));
+        players.stream().filter(PlayerState::canAct)
+                .forEach(player -> pending.add(player.getPlayer().getId()));
         if (pending.size() < 2) {
             pending.clear();
         }
@@ -46,7 +48,8 @@ public final class BettingEngine {
         return new GameState(before.getConfig(), before.getHandId(), next, players,
                 before.getPositions(), actor, board,
                 before.getRemainingDeck().subList(consumed, before.getRemainingDeck().size()),
-                new BettingProgress(0, before.getConfig().getBigBlind(), pending, pending), before.getBettingHistory());
+                new BettingProgress(0, before.getConfig().getBigBlind(), pending, pending),
+                before.getBettingHistory());
     }
 
     private static GamePhase nextStreet(GamePhase phase) {
@@ -55,7 +58,8 @@ public final class BettingEngine {
             case FLOP: return GamePhase.TURN;
             case TURN: return GamePhase.RIVER;
             case RIVER: return GamePhase.SHOWDOWN;
-            default: throw new UnsupportedOperationException("Only a betting street has a next street.");
+            default:
+                throw new UnsupportedOperationException("Only a betting street has a next street.");
         }
     }
 
@@ -64,7 +68,8 @@ public final class BettingEngine {
             throw new IllegalArgumentException("Pending decisions must finish before advancing.");
         }
         if (before.getPlayerStates().stream().filter(PlayerState::isParticipating).count() < 2) {
-            throw new IllegalArgumentException("An uncontested or empty hand cannot advance to another street.");
+            throw new IllegalArgumentException(
+                    "An uncontested or empty hand cannot advance to another street.");
         }
         if (before.getPlayerStates().stream().filter(PlayerState::canAct)
                 .anyMatch(player -> player.getRoundContribution() < before.getCurrentBet())) {
@@ -75,7 +80,8 @@ public final class BettingEngine {
     private static List<PlayerState> resetRound(List<PlayerState> before) {
         List<PlayerState> players = new ArrayList<>();
         for (PlayerState player : before) {
-            players.add(new PlayerState(player.getPlayer(), player.getStatus(), player.getHoleCards(),
+            players.add(new PlayerState(player.getPlayer(), player.getStatus(),
+                    player.getHoleCards(),
                     0, player.getHandContribution()));
         }
         return players;
@@ -109,8 +115,10 @@ public final class BettingEngine {
         players.set(seat, afterAction(actor, accepted));
         BettingProgress progress = afterDecision(before, players, request.getPlayerId());
         GameState after = new GameState(before.getConfig(), before.getHandId(), before.getPhase(),
-                players, before.getPositions(), nextPendingActor(players, progress.getPlayersToAct(), seat),
-                before.getCommunityCards(), before.getRemainingDeck(), progress, before.getBettingHistory());
+                players, before.getPositions(),
+                nextPendingActor(players, progress.getPlayersToAct(), seat),
+                before.getCommunityCards(), before.getRemainingDeck(), progress,
+                before.getBettingHistory());
         return new BettingResult(after, accepted);
     }
 
@@ -127,7 +135,8 @@ public final class BettingEngine {
         switch (before.getPhase()) {
             case PREFLOP:
                 if (before.getCurrentBet() != before.getConfig().getBigBlind()) {
-                    throw new UnsupportedOperationException("Raised preflop rounds are not implemented yet.");
+                    throw new UnsupportedOperationException(
+                            "Raised preflop rounds are not implemented yet.");
                 }
                 return;
             case FLOP:
@@ -136,25 +145,29 @@ public final class BettingEngine {
                 if (type == ActionType.CHECK || type == ActionType.FOLD) {
                     return;
                 }
-                throw new UnsupportedOperationException("Postflop calling, betting and raising are not implemented yet.");
+                throw new UnsupportedOperationException(
+                        "Postflop calling, betting and raising are not implemented yet.");
             default:
                 throw new UnsupportedOperationException("Player actions require a betting street.");
         }
     }
 
-    private static AcceptedAction resolveAction(GameState state, PlayerState actor, ActionType type) {
+    private static AcceptedAction resolveAction(GameState state, PlayerState actor,
+            ActionType type) {
         long owed = state.getCurrentBet() - actor.getRoundContribution();
         switch (type) {
             case FOLD:
                 return accepted(state, actor, ResolvedActionType.FOLD, 0);
             case CHECK:
                 if (owed != 0) {
-                    throw new IllegalArgumentException("A player must call or fold when chips are owed.");
+                    throw new IllegalArgumentException(
+                            "A player must call or fold when chips are owed.");
                 }
                 return accepted(state, actor, ResolvedActionType.CHECK, 0);
             case CALL:
                 if (owed == 0) {
-                    throw new IllegalArgumentException("Nothing is owed; use a check instead of a call.");
+                    throw new IllegalArgumentException(
+                            "Nothing is owed; use a check instead of a call.");
                 }
                 return accepted(state, actor, ResolvedActionType.CALL,
                         Math.min(owed, actor.getPlayer().getChipStack()));
@@ -178,7 +191,8 @@ public final class BettingEngine {
         if (state.getPhase() == GamePhase.FLOP) {
             String playerId = actor.getPlayer().getId();
             BettingHistory history = state.getBettingHistory();
-            boolean isAggressor = history.getFinalPreflopAggressorId().filter(playerId::equals).isPresent();
+            boolean isAggressor = history.getFinalPreflopAggressorId()
+                    .filter(playerId::equals).isPresent();
             opening = isAggressor && state.getCurrentBet() == 0
                     && state.getBettingProgress().getPlayersAllowedToRaise().contains(playerId)
                     && state.getPlayerStates().stream().filter(PlayerState::canAct).count() >= 2;
@@ -200,22 +214,27 @@ public final class BettingEngine {
             status = PlayerStatus.ALL_IN;
         }
         return new PlayerState(after, status, before.getHoleCards(),
-                action.getRoundContributionAfter(), before.getHandContribution() + action.getChipsAdded());
+                action.getRoundContributionAfter(),
+                before.getHandContribution() + action.getChipsAdded());
     }
 
-    private static BettingProgress afterDecision(GameState before, List<PlayerState> players, String actorId) {
+    private static BettingProgress afterDecision(GameState before, List<PlayerState> players,
+            String actorId) {
         Set<String> pending = new HashSet<>(before.getBettingProgress().getPlayersToAct());
         Set<String> raising = new HashSet<>(before.getBettingProgress().getPlayersAllowedToRaise());
         pending.remove(actorId);
         raising.remove(actorId);
-        if (players.stream().filter(PlayerState::isParticipating).count() <= 1 || pending.isEmpty()) {
+        if (players.stream().filter(PlayerState::isParticipating).count() <= 1
+                || pending.isEmpty()) {
             pending.clear();
             raising.clear();
         }
-        return new BettingProgress(before.getCurrentBet(), before.getLastFullRaiseSize(), pending, raising);
+        return new BettingProgress(before.getCurrentBet(), before.getLastFullRaiseSize(),
+                pending, raising);
     }
 
-    private static String nextPendingActor(List<PlayerState> players, Set<String> pending, int seat) {
+    private static String nextPendingActor(List<PlayerState> players, Set<String> pending,
+            int seat) {
         for (int distance = 1; distance <= players.size(); distance++) {
             PlayerState candidate = players.get((seat + distance) % players.size());
             if (candidate.canAct() && pending.contains(candidate.getPlayer().getId())) {

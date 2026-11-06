@@ -36,11 +36,14 @@ public final class SetupView {
         this.handId = state.getHandId();
         this.phase = state.getPhase();
         this.communityCards = List.copyOf(state.getCommunityCards());
-        this.statuses = List.copyOf(state.getPlayerStates().stream().map(player -> player.getStatus())
+        this.statuses = List.copyOf(state.getPlayerStates().stream()
+                .map(player -> player.getStatus())
                 .collect(Collectors.toList()));
-        this.roundContributions = state.getPlayerStates().stream().map(player -> player.getRoundContribution())
+        this.roundContributions = state.getPlayerStates().stream()
+                .map(player -> player.getRoundContribution())
                 .collect(Collectors.toUnmodifiableList());
-        this.handContributions = state.getPlayerStates().stream().map(player -> player.getHandContribution())
+        this.handContributions = state.getPlayerStates().stream()
+                .map(player -> player.getHandContribution())
                 .collect(Collectors.toUnmodifiableList());
         this.currentBet = state.getCurrentBet();
         this.holeCards = revealed

@@ -20,12 +20,14 @@ public final class BettingHistory {
      * Records authoritative engine history; GameState validates it against the hand.
      * @param finalPreflopAggressorId null for no preflop aggressor
      * @param flopCBetAmount original flop c-bet round target; zero if none occurred
-     * @throws IllegalArgumentException for blank IDs, negative amounts or a c-bet without an aggressor
+     * @throws IllegalArgumentException for blank IDs, negative amounts,
+     *         or a c-bet without an aggressor
      */
     public BettingHistory(String finalPreflopAggressorId, long flopCBetAmount) {
         if ((finalPreflopAggressorId != null && finalPreflopAggressorId.isBlank())
                 || flopCBetAmount < 0 || (flopCBetAmount > 0 && finalPreflopAggressorId == null)) {
-            throw new IllegalArgumentException("A c-bet needs an aggressor; IDs and amounts must be valid.");
+            throw new IllegalArgumentException(
+                    "A c-bet needs an aggressor; IDs and amounts must be valid.");
         }
         this.finalPreflopAggressorId = finalPreflopAggressorId;
         this.flopCBetAmount = flopCBetAmount;

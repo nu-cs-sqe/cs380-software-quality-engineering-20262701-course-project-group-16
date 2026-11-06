@@ -17,6 +17,7 @@ import java.awt.GridLayout;
 import java.awt.Insets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.swing.BorderFactory;
@@ -40,7 +41,9 @@ public final class GamePanel extends JPanel {
     private final Localizations messages = Localizations.load();
     private final JComboBox<String> language = named(new JComboBox<>(), "language");
     private String selectedLanguage = messages.defaultLanguage();
-    private String errorKey;
+    private enum ErrorMessage { NONE, INVALID_COUNT, INVALID_ACTION }
+
+    private ErrorMessage errorMessage = ErrorMessage.NONE;
     private final JTextField humanCount = named(new JTextField("1"), "humanCount");
     private final JComboBox<String> viewers = named(new JComboBox<>(), "viewers");
     private final JButton start = named(new JButton(), "start");
@@ -201,24 +204,27 @@ public final class GamePanel extends JPanel {
         try {
             session.start(Integer.parseInt(humanCount.getText().trim()));
             session.playBotTurns();
-            errorKey = null;
+            errorMessage = ErrorMessage.NONE;
         } catch (IllegalArgumentException invalid) {
-            errorKey = "invalidCount";
+            errorMessage = ErrorMessage.INVALID_COUNT;
         }
         refresh();
     }
 
     private void submitAction(ActionType type) {
-        SetupView view = session.getView().orElse(null);
-        if (view == null || view.getCurrentActorSeat() < 0) {
+        Optional<SetupView> display = session.getView();
+        if (display.isEmpty() || display.orElseThrow().getCurrentActorSeat() < 0) {
             return;
         }
+        SetupView view = display.orElseThrow();
         try {
-            session.submitAction(new ActionRequest(view.getPlayers().get(view.getCurrentActorSeat()).getId(), type));
+            String actor = view.getPlayers().get(view.getCurrentActorSeat()).getId();
+            session.submitAction(new ActionRequest(actor, type));
             session.playBotTurns();
-            errorKey = null;
-        } catch (IllegalArgumentException | IllegalStateException | UnsupportedOperationException invalid) {
-            errorKey = "invalidAction";
+            errorMessage = ErrorMessage.NONE;
+        } catch (IllegalArgumentException | IllegalStateException
+                | UnsupportedOperationException invalid) {
+            errorMessage = ErrorMessage.INVALID_ACTION;
         }
         refresh();
     }
@@ -226,97 +232,165 @@ public final class GamePanel extends JPanel {
     private void refresh() {
         rendering = true;
         try {
-            error.setText(errorKey == null ? " " : text(errorKey));
-            SetupView view = session.getView().orElse(null);
-            seats.removeAll(); viewers.removeAllItems(); humanViewers.clear();
+            error.setText(errorText());
+            Optional<SetupView> view = session.getView();
+            seats.removeAll();
+            viewers.removeAllItems();
+            humanViewers.clear();
             for (int seat = 0; seat < 6; seat++) {
-                Player player = view == null ? null : view.getPlayers().get(seat);
-                seats.add(seatPanel(seat, player, view));
-                if (player != null && player.getType() == PlayerType.HUMAN) {
-                    humanViewers.add(player); viewers.addItem(playerName(player));
-                }
+                seats.add(seatPanel(seat, view));
             }
-            boolean started = view != null;
-            viewers.setEnabled(started); reveal.setEnabled(started);
-            hide.setEnabled(started && !view.getHoleCards().isEmpty());
-            if (started) {
-                for (int i = 0; i < humanViewers.size(); i++) {
-                    if (humanViewers.get(i).getSeat() == view.getViewerSeat()) {
-                        viewers.setSelectedIndex(i);
-                    }
-                }
+            viewers.setEnabled(view.isPresent());
+            reveal.setEnabled(view.isPresent());
+            if (view.isPresent()) {
+                showMatch(view.orElseThrow());
+            } else {
+                showWaitingTable();
             }
-            int actor = started ? view.getCurrentActorSeat() : -1;
-            status.setText(actor >= 0 ? text("currentActor", playerName(view.getPlayers().get(actor)))
-                    : started ? text("result.awaitingSettlement") : text("waiting"));
-            pot.setText(started ? text("pot", view.getPot()) : text("pot", 0));
-            deck.setText(started ? text("deck", view.getRemainingCardCount()) : text("notDealt"));
-            handoff.setText(wrapped(started ? text("handoff", playerName(view.getPlayers().get(view.getViewerSeat()))) : text("startHint")));
-            handoff.setMaximumSize(new Dimension(Integer.MAX_VALUE, handoff.getPreferredSize().height));
             renderActions(view);
-            community.setText(!started || view.getCommunityCards().isEmpty() ? text("community")
-                    : text("communityDealt", view.getCommunityCards().stream().map(GamePanel::cardText)
-                    .collect(Collectors.joining("   "))));
-            phase.setText(started ? text("phase." + view.getPhase().name()) : " ");
-            result.setText(session.getResult().map(comparison -> resultText(comparison, view)).orElse(" "));
-            for (int i = 0; i < 2; i++) {
-                Card card = started && !view.getHoleCards().isEmpty() ? view.getHoleCards().get(i) : null;
-                holes[i].setText(card == null ? "--" : cardText(card));
-                holes[i].setForeground(card != null && (card.getSuit() == domain.model.Suit.HEARTS || card.getSuit() == domain.model.Suit.DIAMONDS) ? new Color(175, 40, 40) : INK);
-            }
+            handoff.setMaximumSize(new Dimension(Integer.MAX_VALUE,
+                    handoff.getPreferredSize().height));
         } finally {
             rendering = false;
         }
-        revalidate(); repaint();
+        revalidate();
+        repaint();
     }
 
-    private void renderActions(SetupView view) {
-        int actor = view == null ? -1 : view.getCurrentActorSeat();
-        boolean mayAct = actor >= 0 && view.getViewerSeat() == actor
-                && view.getPlayers().get(actor).getType() == PlayerType.HUMAN;
+    private String errorText() {
+        switch (errorMessage) {
+            case INVALID_COUNT:
+                return text("invalidCount");
+            case INVALID_ACTION:
+                return text("invalidAction");
+            default:
+                return " ";
+        }
+    }
+
+    private void showMatch(SetupView view) {
+        for (Player player : view.getPlayers()) {
+            if (player.getType() == PlayerType.HUMAN) {
+                humanViewers.add(player);
+                viewers.addItem(playerName(player));
+            }
+        }
+        for (int i = 0; i < humanViewers.size(); i++) {
+            if (humanViewers.get(i).getSeat() == view.getViewerSeat()) {
+                viewers.setSelectedIndex(i);
+            }
+        }
+        hide.setEnabled(!view.getHoleCards().isEmpty());
+        int actor = view.getCurrentActorSeat();
+        status.setText(actor >= 0 ? text("currentActor", playerName(view.getPlayers().get(actor)))
+                : text("result.awaitingSettlement"));
+        pot.setText(text("pot", view.getPot()));
+        deck.setText(text("deck", view.getRemainingCardCount()));
+        handoff.setText(wrapped(text("handoff",
+                playerName(view.getPlayers().get(view.getViewerSeat())))));
+        showHoleCards(view.getHoleCards());
+        showBoardAndResult(view);
+    }
+
+    private void showBoardAndResult(SetupView view) {
+        community.setText(view.getCommunityCards().isEmpty() ? text("community")
+                : text("communityDealt", view.getCommunityCards().stream()
+                        .map(GamePanel::cardText).collect(Collectors.joining("   "))));
+        phase.setText(text("phase." + view.getPhase().name()));
+        result.setText(session.getResult()
+                .map(comparison -> resultText(comparison, view)).orElse(" "));
+    }
+
+    private void showWaitingTable() {
+        hide.setEnabled(false);
+        status.setText(text("waiting"));
+        pot.setText(text("pot", 0));
+        deck.setText(text("notDealt"));
+        handoff.setText(wrapped(text("startHint")));
+        community.setText(text("community"));
+        phase.setText(" ");
+        result.setText(" ");
+        showHoleCards(List.of());
+    }
+
+    private void renderActions(Optional<SetupView> display) {
+        int actor = display.map(SetupView::getCurrentActorSeat).orElse(-1);
+        boolean mayAct = display.filter(view -> actor >= 0 && view.getViewerSeat() == actor
+                && view.getPlayers().get(actor).getType() == PlayerType.HUMAN).isPresent();
         Set<ActionType> available = mayAct ? session.getAvailableActions() : Set.of();
+        long toCall = display.filter(view -> actor >= 0)
+                .map(this::amountToCall).orElse(0L);
         fold.setText(text("fold"));
         check.setText(text("check"));
-        long toCall = actor < 0 ? 0 : Math.min(view.getCurrentBet() - view.getRoundContribution(actor),
-                view.getPlayers().get(actor).getChipStack());
         call.setText(text("call", toCall));
         fold.setEnabled(available.contains(ActionType.FOLD));
         check.setEnabled(available.contains(ActionType.CHECK));
         call.setEnabled(available.contains(ActionType.CALL));
     }
 
+    private long amountToCall(SetupView view) {
+        int actor = view.getCurrentActorSeat();
+        return Math.min(view.getCurrentBet() - view.getRoundContribution(actor),
+                view.getPlayers().get(actor).getChipStack());
+    }
+
     private String resultText(ShowdownResult comparison, SetupView view) {
-        String winners = comparison.getWinnerIds().stream().map(id -> view.getPlayers().stream()
-                .filter(player -> player.getId().equals(id)).findFirst().orElseThrow())
+        String winners = comparison.getWinnerIds().stream()
+                .map(id -> view.getPlayers().stream()
+                        .filter(player -> player.getId().equals(id)).findFirst().orElseThrow())
                 .map(this::playerName).collect(Collectors.joining(", "));
-        return text(comparison.isUncontested() ? "result.uncontested" : "result.contested",
+        return text(comparison.isUncontested()
+                        ? "result.inline.uncontested" : "result.inline.contested",
                 winners, text("result.awaitingSettlement"));
     }
 
-    private JPanel seatPanel(int seat, Player player, SetupView view) {
+    private JPanel seatPanel(int seat, Optional<SetupView> view) {
+        Optional<Player> player = view.map(match -> match.getPlayers().get(seat));
+        boolean acting = view.map(match -> seat == match.getCurrentActorSeat()).orElse(false);
         JPanel panel = new JPanel(new GridLayout(5, 1, 0, 6));
         panel.setBackground(new Color(237, 242, 236));
-        boolean acting = view != null && seat == view.getCurrentActorSeat();
-        panel.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(acting ? GOLD : new Color(120, 153, 136), acting ? 3 : 1), BorderFactory.createEmptyBorder(12, 10, 12, 10)));
-        panel.add(named(label(player == null ? text("seat", seat + 1) : playerName(player), 17, INK), "seatName" + seat));
-        panel.add(named(new JLabel(player == null ? "--" : text("chips", player.getChipStack())), "seatStack" + seat));
-        String role = " ";
-        if (view != null) {
-            if (seat == view.getPositions().getDealerSeat()) {
-                role = text("dealer");
-            }
-            if (seat == view.getPositions().getSmallBlindSeat()) {
-                role = text("smallBlind");
-            }
-            if (seat == view.getPositions().getBigBlindSeat()) {
-                role = text("bigBlind");
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(acting ? GOLD : new Color(120, 153, 136),
+                        acting ? 3 : 1),
+                BorderFactory.createEmptyBorder(12, 10, 12, 10)));
+        String name = player.map(this::playerName).orElseGet(() -> text("seat", seat + 1));
+        String stack = player.map(person -> text("chips", person.getChipStack())).orElse("--");
+        panel.add(named(label(name, 17, INK), "seatName" + seat));
+        panel.add(named(new JLabel(stack), "seatStack" + seat));
+        panel.add(new JLabel(view.map(match -> seatRole(seat, match)).orElse(" ")));
+        String playerStatus = view.map(match -> text("status." + match.getStatuses().get(seat)
+                .name())).orElse("--");
+        panel.add(named(new JLabel(playerStatus), "seatStatus" + seat));
+        panel.add(named(label(player.isPresent() ? "▧  ▧" : "--", 25, FELT), "seatCards" + seat));
+        return panel;
+    }
+
+    private void showHoleCards(List<Card> cards) {
+        for (int i = 0; i < holes.length; i++) {
+            if (cards.isEmpty()) {
+                holes[i].setText("--");
+                holes[i].setForeground(INK);
+            } else {
+                Card card = cards.get(i);
+                holes[i].setText(cardText(card));
+                boolean red = card.getSuit() == domain.model.Suit.HEARTS
+                        || card.getSuit() == domain.model.Suit.DIAMONDS;
+                holes[i].setForeground(red ? new Color(175, 40, 40) : INK);
             }
         }
-        panel.add(new JLabel(role));
-        panel.add(named(new JLabel(view == null ? "--" : text("status." + view.getStatuses().get(seat).name())),
-                "seatStatus" + seat));
-        panel.add(named(label(player == null ? "--" : "▧  ▧", 25, FELT), "seatCards" + seat));
-        return panel;
+    }
+
+    private String seatRole(int seat, SetupView view) {
+        if (seat == view.getPositions().getBigBlindSeat()) {
+            return text("bigBlind");
+        }
+        if (seat == view.getPositions().getSmallBlindSeat()) {
+            return text("smallBlind");
+        }
+        if (seat == view.getPositions().getDealerSeat()) {
+            return text("dealer");
+        }
+        return " ";
     }
 
     private String playerName(Player player) {
@@ -357,7 +431,10 @@ public final class GamePanel extends JPanel {
         parent.add(Box.createVerticalStrut(10));
     }
     private static JLabel label(String text, int size, Color color) {
-        JLabel label = new JLabel(text); label.setFont(new Font(Font.DIALOG, Font.BOLD, size)); label.setForeground(color); return label;
+        JLabel label = new JLabel(text);
+        label.setFont(new Font(Font.DIALOG, Font.BOLD, size));
+        label.setForeground(color);
+        return label;
     }
     private static JPanel transparent(java.awt.LayoutManager layout) {
         JPanel panel = new JPanel(layout); panel.setOpaque(false); return panel;

@@ -33,7 +33,8 @@ The project uses Java 11. The shared card/deck model belongs in `domain.model`; 
 | `Player` / `PlayerState` | Hold identity, seat, chips, per-hand status, cards and contributions | Estella (Member B) |
 | `GameState` | Hold players, dealer/blind positions, contributions, and current actor | Member B |
 | `GameSetup` | Validate configuration and initialize the table before dealing | Estella (Member B) |
-| `GameInitializer` | Combine GameSetup and Deck into a dealt first PREFLOP state | Kevin, shared integration |
+| `GameInitializer` | Coordinate injected setup and dealing operations | Kevin, shared integration |
+| `InitialDeal` (package-private) | Shuffle a fresh deck, deal clockwise and copy the dealt snapshot | Kevin |
 | `SetupSession` / `SetupView` | Own the match and expose public data plus explicitly revealed human cards | Kevin, shared integration |
 | `GamePanel` / `Main` | Swing input, table display, English/Chinese labels and private-card handoffs | Kevin, shared interface |
 
@@ -148,3 +149,16 @@ classes and controlled randomness. They cover errors, private reveals/handoffs,
 restart, language changes and the focus-loss callback. Offscreen renders check
 layout; native focus delivery and a teammate desktop walkthrough remain manual
 checks. [Quality results](../quality.md) report the latest measured suite.
+
+## Separate setup and dealing tests
+
+GameInitializer accepts setup/deal operations at its package composition boundary.
+The public constructors still wire real GameSetup and InitialDeal with the same
+random sources and validation. This separates orchestration tests from real
+component integration without adding a mocking library. InitialDeal constructs
+cards/player snapshots; GameInitializer.start constructs neither.
+
+GameInitializerTest uses controlled operations and immutable value fixtures.
+GameInitializerIntegrationTest retains all original dealing/chip/privacy cases;
+SetupSessionIntegrationTest and Swing tests also use real components. Building
+immutable value objects in a fixture does not run setup, shuffling or dealing.

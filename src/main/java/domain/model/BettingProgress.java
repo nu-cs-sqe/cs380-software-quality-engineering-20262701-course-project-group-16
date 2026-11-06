@@ -13,9 +13,11 @@ public final class BettingProgress {
      * a new decision. GameState checks that both sets refer to players who can act.
      * @throws IllegalArgumentException for invalid amounts, null sets or blank IDs
      */
-    public BettingProgress(long currentBet, long lastFullRaiseSize, Set<String> pending, Set<String> raise) {
+    public BettingProgress(long currentBet, long lastFullRaiseSize,
+            Set<String> pending, Set<String> raise) {
         if (currentBet < 0 || lastFullRaiseSize <= 0) {
-            throw new IllegalArgumentException("Current bet must be nonnegative and full raise size positive.");
+            throw new IllegalArgumentException(
+                "Current bet must be nonnegative and full raise size positive.");
         }
         this.currentBet = currentBet;
         this.lastFullRaiseSize = lastFullRaiseSize;

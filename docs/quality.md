@@ -51,7 +51,8 @@ Checkstyle's [Sun starter](https://checkstyle.org/sun_style.html) and
 The initial rules check naming, imports, braces, indentation, whitespace,
 modifier order, fall-through, equals/hashCode pairing and source-file hygiene.
 Indentation is four spaces, matching this repository; compact accessor/constructor methods remain allowed by the brace-placement rule. Mandatory Javadoc, import
-ordering, line-length and complexity quotas are deferred until team agreement;
+ordering and complexity quotas are deferred until team agreement;
+production Java has a 100-character line limit;
 this is an explicitly adapted starter, not a claim of full Sun/Google compliance.
 Tests use a separate `checkstyle-test.xml` retaining file/import hygiene,
 type names, modifier checks and error-prone construct checks. Existing BVA IDs
@@ -77,7 +78,7 @@ in these classes still fail. These are not metric exclusions.
 
 | Exact location | Pattern / count | Review and reason |
 | --- | --- | --- |
-| `GameInitializer.deckRandom`, `GameSetup.dealerRandom` | `EI_EXPOSE_REP2` / 2 | Injected `Random` objects intentionally preserve caller-selected seeded/stub behavior. Copying would destroy the seam; these services are mutable and do not claim immutable/thread-safe ownership. |
+| `InitialDeal.random`, `GameSetup.dealerRandom` | `EI_EXPOSE_REP2` / 2 | Injected `Random` objects intentionally preserve caller-selected seeded/stub behavior. Copying would destroy the seam; these services are mutable and do not claim immutable/thread-safe ownership. |
 | `BettingProgress.getPlayersToAct/getPlayersAllowedToRaise` | `EI_EXPOSE_REP` / 2 | Private helper validates then calls `Set.copyOf`; the returned sets are immutable. |
 | `GameState.getCommunityCards/getPlayerStates/getRemainingDeck` | `EI_EXPOSE_REP` / 3 | Constructor helpers call `List.copyOf`; callers cannot mutate internal lists. |
 | `GameView.getPlayers/getCommunityCards` | `EI_EXPOSE_REP` / 2 | Players use `Collectors.toUnmodifiableList`; community comes from the immutable state snapshot. |
@@ -90,15 +91,14 @@ change. Shared Checkstyle violations are fixed in source instead of baselined.
 
 ## Scope and interpretation
 
-SetupSession and SetupView now include Estella's played-hand integration on top
-of Kevin's original setup work. Current nine-class measurements are shared-scope
-results, not individual attribution. The November3 figures below remain Kevin's
-historical baseline; new measurements are recorded separately. PIT now includes
-SessionBettingTest and PlayedHandIntegrationTest so the added session behavior
-is not measured against only the old setup tests.
+SetupSession and SetupView include shared played-hand integration. The
+current configured scope has ten classes, including extracted InitialDeal.
+Earlier nine-class results below are historical, not current full-game
+coverage. PIT retains the renamed integration tests and the new session
+and played-hand tests.
 
-The original nine-class JaCoCo/PIT scope includes `Card`, `Deck`, `PokerHandEvaluator`,
-`ShowdownResolver`, `ShowdownResult`, `GameInitializer`, `SetupSession` and
+JaCoCo and PIT include `Card`, `Deck`, `PokerHandEvaluator`,
+`ShowdownResolver`, `ShowdownResult`, `GameInitializer`, `InitialDeal`, `SetupSession` and
 `SetupView` and `Localizations`, including their nested classes. `SetupView` remains in the scope
 even though a display DTO could qualify for a view exemption: its private-card
 filtering is useful behavior to measure. Tests exercise these components
@@ -128,38 +128,35 @@ not automatically remove equivalent mutants or justify survivors/timeouts.
 There is no invented score threshold or forced green metric gate: actual
 findings and rubric gaps must remain visible until assessed.
 
-## Historical measured results (November3)
+## Instructor-refactor baseline (November 6)
 
-Verified locally on November 3, 2026, on `feature/hand-evaluation`, after the
-real showdown-integration, localization fault-path additions and the placeholder
-validation fix in `025baef`:
+Verified locally on **November 6, 2026**, on `refactor/instructor-feedback`,
+after adding isolated tests and simplifying setup, null handling and localization:
 
 ```sh
-bash ./gradlew --no-daemon clean build pitest --continue
+bash ./gradlew --no-daemon build pitest
 ```
 
-This final clean run generated and verified HTML/XML reports in the normal
-`build/reports/` paths listed above. It supersedes the earlier isolated reports
-under `/private/tmp/kevin-quality-build`, which predated the placeholder fix.
-The complete command exited 0 with `BUILD SUCCESSFUL` in 29 seconds; all 16
-actionable tasks executed. The verification log is
-`/private/tmp/kevin-final-check.log`.
+Gradle ran on JDK 17; source compilation and JUnit execution used the JDK 11
+toolchain. The command exited 0 in 1 minute 38 seconds (15 actionable tasks,
+12 executed and three up-to-date). Reports use the standard paths above;
+local log: `/private/tmp/instructor-item4.log`.
 
-- Full project JUnit suite: **735 tests**, zero failures, errors or skips. This
-  is the team suite count, not an individual target or number of PIT test runs.
-- Checkstyle: **0 main / 0 test violations** with the documented starter rules.
-- SpotBugs: **0 main / 0 test unexcluded findings**, after the 13 exact reviewed
-  exceptions listed above; both reports also have zero analysis errors and zero
-  missing classes. This does not mean the unfiltered initial scan was empty.
-- Kevin-only JaCoCo: **1,748/1,748 instructions**, **184/184 branches**,
-  **319/319 lines**, **153/153 covered complexity**, **61/61 methods**, **9/9 classes**.
-  Every reported counter is 100%; the complexity-counter result is not proof of
-  independent basis-path execution or a substitute for the rubric interpretation.
-- PIT: **186 generated; 178 killed; 8 survived**, raw mutation score **95.70%**.
-  No uncovered, timed-out, non-viable, memory-error or run-error mutants. Its own
-  line counter is **320/320**; PIT and JaCoCo count lines differently, so their
-  denominators are reported separately. PIT selected 11 test classes and ran
-  1,072 test executions across the mutants.
+- Full team suite: **746 tests**, zero failures, errors or skips. This includes
+  11 new isolated initialization cases; the original 16 initializer and 20
+  session cases remain real-component integration tests.
+- Checkstyle: **0 main / 0 test violations**, including the new 100-character
+  production line limit. This is an adapted style, not full Google/Sun compliance.
+- SpotBugs: **0 main / 0 test unexcluded findings**, zero analysis errors and
+  zero missing classes. The reviewed exact filters above remain explicit.
+- Kevin-only JaCoCo, now **ten classes** including extracted InitialDeal:
+  **1,856/1,856 instructions**, **182/182 branches**, **353/353 lines**,
+  **167/167 complexity counters**, **76/76 methods**, **10/10 classes**.
+  These are 100% counters, not proof of independent basis-path execution.
+- PIT: **197 generated; 190 killed; seven survived**; raw score **96.45%**.
+  Zero uncovered, timed-out, non-viable, memory-error or run-error mutants.
+  PIT line coverage: **354/354** (its line counting differs from JaCoCo).
+  It selected 12 test classes and ran 1,030 test executions across mutants.
 
 | Kevin component | JaCoCo lines | Branches | Covered complexity | PIT killed / generated |
 | --- | --- | --- | --- | --- |
@@ -168,28 +165,28 @@ actionable tasks executed. The verification log is
 | PokerHandEvaluator | 62/62 | 58/58 | 36/36 | 58/64 |
 | ShowdownResolver | 36/36 | 20/20 | 14/14 | 16/16 |
 | ShowdownResult | 9/9 | No branches | 5/5 | 5/5 |
-| GameInitializer | 28/28 | 14/14 | 10/10 | 12/13 |
-| SetupSession | 27/27 | 10/10 | 15/15 | 12/12 |
+| GameInitializer | 14/14 | 6/6 | 7/7 | 4/4 |
+| InitialDeal | 31/31 | 8/8 | 10/10 | 14/14 |
+| SetupSession | 28/28 | 6/6 | 15/15 | 11/11 |
 | SetupView | 19/19 | 2/2 | 9/9 | 8/8 |
-| Localizations | 109/109 | 66/66 | 47/47 | 52/52 |
+| Localizations | 125/125 | 68/68 | 54/54 | 59/59 |
 
-The first coverage run found untested localization rejection of the valid BCP47
-`und` tag (whose `Locale` has no language) and the resource I/O failure path. Added
-real fault-stream tests check rejection, preserved IOException cause and stream
-closure. A Java 11 probe established that an empty language tag already throws
-inside `Locale.Builder`; its unreachable later empty-string guard was removed.
-The later placeholder fix validates actual argument occurrences and types,
-including quoted patterns and recursively parsed choice outputs, with matching
-argument-count checks. Its additional regression cases are included in the
-final 735-test suite and the 52/52 killed localization mutants.
-The final report has no missed branches or lines. Existing source hygiene,
-unused-import, test-exception and switch-format findings were corrected in
-source; no failing baseline was waived to make the final command green.
+Previous measurement (November 3): 735 tests; nine scoped classes; 319 lines,
+184 branches and 153 complexity counters covered; PIT 178/186 killed with eight
+survivors. Refactoring changes the denominators, so those historical values are
+not current measurements. InitialDeal stays measured after extraction. All
+197 current mutants are accounted for below; none was excluded to improve a score.
+
+Existing localization fault-path fixtures cover missing/invalid resources,
+IOException cause and stream closure, quoted braces/apostrophes, repeated or
+reordered arguments, type compatibility and nested choice outputs. They still
+pass after parser extraction. Native desktop focus and cross-platform layout
+checks remain a separate manual team task.
 
 ## Mutation survivor review
 
-The final 186-mutant `DEFAULTS` run retained the same eight survivors; none is hidden by a PIT
-exclusion. The review below reasons about the published component contracts.
+The current 197-mutant `DEFAULTS` run retained seven survivors; none is hidden
+by a PIT exclusion. The review below reasons about the published component contracts.
 It does not change PIT's raw mutation score or prove literal output identity
 for every public method.
 
@@ -198,12 +195,11 @@ for every public method.
 | `PokerHandEvaluator.bestFive`, outer `a/b/c/d` loop boundaries | 4 | Changing `<` to `<=` adds an iteration whose next nested loop is empty (`b=4`, `c=5`, `d=6` or `e=7`). No five-card candidate or result changes. |
 | `PokerHandEvaluator.rankFive`, equal-count comparator branch forced false | 1 | Ranks enter the list in descending order. The alternative count comparator returns zero for equal multiplicities; Java's stable `List.sort` preserves their descending input order, producing the same group order. |
 | `PokerHandEvaluator.score`, five-position loop boundary | 1 | The sixth iteration appends a zero base-15 digit because kickers have at most five entries. Every private score becomes exactly 15 times its previous value; all scores stay below 103 million, so no integer overflow or comparison-order change occurs. |
-| `GameInitializer.start`, hand-allocation loop boundary | 1 | The extra iteration appends an unused empty list. Valid player seats and the dealing loops still index the original six hands; returned game state and random consumption are unchanged. |
-| `Card.hashCode`, integer return replaced by zero | 1 | Contract-preserving alternative, **not identical hash output**: a constant hash still satisfies equal objects having equal hashes. Different cards need not have distinct hashes. It can degrade hash-table performance; no hash-dispersion or performance requirement is currently specified. This case remains explicit for instructor/reviewer acceptance. |
+| `Card.hashCode`, integer return replaced by zero | 1 | Contract-preserving alternative, **not identical hash output**: a constant hash still satisfies equal objects having equal hashes. Different cards need not have distinct hashes. It can degrade hash-table performance; no hash-dispersion or performance requirement is currently specified. Acceptance of contract equivalence for this case remains pending. |
 
-The first seven are behaviorally equivalent under the current public contracts;
-the eighth requires acceptance of contract equivalence rather than literal
-hash-value equivalence. No artificial assertion of distinct hash codes was
+The six evaluator survivors are behaviorally equivalent under the current public
+contracts; the hash-code survivor requires acceptance of contract equivalence
+rather than literal hash-value equivalence. No artificial assertion of distinct hash codes was
 added to inflate mutation kills. Consequently the raw score must remain below
 100%, and the course's all-non-equivalent-mutants goal remains subject to this
 review rather than an unqualified automated success claim.
@@ -212,7 +208,7 @@ References: [Java 11 stable list sorting](https://docs.oracle.com/en/java/javase
 [Java 11 hash-code contract](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Object.html#hashCode()).
 
 
-## Shared session follow-up — November5,2026
+## Shared session follow-up — November 5,2026
 
 After integrating main with Estella's betting branch, local `clean build --continue`
 and `pitest` pass on JDK 25 with Java 11 compilation/tests. The full suite is
@@ -260,3 +256,38 @@ label-fit tests extend the full suite to **941 passing tests**, with no
 failures/errors/skips. Checkstyle and SpotBugs remain clean, without added
 exclusions. The earlier mutation measurements are retained as historical
 results; mutation testing was not rerun for this Swing-only layout change.
+
+## Add tests and simplify initialization
+
+InitialDeal is included in Kevin's coverage/mutation scope; moving work out of
+GameInitializer did not remove it from the denominator. PIT includes both the
+isolated coordinator tests and the renamed initialization/session integration
+tests. All initialization/localization mutants are killed in this run. The old
+extra-hand-allocation mutant is now killed because dealing traverses the actual
+hand collection; an extra allocated seat changes the deal and fails integration
+checks. This was a structural refactor, not a new user-visible requirement.
+
+
+## PR15 reconciliation with main e8c66ff (November 6)
+
+Full build: 952 tests, zero failures/errors/skips; Checkstyle 0 main / 0 test,
+SpotBugs 0 main / 0 test unexcluded findings, zero analysis errors/missing classes.
+The 100-character production rule is retained. No new suppression was added.
+
+The shared ten-class scope includes InitialDeal and the shared session/view;
+it is not a whole-game measurement. JaCoCo covers 2,216/2,216 instructions,
+216/216 branches, 438/438 lines, 204/204 complexity counters, 96/96 methods and
+10/10 classes. These counters do not prove independent basis paths. PIT
+produces 237 mutants: 230 killed and 7 survivors (97.05%), with no uncovered,
+timeout or error mutants. Its line coverage is 439/439. Fourteen selected test
+classes ran 1,379 test executions in this run. The seven baseline survivors
+are the six evaluator mutants plus the contract-preserving hash-code mutant
+already documented above; the previous eight-survivor figure belongs to the
+November 5 scope before the instructor refactor killed the allocation mutant.
+
+A separate combined-source build includes the 18 ShowdownPanel cases from PR16:
+970 tests and static checks pass. That is a compatibility check, not a merged
+Git history or remote CI result. The two result displays retain separate
+resource keys because one formats a message plus settlement status and the
+other formats winner names alone. Null-flow refactors, privacy/error states,
+accepted-action logging and the visible Call button remain covered.
