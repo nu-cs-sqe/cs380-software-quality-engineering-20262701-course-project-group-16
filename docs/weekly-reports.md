@@ -80,7 +80,8 @@ Branch: `refactor/instructor-feedback`. Each review item has its own local commi
 
 | Item | Status | Work and verification |
 | --- | --- | --- |
-| 1: Method size | Done | Extract clockwise dealing, hand allocation, player copying/creation and configuration validation into named helpers. Existing setup/dealing and BVA tests preserve behavior. |
+| 1: Method size (`34effa7`) | Done | Extract clockwise dealing, hand allocation, player copying/creation and configuration validation into named helpers. Existing setup/dealing and BVA tests preserve behavior. |
+| 2: Test isolation | Done | Inject setup/deal operations; retain original real-component cases under integration test names and add 11 isolated coordinator cases. Include extracted InitialDeal in quality scope. |
 
 ### Verification and progress evaluation
 

@@ -27,6 +27,19 @@ snapshot. Existing chip, blind, status and betting data must be retained.
 | INIT-S01 | Constructor; start | Starting stack 2, blinds 1/2, dealer 0 | BB has two cards, zero chips and ALL_IN status; excluded from pending actors; pot 3, total 12 | Yes - `dealsToAnAllInBlindWithoutChangingItsStatus` (passing) |
 | INIT-S02 | start | Start one-human match, reject seven humans, then start six-human match on same initializer | Fresh full deck and identities per match; correct continuing shuffle sequence; previous state unchanged | Yes - `repeatedStartsUseFreshDecksAndPreserveEarlierMatches` (passing) |
 
+## Test isolation after instructor review
+
+`application.GameInitializerTest` isolates orchestration with supplied setup/deal
+operations. Its 11 cases check requested counts, setup-before-dealing, exception
+propagation and fresh setup per start. Immutable domain values are fixtures;
+GameSetup, Deck and random sources do not run in these unit tests.
+
+The original 16 cases are retained as
+`integration.GameInitializerIntegrationTest`. Session tests are likewise named
+`integration.SetupSessionIntegrationTest` because they run real initialization.
+The package-private `InitialDeal` owns deck construction and PlayerState copying;
+its behavior is checked by the real integration cases, not claimed as isolated.
+
 All six valid dealer fixtures also check human/bot assignment, two unique cards
 per seat, 40 remaining, exact clockwise dealing order, 10/20 blind contributions,
 6,000 conserved chips, an empty board, preserved actor/raise sets and private

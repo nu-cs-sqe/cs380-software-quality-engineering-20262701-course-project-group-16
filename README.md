@@ -96,7 +96,7 @@ and required status-check enforcement still need verification after push.
 Run `bash ./gradlew build` for tests/static checks/coverage and
 `bash ./gradlew pitest` for mutation testing. The team suite and shared static
 checks run across the project; coverage/PIT scores currently measure Kevin's
-nine documented executable components. [Quality results](docs/quality.md)
+ten documented executable components (including the extracted InitialDeal). [Quality results](docs/quality.md)
 list exact scope, report paths, adapted Checkstyle rules and reviewed SpotBugs
 exceptions. There is no invented metric threshold that hides findings.
 

@@ -77,7 +77,7 @@ in these classes still fail. These are not metric exclusions.
 
 | Exact location | Pattern / count | Review and reason |
 | --- | --- | --- |
-| `GameInitializer.deckRandom`, `GameSetup.dealerRandom` | `EI_EXPOSE_REP2` / 2 | Injected `Random` objects intentionally preserve caller-selected seeded/stub behavior. Copying would destroy the seam; these services are mutable and do not claim immutable/thread-safe ownership. |
+| `InitialDeal.random`, `GameSetup.dealerRandom` | `EI_EXPOSE_REP2` / 2 | Injected `Random` objects intentionally preserve caller-selected seeded/stub behavior. Copying would destroy the seam; these services are mutable and do not claim immutable/thread-safe ownership. |
 | `BettingProgress.getPlayersToAct/getPlayersAllowedToRaise` | `EI_EXPOSE_REP` / 2 | Private helper validates then calls `Set.copyOf`; the returned sets are immutable. |
 | `GameState.getCommunityCards/getPlayerStates/getRemainingDeck` | `EI_EXPOSE_REP` / 3 | Constructor helpers call `List.copyOf`; callers cannot mutate internal lists. |
 | `GameView.getPlayers/getCommunityCards` | `EI_EXPOSE_REP` / 2 | Players use `Collectors.toUnmodifiableList`; community comes from the immutable state snapshot. |
@@ -91,7 +91,7 @@ change. Shared Checkstyle violations are fixed in source instead of baselined.
 ## Scope and interpretation
 
 JaCoCo and PIT both include Kevin's `Card`, `Deck`, `PokerHandEvaluator`,
-`ShowdownResolver`, `ShowdownResult`, `GameInitializer`, `SetupSession` and
+`ShowdownResolver`, `ShowdownResult`, `GameInitializer`, `InitialDeal`, `SetupSession` and
 `SetupView` and `Localizations`, including their nested classes. `SetupView` remains in the scope
 even though a display DTO could qualify for a view exemption: its private-card
 filtering is useful behavior to measure. Tests exercise these components
@@ -203,3 +203,12 @@ review rather than an unqualified automated success claim.
 
 References: [Java 11 stable list sorting](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/List.html#sort(java.util.Comparator)),
 [Java 11 hash-code contract](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Object.html#hashCode()).
+
+## Instructor review follow-up
+
+The November 3 measurements above are historical, before the November 6
+refactoring. InitialDeal is now included in Kevin's coverage/mutation scope;
+moving work out of GameInitializer must not remove it from the denominator.
+PIT includes both the isolated coordinator tests and the renamed initialization
+and session integration tests. Updated measurements will be recorded after all
+four instructor-review items are checked.
