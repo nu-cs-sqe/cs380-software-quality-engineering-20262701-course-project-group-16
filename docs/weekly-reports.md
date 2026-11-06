@@ -74,6 +74,14 @@ the final November 3 check. These are historical scopes, not individual targets.
 Setup checks preserve the 10/20 blinds, 6,000-chip total, correct positions,
 two-card hands, 40-card remainder and private views.
 
+### Instructor review follow-up (November 6)
+
+Branch: `refactor/instructor-feedback`. Each review item has its own local commit.
+
+| Item | Status | Work and verification |
+| --- | --- | --- |
+| 1: Method size | Done | Extract clockwise dealing, hand allocation, player copying/creation and configuration validation into named helpers. Existing setup/dealing and BVA tests preserve behavior. |
+
 ### Verification and progress evaluation
 
 Last implementation verification: **November 3**, local `clean build pitest --continue`,

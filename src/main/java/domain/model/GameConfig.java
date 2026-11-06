@@ -16,13 +16,17 @@ public final class GameConfig {
      * @throws IllegalArgumentException for invalid settings or a six-stack total overflow
      */
     public GameConfig(long startingChips, long smallBlind, long bigBlind) {
+        validateSettings(startingChips, smallBlind, bigBlind);
+        this.startingChips = startingChips;
+        this.smallBlind = smallBlind;
+        this.bigBlind = bigBlind;
+    }
+
+    private static void validateSettings(long startingChips, long smallBlind, long bigBlind) {
         if (startingChips <= 0 || startingChips > Long.MAX_VALUE / SEAT_COUNT
                 || smallBlind <= 0 || smallBlind >= bigBlind || bigBlind > startingChips) {
             throw new IllegalArgumentException("Require positive blinds below the starting stack and a safe total.");
         }
-        this.startingChips = startingChips;
-        this.smallBlind = smallBlind;
-        this.bigBlind = bigBlind;
     }
 
     public long getStartingChips() { return startingChips; }

@@ -44,26 +44,45 @@ public final class GameInitializer {
         Deck deck = new Deck(deckRandom);
         deck.shuffle();
 
-        List<List<Card>> hands = new ArrayList<>();
-        int seatCount = table.getConfig().getSeatCount();
-        for (int seat = 0; seat < seatCount; seat++) {
-            hands.add(new ArrayList<>());
-        }
-        for (int round = 0; round < 2; round++) {
-            for (int distance = 1; distance <= seatCount; distance++) {
-                int seat = (table.getDealerSeat() + distance) % seatCount;
-                hands.get(seat).addAll(deck.deal(1));
-            }
-        }
-
-        List<PlayerState> dealtPlayers = new ArrayList<>();
-        for (PlayerState player : table.getPlayerStates()) {
-            dealtPlayers.add(new PlayerState(player.getPlayer(), player.getStatus(),
-                    hands.get(player.getPlayer().getSeat()),
-                    player.getRoundContribution(), player.getHandContribution()));
-        }
+        List<List<Card>> hands = dealHoleCards(table, deck);
+        List<PlayerState> dealtPlayers = playersWithCards(table, hands);
         return new GameState(table.getConfig(), table.getHandId(), GamePhase.PREFLOP,
                 dealtPlayers, table.getPositions(), table.getCurrentActorId().orElseThrow(),
                 table.getCommunityCards(), deck.deal(deck.remainingCards()), table.getBettingProgress());
     }
+
+    private static List<List<Card>> dealHoleCards(GameState table, Deck deck) {
+        int seatCount = table.getConfig().getSeatCount();
+        List<List<Card>> hands = emptyHands(seatCount);
+        for (int round = 0; round < 2; round++) {
+            dealClockwise(table.getDealerSeat(), hands, deck);
+        }
+        return hands;
+    }
+
+    private static List<List<Card>> emptyHands(int seatCount) {
+        List<List<Card>> hands = new ArrayList<>();
+        for (int seat = 0; seat < seatCount; seat++) {
+            hands.add(new ArrayList<>());
+        }
+        return hands;
+    }
+
+    private static void dealClockwise(int dealerSeat, List<List<Card>> hands, Deck deck) {
+        for (int distance = 1; distance <= hands.size(); distance++) {
+            int seat = (dealerSeat + distance) % hands.size();
+            hands.get(seat).addAll(deck.deal(1));
+        }
+    }
+
+    private static List<PlayerState> playersWithCards(GameState table, List<List<Card>> hands) {
+        List<PlayerState> players = new ArrayList<>();
+        for (PlayerState before : table.getPlayerStates()) {
+            players.add(new PlayerState(before.getPlayer(), before.getStatus(),
+                    hands.get(before.getPlayer().getSeat()),
+                    before.getRoundContribution(), before.getHandContribution()));
+        }
+        return players;
+    }
+
 }
