@@ -5,11 +5,11 @@ filling the remaining seats. Players share one computer and use virtual chips.
 Seats stay fixed during a match; players can stop the whole game.
 The intended full match ends when one player holds all the chips.
 
-**Status:** A controlled hand can now run through fold/check/call actions,
-street progression and real winner/tie comparison in Swing, in English or Chinese.
-Bots use a temporary check/call policy. Accepted actions feed pending statistics.
-Results await settlement: bets/raises,
-postflop calls, payouts, repeated-hand matches and equity bots remain unfinished.
+**Status:** The supported fold/check/call flow now reaches real results, pays pots
+and carries chips and player statistics into the next hand. Swing supports
+English and Chinese, explicit private-card handoffs and a read-only statistics
+tab. Bots use a temporary check/call policy. Bets/raises, postflop calls, equity
+bots and saved profiles remain unfinished.
 
 ## Contributors
 
@@ -75,7 +75,12 @@ see [localization](docs/design/localization.md).
 
 This is shared-computer privacy by handoff, not authentication: anyone using the
 computer can select another human. Actions are enabled only for the current
-human viewer. Results leave chips committed until settlement is implemented.
+human viewer. After a result, choose **Settle hand** to pay pots and update
+statistics, then **Next hand** to keep playing with the same players and stacks.
+The **Statistics** tab shows completed-hand totals; N/A means no qualifying
+opportunity. Switching tabs conceals cards. A match finishes when one player
+holds all chips. **Start Game** starts a separate match and resets totals.
+Statistics are kept in memory for this match; closing the game discards them.
 Tests run headlessly, without opening a desktop window.
 
 ## Application initialization
@@ -99,8 +104,8 @@ and required status-check enforcement still need verification after push.
 
 Run `bash ./gradlew build` for tests/static checks/coverage and
 `bash ./gradlew pitest` for mutation testing. The team suite and shared static
-checks run across the project; coverage/PIT use eleven documented components,
-including InitialDeal, HandStatistics and the shared session. These are not
+checks run across the project; coverage/PIT use seventeen documented components,
+including dealing, settlement, continuation, PlayStats and the shared session. These are not
 full-game metrics.
 [Quality results](docs/quality.md)
 list exact scope, report paths, adapted Checkstyle rules and reviewed SpotBugs
@@ -123,18 +128,18 @@ exceptions. There is no invented metric threshold that hides findings.
 
 ### Code Coverage
 
-Coverage uses the documented eleven-class scope, including InitialDeal and the
-shared session/view and pending-statistics adapter. The rubric targets 100%
+Coverage uses the documented 17-component scope, including InitialDeal and the
+shared session/view, statistics collectors and settlement. The rubric targets 100%
 cyclomatic coverage, with View/Main/Enum exemptions. JaCoCo line, branch
 and covered-complexity counters are reported separately; these do not prove
 independent basis-path execution. The exact class scope and results are in
-[quality.md](docs/quality.md); betting/state and the PlayStats domain collector
+[quality.md](docs/quality.md); the remaining betting/state components
 remain outside this measurement scope,
 while their tests and shared static checks still run.
 
 ### Mutation Testing
 
-PIT uses the DEFAULTS operator group on the documented eleven-class scope. The target
+PIT uses the DEFAULTS operator group on the documented 17-component scope. The target
 is to kill every non-equivalent mutant. Actual raw scores and each surviving
 mutant's reasoning remain visible in [quality.md](docs/quality.md), including
 the unresolved acceptance of a contract-preserving constant hash. Survivor reasoning and acceptance limits are documented alongside the raw score.

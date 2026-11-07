@@ -8,6 +8,49 @@ no `ignoreFailures`, global suppression or baseline hiding existing warnings. Re
 CI uploads test, coverage, mutation and static-analysis reports even after a
 failed step.
 
+## Completed match statistics — November 6, 2026
+
+Branch `feature/week6-finish`; local `build pitest` uses Gradle 9.7.1 / JDK 17
+with Java 11 compilation/tests. Checkpoints: `1a99b7d` pays pots and refunds;
+`78e5271` retains completed totals and continues fixed-seat hands; `e1c2992` fixes short-blind decisions and completion checks. These local
+changes still need push, remote CI and partner review.
+
+| Check | Latest result |
+| --- | --- |
+| Team tests | **1,033 passing**, zero failures/errors/skips. |
+| Checkstyle / SpotBugs | Zero main/test unexcluded findings, analysis errors or missing classes; no new suppression. |
+| Configured 17 parent components | **827 lines, 431 branches, 391 complexity counters, 4,383 instructions, 174 methods and 18 reported classes**, zero missed counters. Reported classes include the generated PlayStats counter enum. |
+| PIT | **440/447 killed (98.43%)**; 7 survivors, 0 uncovered. Full counts/statuses remain in the report. |
+
+The measured scope now includes PotSettlement/Settlement, MatchStatistics,
+NextHand, StatisticsView and PlayStats. Existing partner state/betting classes
+remain outside this denominator, including the short-blind GameState/BettingEngine
+follow-up; their full tests and shared static checks still run. UI stays exempt
+from scoped metrics. Covered complexity counters do not prove independent basis
+paths or full-game coverage.
+
+TDD observed 9 failing payout cases, 4 completed-statistics/copy cases, 4 continuation
+cases and 2 bilingual UI cases before their implementations. Three short-blind /
+last-active regressions failed before the engine fix; two embedded-header layout
+cases failed before the presentation fix. Later mutation-driven tests cover
+stronger late contenders, separated-seat odd chips, every nonparticipant outcome,
+reverse c-bet contexts, rejected/successful continuation privacy and raise rights;
+they are regression coverage, not additional claimed feature RED cycles.
+
+The final read-only code review found three betting/continuation issues; the
+follow-up confirmed all three resolved. English/Chinese table and statistics
+layouts were rendered at 1,100×740; native OS focus and cross-platform fonts still
+need manual walkthrough. The actual pipeline is accepted ledger → real payout →
+transactional completed totals → immutable bilingual table → next stable-seat hand.
+Stopping the game discards in-memory statistics; saved profiles remain future work.
+
+PIT line coverage is 823/823; 22 selected test classes ran 3,105 executions across
+mutants. There are no uncovered, timeout or error mutants. The seven unchanged
+survivors are the six evaluator cases and hash-contract case reviewed below.
+All new settlement, continuation, completed-statistics and copy mutants are
+killed. The configured 17 parent components produce 18 reported classes because
+of the nested counter enum; this is not an 18-component full-game claim.
+
 ## Pending-statistics checkpoint — November 6, 2026
 
 Branch `feature/week6-finish`, based on merged main `ac70b3b` plus the progress
@@ -142,16 +185,17 @@ change. Shared Checkstyle violations are fixed in source instead of baselined.
 ## Scope and interpretation
 
 SetupSession and SetupView include shared played-hand integration. The
-current configured scope has eleven classes, including extracted InitialDeal
-and the pending HandStatistics adapter.
+current configured scope has 17 parent components, including dealing, settlement,
+completed statistics, continuation and the shared session/view.
 Earlier nine-class results below are historical, not current full-game
 coverage. PIT retains the renamed integration tests and the new session
 and played-hand tests.
 
 JaCoCo and PIT include `Card`, `Deck`, `PokerHandEvaluator`,
 `ShowdownResolver`, `ShowdownResult`, `GameInitializer`, `InitialDeal`,
-`HandStatistics`, `SetupSession`, `SetupView` and `Localizations`, including
-their nested classes. `SetupView` remains in the scope
+`HandStatistics`, `MatchStatistics`, `NextHand`, `StatisticsView`, `PotSettlement`,
+`Settlement`, `PlayStats`, `SetupSession`, `SetupView` and `Localizations`,
+including their nested classes. `SetupView` remains in the scope
 even though a display DTO could qualify for a view exemption: its private-card
 filtering is useful behavior to measure. Tests exercise these components
 through their public contracts; the complete JUnit suite also runs in the build.
@@ -161,9 +205,9 @@ test executions across mutants separately from the JUnit suite count. It uses th
 workers, HTML/XML output and deterministic report paths. A mutant may hang a
 loop; timeout permits twice its baseline test duration plus two seconds.
 
-Excluded from the **current eleven-class metric denominator**:
+Excluded from the **current 17-component metric denominator**:
 
-- Domain state, betting and PlayStats components; their test
+- The remaining domain state and betting components; their test
   execution is retained, but their coverage is not established by this scope.
 - `HandEvaluator`, an interface without executable default methods, and the
   `Rank`/`Suit` and nested `ShowdownResult.Status` enums, whose constants have no hand-written branching behavior.

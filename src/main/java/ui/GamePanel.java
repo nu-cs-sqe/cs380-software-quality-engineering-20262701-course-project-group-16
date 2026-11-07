@@ -29,6 +29,7 @@ import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
+import javax.swing.JTabbedPane;
 import localization.Localizations;
 
 /** Shared-computer played-hand screen. Construct and use on the Swing event thread. */
@@ -52,6 +53,10 @@ public final class GamePanel extends JPanel {
     private final JButton fold = named(new JButton(), "fold");
     private final JButton check = named(new JButton(), "check");
     private final JButton call = named(new JButton(), "call");
+    private final JButton settle = named(new JButton(), "settle");
+    private final JButton nextHand = named(new JButton(), "nextHand");
+    private final JTabbedPane sections = named(new JTabbedPane(), "sections");
+    private final StatisticsPanel statistics = new StatisticsPanel();
     private final JLabel error = named(new JLabel(" "), "error");
     private final JLabel status = named(new JLabel(), "status");
     private final JLabel pot = named(new JLabel(), "pot");
@@ -91,6 +96,13 @@ public final class GamePanel extends JPanel {
         fold.addActionListener(event -> submitAction(ActionType.FOLD));
         check.addActionListener(event -> submitAction(ActionType.CHECK));
         call.addActionListener(event -> submitAction(ActionType.CALL));
+        settle.addActionListener(event -> advanceHand(session::settleHand));
+        nextHand.addActionListener(event -> advanceHand(this::startNextHand));
+        sections.addChangeListener(event -> {
+            if (!rendering) {
+                hidePrivateCards();
+            }
+        });
         setPreferredSize(new Dimension(1100, 740));
         buildScreen();
     }
@@ -102,12 +114,27 @@ public final class GamePanel extends JPanel {
     }
 
     private void buildScreen() {
-        removeAll();
-        setLocale(messages.locale(selectedLanguage));
-        putClientProperty("windowTitle", text("title"));
-        setLayout(new BorderLayout(18, 18));
-        setBackground(INK);
-        setBorder(BorderFactory.createEmptyBorder(20, 22, 20, 22));
+        rendering = true;
+        try {
+            removeAll();
+            setLocale(messages.locale(selectedLanguage));
+            putClientProperty("windowTitle", text("title"));
+            setLayout(new BorderLayout(18, 18));
+            setBackground(INK);
+            setBorder(BorderFactory.createEmptyBorder(20, 22, 20, 22));
+            add(buildHeader(), BorderLayout.NORTH);
+            add(buildSidebar(), BorderLayout.WEST);
+            sections.removeAll();
+            sections.addTab(text("table.title"), buildTable());
+            sections.addTab(text("stats.title"), statistics);
+            add(sections, BorderLayout.CENTER);
+        } finally {
+            rendering = false;
+        }
+        refresh();
+    }
+
+    private JPanel buildHeader() {
         JPanel header = transparent(new BorderLayout());
         JLabel title = label(text("title"), 27, Color.WHITE);
         header.add(title, BorderLayout.WEST);
@@ -116,13 +143,27 @@ public final class GamePanel extends JPanel {
         language.getAccessibleContext().setAccessibleName(text("language"));
         languageChoice.add(language);
         header.add(languageChoice, BorderLayout.EAST);
-        add(header, BorderLayout.NORTH);
+        return header;
 
+    }
+
+    private JPanel buildSidebar() {
         JPanel sidebar = new JPanel();
         sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
         sidebar.setBackground(new Color(244, 246, 244));
         sidebar.setBorder(BorderFactory.createEmptyBorder(20, 18, 20, 18));
         sidebar.setPreferredSize(new Dimension(285, 600));
+        addSetupControls(sidebar);
+        sidebar.add(Box.createVerticalStrut(20));
+        addPrivateControls(sidebar);
+        sidebar.add(Box.createVerticalStrut(10));
+        addActionControls(sidebar);
+        sidebar.add(Box.createVerticalGlue());
+        addRow(sidebar, new JLabel(wrapped(text("privacyNote"))));
+        return sidebar;
+    }
+
+    private void addSetupControls(JPanel sidebar) {
         addRow(sidebar, label(text("setup"), 21, INK));
         addRow(sidebar, new JLabel(text("humanCount")));
         humanCount.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
@@ -135,12 +176,23 @@ public final class GamePanel extends JPanel {
         error.setForeground(new Color(159, 34, 34));
         error.setFont(new Font(Font.DIALOG, Font.PLAIN, 12));
         addRow(sidebar, error);
-        sidebar.add(Box.createVerticalStrut(20));
+    }
+
+    private void addPrivateControls(JPanel sidebar) {
         addRow(sidebar, label(text("privateHand"), 21, INK));
         viewers.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
         viewers.getAccessibleContext().setAccessibleName(text("privateHand"));
         addRow(sidebar, viewers);
         addRow(sidebar, handoff);
+        addRow(sidebar, buildPrivateCards());
+        JPanel privacy = transparent(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        reveal.setText(text("reveal"));
+        hide.setText(text("hide"));
+        privacy.add(reveal); privacy.add(hide);
+        addRow(sidebar, privacy);
+    }
+
+    private JPanel buildPrivateCards() {
         JPanel hand = transparent(new FlowLayout(FlowLayout.LEFT, 8, 8));
         for (int i = 0; i < 2; i++) {
             holes[i] = named(new JLabel("--", JLabel.CENTER), "hole" + i);
@@ -151,13 +203,10 @@ public final class GamePanel extends JPanel {
             holes[i].setBorder(BorderFactory.createLineBorder(new Color(190, 200, 192)));
             hand.add(holes[i]);
         }
-        addRow(sidebar, hand);
-        JPanel privacy = transparent(new FlowLayout(FlowLayout.LEFT, 5, 0));
-        reveal.setText(text("reveal"));
-        hide.setText(text("hide"));
-        privacy.add(reveal); privacy.add(hide);
-        addRow(sidebar, privacy);
-        sidebar.add(Box.createVerticalStrut(10));
+        return hand;
+    }
+
+    private void addActionControls(JPanel sidebar) {
         addRow(sidebar, label(text("actions"), 18, INK));
         fold.setText(text("fold"));
         check.setText(text("check"));
@@ -168,13 +217,20 @@ public final class GamePanel extends JPanel {
         }
         actions.add(fold); actions.add(check); actions.add(call);
         addRow(sidebar, actions);
-        sidebar.add(Box.createVerticalGlue());
-        addRow(sidebar, new JLabel(wrapped(text("privacyNote"))));
-        add(sidebar, BorderLayout.WEST);
+    }
 
+    private JPanel buildTable() {
         JPanel table = new JPanel(new BorderLayout(14, 20));
         table.setBackground(FELT);
         table.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        table.add(buildSummary(), BorderLayout.NORTH);
+        seats.setOpaque(false);
+        table.add(seats, BorderLayout.CENTER);
+        table.add(buildFooter(), BorderLayout.SOUTH);
+        return table;
+    }
+
+    private JPanel buildSummary() {
         JPanel summary = transparent(new GridLayout(3, 1, 0, 8));
         status.setForeground(Color.WHITE);
         status.setFont(new Font(Font.DIALOG, Font.BOLD, 18));
@@ -182,10 +238,11 @@ public final class GamePanel extends JPanel {
         pot.setForeground(GOLD); pot.setFont(new Font(Font.DIALOG, Font.BOLD, 18));
         summary.add(pot);
         deck.setForeground(Color.WHITE); summary.add(deck);
-        table.add(summary, BorderLayout.NORTH);
-        seats.setOpaque(false);
-        table.add(seats, BorderLayout.CENTER);
-        JPanel footer = transparent(new GridLayout(4, 1, 0, 8));
+        return summary;
+    }
+
+    private JPanel buildFooter() {
+        JPanel footer = transparent(new GridLayout(5, 1, 0, 8));
         community.setForeground(Color.WHITE);
         community.setFont(new Font(Font.DIALOG, Font.BOLD, 16));
         phase.setForeground(Color.WHITE);
@@ -193,10 +250,34 @@ public final class GamePanel extends JPanel {
         footer.add(community);
         footer.add(phase);
         footer.add(result);
+        footer.add(buildProgressionControls());
         footer.add(label(text("preview"), 13, new Color(224, 232, 226)));
-        table.add(footer, BorderLayout.SOUTH);
-        add(table, BorderLayout.CENTER);
+        return footer;
+    }
+
+    private JPanel buildProgressionControls() {
+        JPanel controls = transparent(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        settle.setText(text("settle"));
+        nextHand.setText(text("nextHand"));
+        controls.add(settle);
+        controls.add(nextHand);
+        return controls;
+    }
+
+    private void advanceHand(Runnable operation) {
+        session.hideCards();
+        try {
+            operation.run();
+            errorMessage = ErrorMessage.NONE;
+        } catch (IllegalArgumentException | IllegalStateException invalid) {
+            errorMessage = ErrorMessage.INVALID_ACTION;
+        }
         refresh();
+    }
+
+    private void startNextHand() {
+        session.nextHand();
+        session.playBotTurns();
     }
 
     private void startGame() {
@@ -248,6 +329,11 @@ public final class GamePanel extends JPanel {
                 showWaitingTable();
             }
             renderActions(view);
+            settle.setEnabled(session.getResult().isPresent() && session.getSettlement().isEmpty());
+            nextHand.setEnabled(session.getSettlement().isPresent()
+                    && session.getMatchWinner().isEmpty());
+            statistics.render(view.map(SetupView::getPlayers).orElseGet(List::of),
+                    session.getStatistics(), messages, selectedLanguage);
             handoff.setMaximumSize(new Dimension(Integer.MAX_VALUE,
                     handoff.getPreferredSize().height));
         } finally {
@@ -283,7 +369,7 @@ public final class GamePanel extends JPanel {
         hide.setEnabled(!view.getHoleCards().isEmpty());
         int actor = view.getCurrentActorSeat();
         status.setText(actor >= 0 ? text("currentActor", playerName(view.getPlayers().get(actor)))
-                : text("result.awaitingSettlement"));
+                : completionText());
         pot.setText(text("pot", view.getPot()));
         deck.setText(text("deck", view.getRemainingCardCount()));
         handoff.setText(wrapped(text("handoff",
@@ -341,7 +427,15 @@ public final class GamePanel extends JPanel {
                 .map(this::playerName).collect(Collectors.joining(", "));
         return text(comparison.isUncontested()
                         ? "result.inline.uncontested" : "result.inline.contested",
-                winners, text("result.awaitingSettlement"));
+                winners, completionText());
+    }
+
+    private String completionText() {
+        if (session.getMatchWinner().isPresent()) {
+            return text("match.winner", playerName(session.getMatchWinner().orElseThrow()));
+        }
+        return text(session.getSettlement().isPresent() ? "result.paid"
+                : "result.awaitingSettlement");
     }
 
     private JPanel seatPanel(int seat, Optional<SetupView> view) {

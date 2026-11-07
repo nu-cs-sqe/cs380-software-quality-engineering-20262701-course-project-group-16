@@ -55,6 +55,7 @@ comparison; add English/Chinese support; configure and measure quality checks.
 | Done | Kevin | Update README, BVA/design contracts and weekly report with checkpoint evidence and open dependencies. | `8a322f9`, report cleanup `42a02d5`; [BVA index](bva/README.md). |
 | Done, component only | Kevin | Reusable English/Chinese showdown display: winner/ties/uncontested, awaiting settlement, stale-input guards and clearing. Reads public names only; the played-hand screen uses its own translated inline result. | Branch `feature/showdown-display`; RED `2493bf3` → GREEN `750e7c4`; 18 cases; [result contract](design/showdown.md). |
 | Done | Kevin | Feed accepted human/bot actions once into pending PlayStats; preserve rejection/retry and failed-start state. Complete fixed-seat match/stop rules. | Branch `feature/week6-finish`, code `634b2c6`; 12 adapter + 16 integration cases; [BVA](bva/HandStatistics.md), [game rules](requirements/game-rules.md). |
+| Done | Kevin | Settle main/side pots with split ties and refunds; complete player statistics once, carry totals/chips/IDs into later hands and show bilingual read-only statistics. Fix short-blind and last-active decisions; split UI construction. | `feature/week6-finish`; payouts `1a99b7d`, cumulative tracking `78e5271`, decision fixes `e1c2992`; [completion BVA](bva/CompletedStatistics.md), [UI BVA](bva/StatisticsPanel.md). |
 
 **Branches:** Initializer `feature/setup-dealing`; session/Swing `feature/swing-setup`
 (merged through PR #11); Kevin branch `feature/hand-evaluation`, based on
@@ -98,26 +99,33 @@ branch measurements. Both the 18 result-display cases and 11 isolated coordinato
 cases are retained in the combined branch.
 
 Latest local verification: **November 6**, branch `feature/week6-finish`,
-`build pitest` on Gradle 9.7.1 / JDK 17 with Java 11 compilation/tests. The merged
-baseline `ac70b3b` passed 970 tests and [GitHub CI](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/actions/runs/42232032730).
-These new changes still need push, remote CI and peer review. Historical
-component/shared measurements remain in [quality results](quality.md).
+`build pitest` on Gradle 9.7.1 / JDK 17 with Java 11 compilation/tests. These
+changes need push, remote CI and peer approval. Earlier main `ac70b3b` passed 970
+tests and [GitHub CI](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/actions/runs/42232032730);
+that result predates this checkpoint. [Quality history](quality.md) retains the
+998-test pending-only checkpoint and all earlier measurements.
 
 | Check | Latest local result |
 | --- | --- |
-| Team tests | **998 passing**, zero failures/errors/skips. |
-| Checkstyle / SpotBugs | Zero main/test findings after existing exceptions; 100-character production Java limit retained. |
-| Shared measured scope: eleven classes | **100% counters:** 471 lines, 226 branches, 217 complexity, 2,353 instructions, 104 methods. Includes InitialDeal, shared session/view and HandStatistics; excludes the betting/state/PlayStats engine and Swing from this denominator. |
-| PIT | **242/249 killed (97.19%)**; seven unchanged reviewed survivors; no uncovered/time-out/error mutants. |
-| UI | Existing English/Chinese played-flow/privacy cases pass. Native focus/font walkthrough remains pending. |
+| Team suite | **1,033 passing**, zero failures/errors/skips. |
+| Checkstyle / SpotBugs | Zero main/test findings after existing exact exceptions; 100-character production limit retained. |
+| 17-component scope | **827 lines, 431 branches, 391 complexity counters, 4,383 instructions, 174 methods and 18 reported classes**, zero missed counters; these are scoped counters, not whole-game/basis-path proof. |
+| PIT | **440/447 killed (98.43%)**, 7 survivors; 0 uncovered. See [survivor review](quality.md). |
+| UI | English/Chinese completed totals, payment/continuation and privacy pass; offscreen layouts checked. Native focus/font walkthrough remains pending. |
 
-New statistics checkpoint: RED had **25 failures / three existing passes** in
-28 new cases; GREEN passed all 28. Real-component integration checks cover
-accepted actions once, rejected requests, all-in runout, uncontested endings,
-bots, failed comparison/recording retries and restart preservation. Rates stay
-pending until real settlement; no completed-hand totals are claimed. Players
-keep their seats throughout a match; stopping the whole game is allowed. Full
-match carry-over/elimination remains future work. Code checkpoint: `634b2c6`.
+Current pipeline: play supported actions → compare → **Settle hand** → update
+completed totals once → **Next hand** with the same IDs/chips/statistics. Paid
+hands conserve chips and eliminate zero stacks; one remaining stack finishes
+the match. Start Game resets the match; stopping closes it. There is no individual
+leaving/replacement or saved profile. Bets/raises, postflop calls and equity bots
+remain future work.
+
+TDD: 9 payout, 4 completion/copy, 4 continuation and 2 bilingual UI cases failed
+before implementation. Three short-blind/last-active cases and two embedded
+header cases also failed before their fixes. Later regression tests address
+mutation gaps. The earlier 28-case pending tracker checkpoint remains recorded
+in its BVA and quality history. Code review follow-up found no remaining
+issues in the three corrected betting paths.
 
 The refactoring preserves behavior. The 11 new coordinator cases were run
 first against an unimplemented injection boundary and all failed as expected,
@@ -127,7 +135,7 @@ RED cycles. Original setup/dealing integration cases and their historical
 checkpoint commits remain recorded above. PR status and remote checks are tracked
 on GitHub.
 
-The supported played-hand flow is merged through
+Earlier merged baseline: the supported played-hand flow was merged through
 [PR #15](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/pull/15)
 into main `ac70b3b`. SetupSession connects legal FOLD/CHECK/CALL decisions,
 closed-round advancement, temporary CHECK/CALL bots and real winner/tie or
@@ -139,8 +147,8 @@ rejection/atomic retry and privacy. Unit coordinator cases use controlled
 setup/deal operations. Native focus/font walkthrough remains pending.
 
 Full betting is still incomplete: BET/RAISE, raised preflop rounds and postflop
-CALL are explicitly unsupported. Payouts/side pots, next-hand rotation,
-elimination/match completion and equity bots remain later work. Scoped quality
+CALL are explicitly unsupported. Payouts/side pots, next-hand rotation and elimination/match completion are now
+implemented by the checkpoint above. Equity bots and saved profiles remain later work. Scoped quality
 counters do not establish full-game or independent basis-path coverage.
 
 ### Estella's local integration verification — November 5
@@ -204,10 +212,12 @@ and combined-source results (970) describe different checkpoints.
 ### Remaining work and next steps
 
 - [x] **Estella + Kevin:** Supported fold/check/call flow, streets, real results and bilingual Swing merged through PR #15/#16. CI passed for main `ac70b3b`; full betting and settlement remain below.
-- [ ] **Together:** Implement bets/raises and their action/reopening rules, including postflop calls; then complete pot/side-pot settlement and repeated-hand match flow.
-- [ ] **Together:** Split multi-step methods when changing them; `GamePanel.buildScreen` and `BettingEngine.advanceStreet` are candidates for focused rendering/transition helpers. Follow the [method-design guidance](design/README.md#method-design).
+- [x] **Kevin:** Real pot/refund settlement, completed match statistics, fixed-seat continuation/elimination and bilingual statistics display.
+- [ ] **Together:** Implement bets/raises and action/reopening rules, including postflop calls; add equity bots and saved profiles in later milestones.
+- [x] **Kevin:** Split GamePanel construction into header/sidebar/private/action/table/footer helpers.
+- [ ] **Together:** Keep later changes small and cohesive; BettingEngine.advanceStreet remains a possible focused refactor. Follow [method-design guidance](design/README.md#method-design).
 - [ ] **Together:** Walk through native desktop focus-loss privacy and cross-platform fonts/layout.
-- [x] **Kevin:** Complete [game rules](requirements/game-rules.md): agreed 10/20 blinds, random first button, fixed seats/no individual leaving, whole-game stop allowed; current hand vs future match behavior is explicit.
+- [x] **Kevin:** Complete [game rules](requirements/game-rules.md): agreed 10/20 blinds, random first button, fixed seats/no individual leaving, whole-game stop allowed; implemented match behavior and saved-profile limits are explicit.
 - [ ] **Together:** Confirm board assignees/status/PR links and record meeting evidence.
 - [ ] **Together:** Review rubric interpretation and mutation survivors with the instructor; obtain partner-owned quality measurements separately.
 - [x] **Kevin:** Implementation branch merged through PR #13 (`d2a78f3`).
