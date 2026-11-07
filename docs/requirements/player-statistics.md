@@ -1,8 +1,9 @@
 # Player statistics
 
 These are the project's statistics conventions. `PlayStats` aggregates the
-completed hands of one player/profile. Profile storage, the profile screen,
-and the betting-engine adapter are separate work.
+completed hands of one player/profile. Profile storage remains future work. The application records pending actions,
+then aggregates only after real settlement. Swing shows immutable completed
+totals, preserved across hands within the same in-memory match.
 
 ## Required results
 
@@ -134,5 +135,29 @@ bash ./gradlew clean build
 
 The BVA documents for PlayStats, StatsAction, and StatsContext map unique case
 IDs to their JUnit tests. Enums are exempt from separate BVA documents under the
-course template. TDD execution logs are kept separately; no commits are made
-automatically.
+course template. Checkpoint results and commits are recorded in the single weekly report.
+
+## Application delivery
+
+SetupSession prepares one HandStatistics recorder for a successfully initialized
+hand. Each player has a separate PlayStats collector with participation taken
+from dealt cards. After an accepted request, closed-round advancement and final
+comparison must succeed before the action is delivered once and session state
+is published. Rejected requests, legal-action queries, forced blinds, viewer
+changes and automatic board runout create no voluntary observations.
+
+The package factory permits capturing deliveries and injecting failures in tests.
+A recorder must reject invalid data before mutation; PlayStats validates before
+appending. Failed starts retain the previous session/collector. Successful
+restarts discard pending records and create a new hand. MatchStatistics consumes the accepted ledger once per paid hand. It copies
+completed collectors, begins the current hand, records its accepted observations,
+and supplies verified flop/showdown participation, contested awards and refunds
+to completeHand. Publication follows successful completion for every player, so
+an invalid hand cannot partly change match totals. Comparison alone still does
+not complete statistics. See [completed statistics BVA](../bva/CompletedStatistics.md).
+
+Next hand retains IDs and completed collectors; eliminated seats are not dealt
+in and do not gain hands played. Start Game resets the whole match. There is no
+profile saving or match resumption. VPIP/PFR/WTSD/W$SD reflect actual supported
+play; metrics needing bets/raises or c-bet opportunities remain unavailable or
+zero as their documented denominators require. No opportunities are invented.

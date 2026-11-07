@@ -49,7 +49,7 @@ application {
     mainClass.set("ui.Main")
 }
 
-// Ten-class scope with InitialDeal and shared session integration follow-ups.
+// Shared scope includes settlement, completed statistics and stable-seat continuation.
 // This is not a whole-team coverage or mutation score.
 val measuredClasses = listOf(
     "domain.model.Card",
@@ -59,6 +59,13 @@ val measuredClasses = listOf(
     "domain.model.ShowdownResult",
     "application.GameInitializer",
     "application.InitialDeal",
+    "application.HandStatistics",
+    "application.MatchStatistics",
+    "application.NextHand",
+    "application.StatisticsView",
+    "domain.model.PotSettlement",
+    "domain.model.Settlement",
+    "domain.model.PlayStats",
     "application.SetupSession",
     "application.SetupView",
     "localization.Localizations"
@@ -134,6 +141,10 @@ pitest {
         "domain.model.ShowdownResultTest", "application.GameInitializerTest",
         "integration.GameInitializerIntegrationTest",
         "integration.SetupSessionIntegrationTest", "application.SessionBettingTest",
+        "application.HandStatisticsTest", "application.SessionStatisticsIntegrationTest",
+        "domain.model.PotSettlementTest", "domain.model.PlayStatsTest",
+        "domain.model.PlayStatsCopyTest", "application.NextHandTest",
+        "application.CompletedStatisticsIntegrationTest", "application.ShortBlindIntegrationTest",
         "application.SetupViewTest", "integration.SetupIntegrationTest",
         "integration.ShowdownIntegrationTest", "integration.PlayedHandIntegrationTest",
         "localization.LocalizationsTest"

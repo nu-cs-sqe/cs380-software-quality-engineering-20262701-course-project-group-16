@@ -134,7 +134,8 @@ public final class BettingEngine {
     private static void requireSupportedDecision(GameState before, ActionType type) {
         switch (before.getPhase()) {
             case PREFLOP:
-                if (before.getCurrentBet() != before.getConfig().getBigBlind()) {
+                if (before.getCurrentBet() > before.getConfig().getBigBlind()
+                        || before.getBettingHistory().getFinalPreflopAggressorId().isPresent()) {
                     throw new UnsupportedOperationException(
                             "Raised preflop rounds are not implemented yet.");
                 }
@@ -224,13 +225,32 @@ public final class BettingEngine {
         Set<String> raising = new HashSet<>(before.getBettingProgress().getPlayersAllowedToRaise());
         pending.remove(actorId);
         raising.remove(actorId);
+        closeMatchedLoneActor(players, pending, raising);
         if (players.stream().filter(PlayerState::isParticipating).count() <= 1
                 || pending.isEmpty()) {
             pending.clear();
             raising.clear();
         }
-        return new BettingProgress(before.getCurrentBet(), before.getLastFullRaiseSize(),
-                pending, raising);
+        long target = players.stream().filter(PlayerState::canAct).count() > 1
+                ? before.getCurrentBet() : players.stream()
+                        .mapToLong(PlayerState::getRoundContribution).max().orElseThrow();
+        return new BettingProgress(target, before.getLastFullRaiseSize(), pending, raising);
+    }
+
+    private static void closeMatchedLoneActor(List<PlayerState> players, Set<String> pending,
+            Set<String> raising) {
+        List<PlayerState> active = players.stream().filter(PlayerState::canAct)
+                .collect(java.util.stream.Collectors.toList());
+        if (active.size() == 1) {
+            raising.clear();
+            PlayerState actor = active.get(0);
+            long opposingBet = players.stream().filter(PlayerState::isParticipating)
+                    .filter(player -> player != actor).mapToLong(PlayerState::getRoundContribution)
+                    .max().orElse(0);
+            if (actor.getRoundContribution() >= opposingBet) {
+                pending.clear();
+            }
+        }
     }
 
     private static String nextPendingActor(List<PlayerState> players, Set<String> pending,

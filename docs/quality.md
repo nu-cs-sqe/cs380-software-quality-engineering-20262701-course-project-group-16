@@ -8,6 +8,99 @@ no `ignoreFailures`, global suppression or baseline hiding existing warnings. Re
 CI uploads test, coverage, mutation and static-analysis reports even after a
 failed step.
 
+## Completed match statistics — November 6, 2026
+
+Branch `feature/week6-finish`; local `build pitest` uses Gradle 9.7.1 / JDK 17
+with Java 11 compilation/tests. Checkpoints: `1a99b7d` pays pots and refunds;
+`78e5271` retains completed totals and continues fixed-seat hands; `e1c2992` fixes short-blind decisions and completion checks. These local
+changes still need push, remote CI and partner review.
+
+| Check | Latest result |
+| --- | --- |
+| Team tests | **1,033 passing**, zero failures/errors/skips. |
+| Checkstyle / SpotBugs | Zero main/test unexcluded findings, analysis errors or missing classes; no new suppression. |
+| Configured 17 parent components | **827 lines, 431 branches, 391 complexity counters, 4,383 instructions, 174 methods and 18 reported classes**, zero missed counters. Reported classes include the generated PlayStats counter enum. |
+| PIT | **440/447 killed (98.43%)**; 7 survivors, 0 uncovered. Full counts/statuses remain in the report. |
+
+The measured scope now includes PotSettlement/Settlement, MatchStatistics,
+NextHand, StatisticsView and PlayStats. Existing partner state/betting classes
+remain outside this denominator, including the short-blind GameState/BettingEngine
+follow-up; their full tests and shared static checks still run. UI stays exempt
+from scoped metrics. Covered complexity counters do not prove independent basis
+paths or full-game coverage.
+
+TDD observed 9 failing payout cases, 4 completed-statistics/copy cases, 4 continuation
+cases and 2 bilingual UI cases before their implementations. Three short-blind /
+last-active regressions failed before the engine fix; two embedded-header layout
+cases failed before the presentation fix. Later mutation-driven tests cover
+stronger late contenders, separated-seat odd chips, every nonparticipant outcome,
+reverse c-bet contexts, rejected/successful continuation privacy and raise rights;
+they are regression coverage, not additional claimed feature RED cycles.
+
+The final read-only code review found three betting/continuation issues; the
+follow-up confirmed all three resolved. English/Chinese table and statistics
+layouts were rendered at 1,100×740; native OS focus and cross-platform fonts still
+need manual walkthrough. The actual pipeline is accepted ledger → real payout →
+transactional completed totals → immutable bilingual table → next stable-seat hand.
+Stopping the game discards in-memory statistics; saved profiles remain future work.
+
+PIT line coverage is 823/823; 22 selected test classes ran 3,105 executions across
+mutants. There are no uncovered, timeout or error mutants. The seven unchanged
+survivors are the six evaluator cases and hash-contract case reviewed below.
+All new settlement, continuation, completed-statistics and copy mutants are
+killed. The configured 17 parent components produce 18 reported classes because
+of the nested counter enum; this is not an 18-component full-game claim.
+
+## Pending-statistics checkpoint — November 6, 2026
+
+Branch `feature/week6-finish`, based on merged main `ac70b3b` plus the progress
+notes in `4baef67`; statistics code is `634b2c6`. Local `build pitest` exited 0 in 58 seconds on Gradle 9.7.1 /
+JDK 17, with Java 11 compilation/tests. Remote CI for this checkpoint is pending
+push; the earlier main CI result below does not verify these new changes.
+
+| Check | Result |
+| --- | --- |
+| Full team JUnit suite | **998 tests**, zero failures/errors/skips; includes 12 new adapter and 16 session-statistics cases. |
+| Checkstyle / SpotBugs | Zero main/test findings after the existing reviewed exceptions; zero analysis errors/missing classes. No new exclusions. |
+| Shared eleven-class JaCoCo scope | **2,353 instructions, 226 branches, 471 lines, 217 complexity counters, 104 methods, 11 classes**; zero missed counters. |
+| PIT | **242/249 killed (97.19%)**, seven unchanged survivors; no uncovered/time-out/error mutants. Line coverage 472/472; 16 selected test classes, 1,523 executions across mutants. |
+| New adapter / session | HandStatistics: 19 lines, 8 branches and 8 complexity counters covered; PIT 7/7 killed. SetupSession: 107 lines, 42 branches and 47 complexity counters covered; PIT 46/46 killed. |
+
+The scope now includes the pending-statistics adapter. PlayStats itself, the
+betting/state engine and Swing remain outside this metric denominator; their
+tests and shared static checks still run. Counters do not prove independent
+basis-path execution. The seven baseline survivors remain the six evaluator
+cases and the unresolved hash-contract case reviewed below.
+
+TDD first ran 28 new cases against the missing adapter/session connection:
+25 failed and three existing zero-rate cases passed. All 28 passed after
+implementation. Integration tests use real initialization, betting, adapter and
+PlayStats, capturing observation deliveries and injecting failures before
+mutation. No mock library, completed-hand totals or payout-dependent results
+were added. See [BVA](bva/HandStatistics.md). Native focus/font walkthrough,
+peer approval and new remote checks remain separate pending verification.
+
+## Merged baseline — November 6, 2026
+
+Verified main `ac70b3b` with `build pitest`: Gradle 9.7.1 on JDK 17 and
+Java 11 compilation/tests. The local run exited 0 in 1 minute 19 seconds;
+log: `/private/tmp/current-progress-check.log`. Its matching
+[GitHub CI run](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/actions/runs/42232032730)
+also completed successfully.
+
+| Check | Result |
+| --- | --- |
+| Full team JUnit suite | 970 tests; zero failures, errors or skips. |
+| Checkstyle / SpotBugs | Zero main/test unexcluded findings; zero analysis errors or missing classes. |
+| Shared ten-class JaCoCo scope | 2,216 instructions, 216 branches, 438 lines, 204 complexity counters, 96 methods and ten classes; zero missed counters. |
+| PIT | 237 generated, 230 killed, seven survived (97.05%); no uncovered, time-out or error mutants. PIT line coverage 439/439; 14 selected test classes and 1,436 executions across mutants. |
+
+These scoped metrics include InitialDeal and the shared application session/view,
+not the whole betting/state/statistics engine or Swing. They do not prove
+independent basis-path execution. The seven survivors are the six evaluator
+cases and hash-code contract case documented below. Earlier branch measurements
+are preserved as history. The pending-statistics checkpoint above is newer.
+
 ## Reproduce
 
 Gradle 9.7.1 requires a runtime JDK of at least 17; this computer uses JDK 17,
@@ -92,14 +185,17 @@ change. Shared Checkstyle violations are fixed in source instead of baselined.
 ## Scope and interpretation
 
 SetupSession and SetupView include shared played-hand integration. The
-current configured scope has ten classes, including extracted InitialDeal.
+current configured scope has 17 parent components, including dealing, settlement,
+completed statistics, continuation and the shared session/view.
 Earlier nine-class results below are historical, not current full-game
 coverage. PIT retains the renamed integration tests and the new session
 and played-hand tests.
 
 JaCoCo and PIT include `Card`, `Deck`, `PokerHandEvaluator`,
-`ShowdownResolver`, `ShowdownResult`, `GameInitializer`, `InitialDeal`, `SetupSession` and
-`SetupView` and `Localizations`, including their nested classes. `SetupView` remains in the scope
+`ShowdownResolver`, `ShowdownResult`, `GameInitializer`, `InitialDeal`,
+`HandStatistics`, `MatchStatistics`, `NextHand`, `StatisticsView`, `PotSettlement`,
+`Settlement`, `PlayStats`, `SetupSession`, `SetupView` and `Localizations`,
+including their nested classes. `SetupView` remains in the scope
 even though a display DTO could qualify for a view exemption: its private-card
 filtering is useful behavior to measure. Tests exercise these components
 through their public contracts; the complete JUnit suite also runs in the build.
@@ -109,9 +205,9 @@ test executions across mutants separately from the JUnit suite count. It uses th
 workers, HTML/XML output and deterministic report paths. A mutant may hang a
 loop; timeout permits twice its baseline test duration plus two seconds.
 
-Excluded from the **nine-class metric denominator**:
+Excluded from the **current 17-component metric denominator**:
 
-- Partner-owned domain state, betting and statistics components; their test
+- The remaining domain state and betting components; their test
   execution is retained, but their coverage is not established by this scope.
 - `HandEvaluator`, an interface without executable default methods, and the
   `Rank`/`Suit` and nested `ShowdownResult.Status` enums, whose constants have no hand-written branching behavior.
@@ -128,7 +224,7 @@ not automatically remove equivalent mutants or justify survivors/timeouts.
 There is no invented score threshold or forced green metric gate: actual
 findings and rubric gaps must remain visible until assessed.
 
-## Instructor-refactor baseline (November 6)
+## Setup and result-component baseline (November 6)
 
 Verified locally on **November 6, 2026**, on `feature/showdown-display`, after
 merging main `e8c66ff` with the bilingual result-display component. This includes
@@ -181,7 +277,7 @@ Previous measurement (November 3): 735 tests; nine scoped classes; 319 lines,
 184 branches and 153 complexity counters covered; PIT 178/186 killed with eight
 survivors. Refactoring changes the denominators, so those historical values are
 not current measurements. InitialDeal stays measured after extraction. All
-197 current mutants are accounted for below; none was excluded to improve a score.
+197 component-baseline mutants are accounted for below; none was excluded to improve a score.
 
 Existing localization fault-path fixtures cover missing/invalid resources,
 IOException cause and stream closure, quoted braces/apostrophes, repeated or
@@ -191,7 +287,7 @@ checks remain a separate manual team task.
 
 ## Mutation survivor review
 
-The current 197-mutant `DEFAULTS` run retained seven survivors; none is hidden
+The 197-mutant component-baseline `DEFAULTS` run retained seven survivors; none is hidden
 by a PIT exclusion. The review below reasons about the published component contracts.
 It does not change PIT's raw mutation score or prove literal output identity
 for every public method.
@@ -214,7 +310,7 @@ References: [Java 11 stable list sorting](https://docs.oracle.com/en/java/javase
 [Java 11 hash-code contract](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Object.html#hashCode()).
 
 
-## Shared session follow-up — November 5,2026
+## Earlier shared session follow-up — November 5, 2026
 
 After integrating main with Estella's betting branch, local `clean build --continue`
 and `pitest` pass on JDK 25 with Java 11 compilation/tests. The full suite is
@@ -274,7 +370,7 @@ hand collection; an extra allocated seat changes the deal and fails integration
 checks. This was a structural refactor, not a new user-visible requirement.
 
 
-## PR15 reconciliation with main e8c66ff (November 6)
+## Earlier PR15 reconciliation with main e8c66ff (November 6)
 
 Full build: 952 tests, zero failures/errors/skips; Checkstyle 0 main / 0 test,
 SpotBugs 0 main / 0 test unexcluded findings, zero analysis errors/missing classes.
@@ -289,11 +385,11 @@ timeout or error mutants. Its line coverage is 439/439. Fourteen selected test
 classes ran 1,379 test executions in this run. The seven baseline survivors
 are the six evaluator mutants plus the contract-preserving hash-code mutant
 already documented above; the previous eight-survivor figure belongs to the
-November 5 scope before the instructor refactor killed the allocation mutant.
+November 5 scope before the setup refactoring killed the allocation mutant.
 
 A separate combined-source build includes the 18 ShowdownPanel cases from PR16:
-970 tests and static checks pass. That is a compatibility check, not a merged
-Git history or remote CI result. The two result displays retain separate
+970 tests and static checks passed at that earlier compatibility checkpoint.
+The merged-history and CI verification are now recorded at the top of this file. The two result displays retain separate
 resource keys because one formats a message plus settlement status and the
 other formats winner names alone. Null-flow refactors, privacy/error states,
 accepted-action logging and the visible Call button remain covered.

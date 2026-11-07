@@ -12,20 +12,33 @@ import domain.model.BettingEngine;
 import domain.model.BettingResult;
 import domain.model.ShowdownResolver;
 import domain.model.ShowdownResult;
+import domain.model.Settlement;
+import domain.model.PotSettlement;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.Optional;
+import java.util.Objects;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.Set;
+import java.util.Map;
+import java.util.Random;
 
 /** Owns one played hand and explicit private-card handoffs. Use on the UI thread. */
 public final class SetupSession {
     private final GameInitializer initializer;
     private final BettingEngine engine;
     private final ShowdownResolver resolver;
+    private final Function<GameState, Consumer<AcceptedAction>> statisticsFactory;
+    private Optional<Consumer<AcceptedAction>> statistics = Optional.empty();
     private final List<AcceptedAction> acceptedActions = new ArrayList<>();
     private Optional<GameState> state = Optional.empty();
     private Optional<ShowdownResult> result = Optional.empty();
+    private Optional<Settlement> settlement = Optional.empty();
+    private Optional<MatchStatistics> totals = Optional.empty();
+    private final PotSettlement payoutService = new PotSettlement();
+    private final NextHand continuation = new NextHand(new Random());
     private int viewerSeat;
     private boolean cardsRevealed;
 
@@ -41,18 +54,26 @@ public final class SetupSession {
     /** @throws IllegalArgumentException if any collaborator is null */
     public SetupSession(GameInitializer initializer, BettingEngine engine,
             ShowdownResolver resolver) {
-        if (initializer == null || engine == null || resolver == null) {
-            throw new IllegalArgumentException(
-                    "Initializer, betting engine and resolver are required.");
+        this(initializer, engine, resolver, HandStatistics::start);
+    }
+
+    // Recorders must reject invalid observations before modifying their pending collection.
+    SetupSession(GameInitializer initializer, BettingEngine engine, ShowdownResolver resolver,
+            Function<GameState, Consumer<AcceptedAction>> statisticsFactory) {
+        if (initializer == null || engine == null || resolver == null
+                || statisticsFactory == null) {
+            throw new IllegalArgumentException("The session collaborators are required.");
         }
         this.initializer = initializer;
         this.engine = engine;
         this.resolver = resolver;
+        this.statisticsFactory = statisticsFactory;
     }
 
     /**
      * Accepts one request, advances closed rounds and compares a finished hand.
      * Rejection preserves the hand/result/log but conceals private cards.
+     * Successful actions enter pending statistics once, after comparison succeeds.
      * @return the one committed action; transitions never invent player actions
      * @throws IllegalStateException before start or after a result
      * @throws IllegalArgumentException for null, illegal or out-of-turn requests
@@ -60,18 +81,29 @@ public final class SetupSession {
      */
     public AcceptedAction submitAction(ActionRequest request) {
         hideCards();
-        GameState match = requireMatch();
-        if (result.isPresent()) {
-            throw new IllegalStateException("This hand already has a result awaiting settlement.");
-        }
-        BettingResult accepted = engine.apply(match, request);
+        BettingResult accepted = engine.apply(requireOpenHand(), request);
         GameState candidate = advanceClosedRounds(accepted.getState());
         Optional<ShowdownResult> comparison = compareIfFinished(candidate);
+        AcceptedAction action = accepted.getAcceptedAction();
+        statistics.orElseThrow().accept(action);
+        publishAction(candidate, comparison, action);
+        return action;
+    }
+
+    private GameState requireOpenHand() {
+        GameState match = requireMatch();
+        if (result.isPresent()) {
+            throw new IllegalStateException("This hand already has a result.");
+        }
+        return match;
+    }
+
+    private void publishAction(GameState candidate, Optional<ShowdownResult> comparison,
+            AcceptedAction action) {
         state = Optional.of(candidate);
         result = comparison;
-        acceptedActions.add(accepted.getAcceptedAction());
+        acceptedActions.add(action);
         selectActingHuman();
-        return accepted.getAcceptedAction();
     }
 
     /**
@@ -119,7 +151,7 @@ public final class SetupSession {
         return Set.copyOf(available);
     }
 
-    /** Comparison only; no pots paid or completed-hand statistics aggregated. */
+    /** Comparison snapshot; getSettlement reports whether payment has since completed. */
     public Optional<ShowdownResult> getResult() { return result; }
 
     /** Immutable current-hand log, cleared only by a successful restart; excludes blinds. */
@@ -132,8 +164,18 @@ public final class SetupSession {
     public void start(int humanCount) {
         hideCards();
         GameState started = initializer.start(humanCount);
+        Consumer<AcceptedAction> recorder =
+                Objects.requireNonNull(statisticsFactory.apply(started));
+        MatchStatistics fresh = MatchStatistics.start(started);
+        publishStart(started, recorder);
+        totals = Optional.of(fresh);
+    }
+
+    private void publishStart(GameState started, Consumer<AcceptedAction> recorder) {
+        statistics = Optional.of(recorder);
         state = Optional.of(started);
         result = Optional.empty();
+        settlement = Optional.empty();
         acceptedActions.clear();
         viewerSeat = 0; // Setup assigns at least one human, starting at seat zero.
     }
@@ -200,6 +242,48 @@ public final class SetupSession {
             return Optional.of(resolver.resolve(candidate));
         }
         return Optional.empty();
+    }
+
+    /** Pays a finished hand and atomically publishes completed statistics, exactly once. */
+    public Settlement settleHand() {
+        hideCards();
+        GameState hand = requireMatch();
+        Settlement paid = payoutService.settle(hand);
+        MatchStatistics completed = totals.orElseThrow().complete(hand, paid, acceptedActions);
+        state = Optional.of(paid.getState());
+        totals = Optional.of(completed);
+        settlement = Optional.of(paid);
+        return paid;
+    }
+
+    /** Continues a settled match with stable identities, carried stacks and fresh private cards. */
+    public void nextHand() {
+        hideCards();
+        GameState started = advanceClosedRounds(continuation.start(requireMatch()));
+        Optional<ShowdownResult> comparison = compareIfFinished(started);
+        Consumer<AcceptedAction> recorder =
+                Objects.requireNonNull(statisticsFactory.apply(started));
+        publishStart(started, recorder);
+        result = comparison;
+        selectActingHuman();
+    }
+
+    public Optional<Settlement> getSettlement() { return settlement; }
+
+    /** Immutable completed totals for the current match; no private cards or pending rates. */
+    public Map<String, StatisticsView> getStatistics() {
+        return totals.map(MatchStatistics::snapshot).orElseGet(Map::of);
+    }
+
+    /** A paid match with one positive stack has a total winner and cannot deal again. */
+    public Optional<Player> getMatchWinner() {
+        if (settlement.isEmpty()) {
+            return Optional.empty();
+        }
+        List<Player> remaining = requireMatch().getPlayers().stream()
+                .filter(player -> player.getChipStack() > 0)
+                .collect(java.util.stream.Collectors.toList());
+        return remaining.size() == 1 ? Optional.of(remaining.get(0)) : Optional.empty();
     }
 
     private GameState requireMatch() {

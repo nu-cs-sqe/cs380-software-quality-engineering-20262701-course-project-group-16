@@ -12,6 +12,7 @@ sequenceDiagram
     participant Session as SetupSession
     participant Engine as BettingEngine
     participant Resolver as ShowdownResolver
+    participant Stats as HandStatistics
     UI->>Session: submitAction(ActionRequest)
     Session->>Engine: apply(currentState, request)
     Engine-->>Session: next state + accepted action
@@ -22,6 +23,7 @@ sequenceDiagram
         Session->>Resolver: resolve(candidate)
         Resolver-->>Session: result awaiting settlement
     end
+    Session->>Stats: record accepted action in pending collector
     Session-->>UI: commit state/result/action once
     UI->>Session: playBotTurns()
     Session-->>UI: stop at human decision or result
@@ -32,17 +34,22 @@ sequenceDiagram
 
 | API | Behavior |
 | --- | --- |
-| `start(humanCount)` | Initialize a separate hand, hide cards, clear history/result only after a successful start. It returns at the initial decision; the UI then calls playBotTurns. |
-| `submitAction(request)` | Delegate legality/deductions to BettingEngine. Advance closed rounds, resolve a terminal comparison, then publish the candidate state and append exactly one accepted action. Any validation/comparison failure preserves the old state/result/log; private cards are hidden. |
+| `start(humanCount)` | Initialize a separate hand, hide cards, prepare fresh pending collectors, clear history/result only after a successful start. It returns at the initial decision; the UI then calls playBotTurns. |
+| `submitAction(request)` | Delegate legality/deductions to BettingEngine. Advance closed rounds, resolve a terminal comparison, then record the pending observation, publish the candidate state and append exactly one accepted action. Any validation/comparison/recording failure preserves the old state/result/log; private cards are hidden. |
 | `playBotTurns()` | Temporary legal CHECK if available, otherwise CALL; stop before a human decision or after a result. Return an immutable list of newly committed bot actions. Does not inspect hole cards. |
 | `getAvailableActions()` | Ask the pure engine about FOLD/CHECK/CALL using disposable snapshots; expose only supported legal actions. Queries never update the session/log/statistics. Empty before start or after a result. |
-| `getResult()` | Optional immutable ShowdownResult. It is a comparison awaiting settlement, with no chip movement or completed-hand aggregation. |
+| `getResult()` | Optional immutable ShowdownResult. It remains the comparison snapshot; getSettlement reports subsequent payment. |
 | `getAcceptedActions()` | Immutable current-hand event snapshot, including human/bot actions and existing statistics context. No forced blind posts or invented runout actions; failed requests do not append. |
 
 The coordinator keeps its candidate state local until advancement and comparison
-succeed. A failed final comparison can therefore be retried without losing the
+succeed. Pending statistics receive the accepted observation before publishing
+state/result/log. A failed final comparison can therefore be retried without losing the
 actor or counting the action twice. A result rejects further requests. Successful
-restart creates a new hand/log; failed restart retains the old result/history.
+restart creates a new hand/log/collector; failed restart retains the old result,
+history and collector. A package-private statistics factory supports capturing
+real deliveries and failure injection in tests. Public constructors wire the
+real adapter. Recorders must reject before mutation; PlayStats validates before
+appending. No completed-hand totals are changed.
 
 ## Transitions and privacy
 
@@ -73,12 +80,36 @@ Tests use legal deterministic shuffle choices to produce both a shared-board
 flush tie and a sole seat 5 six-high straight, without replacing game components.
 
 Supported engine actions remain unraised preflop FOLD/CHECK/CALL and postflop
-CHECK/FOLD. Bets/raises, raised-round responses, postflop CALL, pot/side-pot
-payouts, repeated hands, equity bots and persistence remain later work. The
-action log supports later PlayStats wiring; no pending hand is aggregated as
-complete and no payout-dependent statistic is fabricated.
+CHECK/FOLD. Bets/raises, raised-round responses, postflop CALL, equity bots and saved profiles remain later work. The
+action log and pending PlayStats receive the same accepted actions. Settlement
+then consumes the ledger once to publish completed match totals.
 
 See [session BVA](../bva/SessionBetting.md) and
 [bilingual Swing cases](../bva/PlayedGamePanel.md). Headless UI behavior and
 offscreen layout checks do not establish native focus delivery or cross-platform
 font correctness; those still require the team's desktop walkthrough.
+
+## Paid hands and cumulative statistics
+
+1. `settleHand()` requires an unpaid result. PotSettlement prepares immutable
+   awards, refunds and a COMPLETION state from contribution layers. Each pot is
+   compared among its eligible contenders, not just the overall hand winner.
+2. MatchStatistics copies completed PlayStats collectors and replays only this
+   hand's accepted log. Board presence plus preflop folds determines who saw the
+   flop; terminal live participants determine contested showdown participation.
+   Actual contested payouts and separate refunds supply completion facts.
+3. Paid state, settlement and all player totals are published together. Rejected
+   or duplicate settlement changes none of them. StatisticsView snapshots contain
+   completed numbers only; UI cannot mutate a collector or inspect private cards.
+4. `nextHand()` keeps identities/stacks/totals, moves the button, posts capped
+   blinds, deals only surviving seats and handles automatic all-in runout.
+   With a short BB, multiple active players still owe the nominal big blind;
+   the lone opposing active player only matches the actual all-in commitment.
+   A matched lone active player gets no extra fold/check decision. A finished
+   match rejects another hand. Starting a new match resets every player's totals.
+
+The existing comparison object remains historical and AWAITING_SETTLEMENT by
+contract; use getSettlement for actual paid status. GamePanel shows paid/match
+winner status and exposes separate settlement/continuation controls. Its tabs
+hide private cards. Statistics persist only for this open match; disk profiles
+and full bet/raise behavior are outside this checkpoint.
