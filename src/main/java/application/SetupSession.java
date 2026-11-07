@@ -93,7 +93,7 @@ public final class SetupSession {
     private GameState requireOpenHand() {
         GameState match = requireMatch();
         if (result.isPresent()) {
-            throw new IllegalStateException("This hand already has a result awaiting settlement.");
+            throw new IllegalStateException("This hand already has a result.");
         }
         return match;
     }
@@ -151,7 +151,7 @@ public final class SetupSession {
         return Set.copyOf(available);
     }
 
-    /** Comparison only; no pots paid or completed-hand statistics aggregated. */
+    /** Comparison snapshot; getSettlement reports whether payment has since completed. */
     public Optional<ShowdownResult> getResult() { return result; }
 
     /** Immutable current-hand log, cleared only by a successful restart; excludes blinds. */
@@ -248,9 +248,6 @@ public final class SetupSession {
     public Settlement settleHand() {
         hideCards();
         GameState hand = requireMatch();
-        if (result.isEmpty() || settlement.isPresent()) {
-            throw new IllegalStateException("A hand must have an unpaid result.");
-        }
         Settlement paid = payoutService.settle(hand);
         MatchStatistics completed = totals.orElseThrow().complete(hand, paid, acceptedActions);
         state = Optional.of(paid.getState());
@@ -262,9 +259,6 @@ public final class SetupSession {
     /** Continues a settled match with stable identities, carried stacks and fresh private cards. */
     public void nextHand() {
         hideCards();
-        if (settlement.isEmpty()) {
-            throw new IllegalStateException("Settle this hand before continuing.");
-        }
         GameState started = advanceClosedRounds(continuation.start(requireMatch()));
         Optional<ShowdownResult> comparison = compareIfFinished(started);
         Consumer<AcceptedAction> recorder =

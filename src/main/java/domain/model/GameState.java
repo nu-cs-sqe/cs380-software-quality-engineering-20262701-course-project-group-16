@@ -189,7 +189,7 @@ public final class GameState {
     private void validateBetting() {
         long maximum = players.stream().mapToLong(PlayerState::getRoundContribution)
                 .max().orElseThrow();
-        if (betting.getCurrentBet() != maximum
+        if ((betting.getCurrentBet() != maximum && !hasShortBlindTarget(maximum))
                 || betting.getLastFullRaiseSize() < config.getBigBlind()) {
             throw new IllegalArgumentException("Current bet or last full raise is inconsistent.");
         }
@@ -216,6 +216,15 @@ public final class GameState {
             throw new IllegalArgumentException(
                 "Completed hands must have awarded all committed chips.");
         }
+    }
+
+    private boolean hasShortBlindTarget(long maximum) {
+        PlayerState bigBlind = players.get(positions.getBigBlindSeat());
+        return (phase == GamePhase.SETUP || phase == GamePhase.PREFLOP)
+                && maximum < config.getBigBlind()
+                && betting.getCurrentBet() == config.getBigBlind()
+                && bigBlind.getStatus() == PlayerStatus.ALL_IN
+                && history.getFinalPreflopAggressorId().isEmpty();
     }
 
     private void validateChipTotal() {

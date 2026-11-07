@@ -23,3 +23,17 @@ boundary; all four continuation cases also failed before implementation.
 StatisticsView contains completed numeric values only, with unavailable rates
 represented by OptionalDouble, and no cards. This is in-memory match tracking;
 closing the game discards it. Unsupported BET/RAISE never creates a statistic.
+
+## Short-blind and last-active regressions
+
+| ID | Methods | State/input | Expected output | Implemented test |
+| --- | --- | --- | --- | --- |
+| SB01 | NextHand.start; BettingEngine.apply | Heads-up BB15 all-in, SB10 with chips left, blinds10/20 | SB can CALL5; close round without a fake extra decision | Yes; ShortBlindIntegrationTest.headsUpPlayerCanActuallyCallAShortBigBlind |
+| SB02 | NextHand.start; GameState validation; BettingEngine.apply | Three players, BB15 all-in, two active opponents | Nominal current target20, first full-stack call adds20 | Yes; ShortBlindIntegrationTest.multiwayShortBigBlindKeepsTheFullMinimumCall |
+| SB03 | BettingEngine.apply/advanceStreet; PotSettlement.settle | FLOP contributions20/20/5; short player all-in; one active folds | Last matched active has no extra fold decision; runout and settlement preserve6000 | Yes; ShortBlindIntegrationTest.foldingClosesTheMatchedLoneActiveDecisionBeforeAnEligibleSidePotCanBeLost |
+
+All three regressions failed before the betting fix. Allow a nominal preflop
+minimum above actual posted chips only for a short all-in big blind with no
+recorded aggressor. Raised rounds remain unsupported. Earlier tests that only
+inspected the next actor missed the actual action rejection; these cases submit
+real engine requests and check chip amounts and settlement.

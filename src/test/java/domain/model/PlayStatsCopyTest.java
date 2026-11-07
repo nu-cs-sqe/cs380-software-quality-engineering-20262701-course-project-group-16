@@ -27,4 +27,30 @@ class PlayStatsCopyTest {
         assertEquals(2, original.getHandsPlayed());
         assertEquals(3, copy.getHandsPlayed());
     }
+    @Test
+    void rejectsContradictoryCBetContextsInEitherObservationOrder() {
+        PlayStats stats = new PlayStats();
+        stats.beginHand("context", true);
+        stats.recordAction(new StatsAction(true, BettingStreet.FLOP, ResolvedActionType.CALL, 5,
+                new StatsContext(PreflopRaiseType.NONE, false, false, true)));
+        assertThrows(IllegalArgumentException.class, () -> stats.recordAction(new StatsAction(true,
+                BettingStreet.FLOP, ResolvedActionType.CHECK, 0,
+                new StatsContext(PreflopRaiseType.NONE, false, true, false))));
+        stats.recordAction(new StatsAction(true, BettingStreet.RIVER, ResolvedActionType.CHECK, 0,
+                new StatsContext(PreflopRaiseType.NONE, false, false, false)));
+        stats.completeHand("context", true, true, 0, 0);
+        assertEquals(0, stats.getFoldToFlopCBetPercent().orElseThrow());
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(ints = {0, 1, 2, 3})
+    void rejectsEveryOutcomeForAnUndealtSeatWithoutChangingTotals(int fact) {
+        PlayStats stats = new PlayStats();
+        stats.beginHand("not-dealt", false);
+        assertThrows(IllegalArgumentException.class, () -> stats.completeHand("not-dealt",
+                fact == 0, fact == 1, fact == 2 ? 1 : 0, fact == 3 ? 1 : 0));
+        stats.completeHand("not-dealt", false, false, 0, 0);
+        assertEquals(0, stats.getHandsPlayed());
+    }
+
 }

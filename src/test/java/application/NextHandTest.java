@@ -25,6 +25,8 @@ class NextHandTest {
         assertEquals(2, next.getSmallBlindSeat());
         assertEquals(3, next.getBigBlindSeat());
         assertEquals(4, next.getCurrentActorSeat().orElseThrow());
+        assertEquals(Set.of("p0", "p1", "p2", "p3", "p4", "p5"),
+                next.getBettingProgress().getPlayersAllowedToRaise());
         assertEquals(990, next.getPlayers().get(2).getChipStack());
         assertEquals(980, next.getPlayers().get(3).getChipStack());
         assertEquals(6000, next.getTotalChips());
@@ -53,6 +55,7 @@ class NextHandTest {
         GameState next = new NextHand(new Random(1)).start(completed(15, 0, 0, 5985, 0, 0));
         assertEquals(3, next.getCurrentActorSeat().orElseThrow());
         assertEquals(15, next.getCurrentBet());
+        assertTrue(next.getBettingProgress().getPlayersAllowedToRaise().isEmpty());
         assertEquals(10, next.getPlayerStates().get(3).getRoundContribution());
     }
 

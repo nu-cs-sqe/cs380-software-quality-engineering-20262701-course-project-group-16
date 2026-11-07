@@ -23,10 +23,16 @@ class CompletedStatisticsIntegrationTest {
                 .collect(java.util.stream.Collectors.toList());
         assertEquals(0, session.getStatistics().get(ids.get(0)).getHandsPlayed());
         assertThrows(IllegalStateException.class, session::settleHand);
+        session.revealCards();
         assertThrows(IllegalStateException.class, session::nextHand);
+        assertTrue(view(session).getHoleCards().isEmpty());
         for (int i = 0; i < 5; i++) act(session, ActionType.FOLD);
         var pending = session.getStatistics();
+        session.revealCards();
+        assertEquals(2, view(session).getHoleCards().size());
         Settlement paid = session.settleHand();
+        assertSame(paid, session.getSettlement().orElseThrow());
+        assertTrue(view(session).getHoleCards().isEmpty());
         assertEquals(GamePhase.COMPLETION, view(session).getPhase());
         assertEquals(0, view(session).getPot());
         assertEquals(1010, view(session).getPlayers().get(2).getChipStack());
@@ -41,7 +47,9 @@ class CompletedStatisticsIntegrationTest {
         assertThrows(IllegalStateException.class, session::settleHand);
         var first = session.getStatistics();
         String hand = view(session).getHandId();
+        session.revealCards();
         session.nextHand();
+        assertEquals(view(session).getCurrentActorSeat(), view(session).getViewerSeat());
         assertNotEquals(hand, view(session).getHandId());
         assertEquals(ids, view(session).getPlayers().stream().map(p -> p.getId())
                 .collect(java.util.stream.Collectors.toList()));
@@ -95,6 +103,52 @@ class CompletedStatisticsIntegrationTest {
         assertEquals(0, post.getRates().get(8).orElseThrow());
         assertEquals(1, post.getHandsPlayed());
         assertTrue(post.getRates().get(9).isEmpty());
+    }
+
+    @Test
+    void finalHeadsUpWinEliminatesTheLoserAndCompletesOnlyDealtPlayers() {
+        domain.model.GameState hand = headsUpHand();
+        SetupSession session = new SetupSession(new GameInitializer(count -> hand,
+                java.util.function.UnaryOperator.identity()));
+        session.start(1);
+        assertTrue(session.getMatchWinner().isEmpty());
+        act(session, ActionType.CHECK);
+        session.settleHand();
+        assertEquals("p0", session.getMatchWinner().orElseThrow().getId());
+        assertEquals(6000, session.getMatchWinner().orElseThrow().getChipStack());
+        assertEquals(domain.model.PlayerStatus.ELIMINATED, view(session).getStatuses().get(1));
+        assertTrue(view(session).getHoleCards().isEmpty());
+        assertEquals(1, session.getStatistics().get("p0").getHandsPlayed());
+        assertEquals(1, session.getStatistics().get("p1").getHandsPlayed());
+        assertEquals(0, session.getStatistics().get("p2").getHandsPlayed());
+        assertEquals(100, session.getStatistics().get("p0").getRates().get(9).orElseThrow());
+        assertEquals(0, session.getStatistics().get("p1").getRates().get(9).orElseThrow());
+        assertThrows(IllegalStateException.class, session::nextHand);
+        assertEquals(6000, session.getMatchWinner().orElseThrow().getChipStack());
+    }
+
+    private static domain.model.GameState headsUpHand() {
+        List<domain.model.Card> deck = new java.util.ArrayList<>(new domain.model.Deck().deal(52));
+        var first = List.of(new domain.model.Card(domain.model.Rank.ACE, domain.model.Suit.CLUBS),
+                new domain.model.Card(domain.model.Rank.ACE, domain.model.Suit.DIAMONDS));
+        var second = List.of(new domain.model.Card(domain.model.Rank.KING, domain.model.Suit.CLUBS),
+                new domain.model.Card(domain.model.Rank.QUEEN, domain.model.Suit.HEARTS));
+        deck.removeAll(first);
+        deck.removeAll(second);
+        List<domain.model.PlayerState> players = new java.util.ArrayList<>();
+        for (int seat = 0; seat < 6; seat++) {
+            long stack = seat == 0 ? 5980 : 0;
+            var status = seat == 0 ? domain.model.PlayerStatus.ACTIVE : seat == 1
+                    ? domain.model.PlayerStatus.ALL_IN : domain.model.PlayerStatus.ELIMINATED;
+            players.add(new domain.model.PlayerState(new domain.model.Player("p" + seat, seat,
+                    domain.model.PlayerType.HUMAN, stack), status,
+                    seat == 0 ? first : seat == 1 ? second : List.of(), seat < 2 ? 10 : 0,
+                    seat < 2 ? 10 : 0));
+        }
+        // Board after burns is 3C 4C 5C 7C 9C; p0's AC makes the stronger flush.
+        return new domain.model.GameState(new GameConfig(), "last", GamePhase.PREFLOP, players,
+                new domain.model.HandPositions(0, 0, 1), "p0", List.of(), deck,
+                new domain.model.BettingProgress(10, 20, java.util.Set.of("p0"), java.util.Set.of()));
     }
 
     private static SetupSession session() {

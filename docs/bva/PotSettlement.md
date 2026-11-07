@@ -21,3 +21,10 @@ passed after implementation. The first full build caught an unused test import;
 it was removed before committing. Domain fixtures use literal chip expectations
 and injected rank comparisons to isolate pot allocation; real-evaluator played
 integration is covered at the session boundary.
+
+Additional regression cases cover safe near-long-limit total payouts, a side pot
+with no eligible contributor (reject without mutation), stronger contenders
+appearing later, nonadjacent tied seats with an odd chip, zero-pot settlement
+without ranking, and rejection for pending/raise rights, zero contenders or an
+early contested board. These extend the original TDD cases; they are not new
+claimed failing-before-implementation cycles.

@@ -55,6 +55,9 @@ final class NextHand {
             HandPositions positions) {
         long currentBet = players.stream().mapToLong(PlayerState::getRoundContribution)
                 .max().orElseThrow();
+        if (players.stream().filter(PlayerState::canAct).count() > 1) {
+            currentBet = Math.max(currentBet, previous.getConfig().getBigBlind());
+        }
         Set<String> pending = pendingPlayers(players, currentBet);
         String actor = pending.isEmpty() ? null : players.get(new SeatOrder(players)
                 .firstPreflopActor(positions.getDealerSeat()).orElseThrow()).getPlayer().getId();

@@ -64,7 +64,9 @@ class PotSettlementTest {
 
     @Test
     void zeroPotFinishesWithoutInventingAPayout() {
-        Settlement paid = new PotSettlement().settle(table(new long[6], Set.of(0, 1)));
+        Settlement paid = new PotSettlement((a, b) -> {
+            throw new AssertionError("A zero pot needs no comparison");
+        }).settle(table(new long[6], Set.of(0, 1)));
         assertEquals(0, paid.getState().getPot());
         assertTrue(paid.getPayouts().values().stream().allMatch(n -> n == 0));
     }
@@ -87,6 +89,64 @@ class PotSettlementTest {
         }).settle(before));
         assertEquals(20, before.getPot());
         assertEquals(GamePhase.SHOWDOWN, before.getPhase());
+    }
+
+    @Test
+    void safeLongTotalIsSplitWithoutOverflow() {
+        long starting = Long.MAX_VALUE / 6;
+        GameConfig config = new GameConfig(starting, 1, 2);
+        List<Card> cards = new Deck().deal(52);
+        List<PlayerState> players = new ArrayList<>();
+        for (int seat = 0; seat < 6; seat++) {
+            players.add(new PlayerState(new Player("p" + seat, seat, PlayerType.HUMAN, 0),
+                    PlayerStatus.ALL_IN, cards.subList(5 + seat * 2, 7 + seat * 2),
+                    0, starting));
+        }
+        GameState before = new GameState(config, "large", GamePhase.SHOWDOWN, players,
+                new HandPositions(0, 1, 2), null, cards.subList(0, 5), List.of(),
+                new BettingProgress(0, 2, Set.of(), Set.of()));
+        Settlement paid = new PotSettlement((a, b) -> 0).settle(before);
+        assertEquals(starting * 6, paid.getState().getTotalChips());
+        assertTrue(paid.getState().getPlayers().stream().allMatch(p -> p.getChipStack() == starting));
+    }
+
+    @Test
+    void invalidSidePotWithoutAnEligibleContributorRejectsWithoutLosingChips() {
+        GameState before = table(new long[]{10, 10, 20, 20, 0, 0}, Set.of(0, 1));
+        assertThrows(IllegalStateException.class, () -> new PotSettlement().settle(before));
+        assertEquals(60, before.getPot());
+    }
+
+    @Test
+    void laterStrongerContenderReplacesTheEarlierWinner() {
+        Settlement paid = new PotSettlement((a, b) -> Integer.compare(seat(a), seat(b)))
+                .settle(table(new long[]{10, 10, 0, 0, 0, 0}, Set.of(0, 1)));
+        assertEquals(0L, paid.getPayouts().get("p0"));
+        assertEquals(20L, paid.getPayouts().get("p1"));
+    }
+
+    @Test
+    void oddChipOrderWrapsAcrossNonAdjacentTiedSeats() {
+        GameState before = withDealer(table(new long[]{5, 0, 0, 5, 5, 0}, Set.of(0, 3)), 2);
+        Settlement paid = new PotSettlement((a, b) -> 0).settle(before);
+        assertEquals(7L, paid.getPayouts().get("p0"));
+        assertEquals(8L, paid.getPayouts().get("p3"));
+    }
+
+    @Test
+    void rejectsPendingDecisionsRaiseRightsNoContendersAndEarlyContestedBoard() {
+        GameState base = table(new long[]{10, 10, 0, 0, 0, 0}, Set.of(0, 1));
+        PotSettlement service = new PotSettlement();
+        for (int kind = 0; kind < 3; kind++) {
+            Set<String> pending = kind == 0 ? Set.of("p0") : Set.of();
+            Set<String> raising = kind == 1 ? Set.of("p0") : Set.of();
+            GameState invalid = new GameState(base.getConfig(), "early", GamePhase.PREFLOP,
+                    base.getPlayerStates(), base.getPositions(), kind == 0 ? "p0" : null,
+                    List.of(), List.of(), new BettingProgress(0, 20, pending, raising));
+            assertThrows(IllegalStateException.class, () -> service.settle(invalid));
+        }
+        assertThrows(IllegalStateException.class,
+                () -> service.settle(table(new long[]{10, 10, 0, 0, 0, 0}, Set.of())));
     }
 
     private static int seat(List<Card> holding) {
