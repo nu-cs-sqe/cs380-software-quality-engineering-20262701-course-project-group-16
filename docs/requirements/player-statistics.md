@@ -2,7 +2,8 @@
 
 These are the project's statistics conventions. `PlayStats` aggregates the
 completed hands of one player/profile. Profile storage, the profile screen,
-and the betting-engine adapter are separate work.
+and completed-hand settlement are separate work. The application adapter now
+feeds accepted actions into pending collectors; it does not aggregate unfinished hands.
 
 ## Required results
 
@@ -136,3 +137,19 @@ The BVA documents for PlayStats, StatsAction, and StatsContext map unique case
 IDs to their JUnit tests. Enums are exempt from separate BVA documents under the
 course template. TDD execution logs are kept separately; no commits are made
 automatically.
+
+## Application delivery
+
+SetupSession prepares one HandStatistics recorder for a successfully initialized
+hand. Each player has a separate PlayStats collector with participation taken
+from dealt cards. After an accepted request, closed-round advancement and final
+comparison must succeed before the action is delivered once and session state
+is published. Rejected requests, legal-action queries, forced blinds, viewer
+changes and automatic board runout create no voluntary observations.
+
+The package factory permits capturing deliveries and injecting failures in tests.
+A recorder must reject invalid data before mutation; PlayStats validates before
+appending. Failed starts retain the previous session/collector. Successful
+restarts discard pending records and create a new hand. No production caller
+invokes completeHand yet: comparison winners alone do not establish settled
+payout/participation facts. See [adapter/session BVA](../bva/HandStatistics.md).

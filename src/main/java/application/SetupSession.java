@@ -16,6 +16,9 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.Optional;
+import java.util.Objects;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.Set;
 
 /** Owns one played hand and explicit private-card handoffs. Use on the UI thread. */
@@ -23,6 +26,8 @@ public final class SetupSession {
     private final GameInitializer initializer;
     private final BettingEngine engine;
     private final ShowdownResolver resolver;
+    private final Function<GameState, Consumer<AcceptedAction>> statisticsFactory;
+    private Optional<Consumer<AcceptedAction>> statistics = Optional.empty();
     private final List<AcceptedAction> acceptedActions = new ArrayList<>();
     private Optional<GameState> state = Optional.empty();
     private Optional<ShowdownResult> result = Optional.empty();
@@ -41,18 +46,26 @@ public final class SetupSession {
     /** @throws IllegalArgumentException if any collaborator is null */
     public SetupSession(GameInitializer initializer, BettingEngine engine,
             ShowdownResolver resolver) {
-        if (initializer == null || engine == null || resolver == null) {
-            throw new IllegalArgumentException(
-                    "Initializer, betting engine and resolver are required.");
+        this(initializer, engine, resolver, HandStatistics::start);
+    }
+
+    // Recorders must reject invalid observations before modifying their pending collection.
+    SetupSession(GameInitializer initializer, BettingEngine engine, ShowdownResolver resolver,
+            Function<GameState, Consumer<AcceptedAction>> statisticsFactory) {
+        if (initializer == null || engine == null || resolver == null
+                || statisticsFactory == null) {
+            throw new IllegalArgumentException("The session collaborators are required.");
         }
         this.initializer = initializer;
         this.engine = engine;
         this.resolver = resolver;
+        this.statisticsFactory = statisticsFactory;
     }
 
     /**
      * Accepts one request, advances closed rounds and compares a finished hand.
      * Rejection preserves the hand/result/log but conceals private cards.
+     * Successful actions enter pending statistics once, after comparison succeeds.
      * @return the one committed action; transitions never invent player actions
      * @throws IllegalStateException before start or after a result
      * @throws IllegalArgumentException for null, illegal or out-of-turn requests
@@ -60,18 +73,29 @@ public final class SetupSession {
      */
     public AcceptedAction submitAction(ActionRequest request) {
         hideCards();
+        BettingResult accepted = engine.apply(requireOpenHand(), request);
+        GameState candidate = advanceClosedRounds(accepted.getState());
+        Optional<ShowdownResult> comparison = compareIfFinished(candidate);
+        AcceptedAction action = accepted.getAcceptedAction();
+        statistics.orElseThrow().accept(action);
+        publishAction(candidate, comparison, action);
+        return action;
+    }
+
+    private GameState requireOpenHand() {
         GameState match = requireMatch();
         if (result.isPresent()) {
             throw new IllegalStateException("This hand already has a result awaiting settlement.");
         }
-        BettingResult accepted = engine.apply(match, request);
-        GameState candidate = advanceClosedRounds(accepted.getState());
-        Optional<ShowdownResult> comparison = compareIfFinished(candidate);
+        return match;
+    }
+
+    private void publishAction(GameState candidate, Optional<ShowdownResult> comparison,
+            AcceptedAction action) {
         state = Optional.of(candidate);
         result = comparison;
-        acceptedActions.add(accepted.getAcceptedAction());
+        acceptedActions.add(action);
         selectActingHuman();
-        return accepted.getAcceptedAction();
     }
 
     /**
@@ -132,6 +156,13 @@ public final class SetupSession {
     public void start(int humanCount) {
         hideCards();
         GameState started = initializer.start(humanCount);
+        Consumer<AcceptedAction> recorder =
+                Objects.requireNonNull(statisticsFactory.apply(started));
+        publishStart(started, recorder);
+    }
+
+    private void publishStart(GameState started, Consumer<AcceptedAction> recorder) {
+        statistics = Optional.of(recorder);
         state = Optional.of(started);
         result = Optional.empty();
         acceptedActions.clear();

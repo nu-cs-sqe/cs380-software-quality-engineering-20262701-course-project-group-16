@@ -12,6 +12,7 @@ sequenceDiagram
     participant Session as SetupSession
     participant Engine as BettingEngine
     participant Resolver as ShowdownResolver
+    participant Stats as HandStatistics
     UI->>Session: submitAction(ActionRequest)
     Session->>Engine: apply(currentState, request)
     Engine-->>Session: next state + accepted action
@@ -22,6 +23,7 @@ sequenceDiagram
         Session->>Resolver: resolve(candidate)
         Resolver-->>Session: result awaiting settlement
     end
+    Session->>Stats: record accepted action in pending collector
     Session-->>UI: commit state/result/action once
     UI->>Session: playBotTurns()
     Session-->>UI: stop at human decision or result
@@ -32,17 +34,22 @@ sequenceDiagram
 
 | API | Behavior |
 | --- | --- |
-| `start(humanCount)` | Initialize a separate hand, hide cards, clear history/result only after a successful start. It returns at the initial decision; the UI then calls playBotTurns. |
-| `submitAction(request)` | Delegate legality/deductions to BettingEngine. Advance closed rounds, resolve a terminal comparison, then publish the candidate state and append exactly one accepted action. Any validation/comparison failure preserves the old state/result/log; private cards are hidden. |
+| `start(humanCount)` | Initialize a separate hand, hide cards, prepare fresh pending collectors, clear history/result only after a successful start. It returns at the initial decision; the UI then calls playBotTurns. |
+| `submitAction(request)` | Delegate legality/deductions to BettingEngine. Advance closed rounds, resolve a terminal comparison, then record the pending observation, publish the candidate state and append exactly one accepted action. Any validation/comparison/recording failure preserves the old state/result/log; private cards are hidden. |
 | `playBotTurns()` | Temporary legal CHECK if available, otherwise CALL; stop before a human decision or after a result. Return an immutable list of newly committed bot actions. Does not inspect hole cards. |
 | `getAvailableActions()` | Ask the pure engine about FOLD/CHECK/CALL using disposable snapshots; expose only supported legal actions. Queries never update the session/log/statistics. Empty before start or after a result. |
 | `getResult()` | Optional immutable ShowdownResult. It is a comparison awaiting settlement, with no chip movement or completed-hand aggregation. |
 | `getAcceptedActions()` | Immutable current-hand event snapshot, including human/bot actions and existing statistics context. No forced blind posts or invented runout actions; failed requests do not append. |
 
 The coordinator keeps its candidate state local until advancement and comparison
-succeed. A failed final comparison can therefore be retried without losing the
+succeed. Pending statistics receive the accepted observation before publishing
+state/result/log. A failed final comparison can therefore be retried without losing the
 actor or counting the action twice. A result rejects further requests. Successful
-restart creates a new hand/log; failed restart retains the old result/history.
+restart creates a new hand/log/collector; failed restart retains the old result,
+history and collector. A package-private statistics factory supports capturing
+real deliveries and failure injection in tests. Public constructors wire the
+real adapter. Recorders must reject before mutation; PlayStats validates before
+appending. No completed-hand totals are changed.
 
 ## Transitions and privacy
 
@@ -75,7 +82,7 @@ flush tie and a sole seat 5 six-high straight, without replacing game components
 Supported engine actions remain unraised preflop FOLD/CHECK/CALL and postflop
 CHECK/FOLD. Bets/raises, raised-round responses, postflop CALL, pot/side-pot
 payouts, repeated hands, equity bots and persistence remain later work. The
-action log supports later PlayStats wiring; no pending hand is aggregated as
+action log and pending PlayStats receive the same accepted actions; no pending hand is aggregated as
 complete and no payout-dependent statistic is fabricated.
 
 See [session BVA](../bva/SessionBetting.md) and

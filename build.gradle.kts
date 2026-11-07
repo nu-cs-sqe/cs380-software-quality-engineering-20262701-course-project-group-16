@@ -49,7 +49,7 @@ application {
     mainClass.set("ui.Main")
 }
 
-// Ten-class scope with InitialDeal and shared session integration follow-ups.
+// Eleven-class scope with InitialDeal, pending statistics and shared session follow-ups.
 // This is not a whole-team coverage or mutation score.
 val measuredClasses = listOf(
     "domain.model.Card",
@@ -59,6 +59,7 @@ val measuredClasses = listOf(
     "domain.model.ShowdownResult",
     "application.GameInitializer",
     "application.InitialDeal",
+    "application.HandStatistics",
     "application.SetupSession",
     "application.SetupView",
     "localization.Localizations"
@@ -134,6 +135,7 @@ pitest {
         "domain.model.ShowdownResultTest", "application.GameInitializerTest",
         "integration.GameInitializerIntegrationTest",
         "integration.SetupSessionIntegrationTest", "application.SessionBettingTest",
+        "application.HandStatisticsTest", "application.SessionStatisticsIntegrationTest",
         "application.SetupViewTest", "integration.SetupIntegrationTest",
         "integration.ShowdownIntegrationTest", "integration.PlayedHandIntegrationTest",
         "localization.LocalizationsTest"
