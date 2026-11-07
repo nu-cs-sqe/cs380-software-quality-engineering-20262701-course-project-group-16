@@ -2,11 +2,13 @@
 
 A Java desktop no-limit Texas Hold'em game with six seats for 1–6 humans and bots
 filling the remaining seats. Players share one computer and use virtual chips.
-A match ends when one player holds all the chips.
+Seats stay fixed during a match; players can stop the whole game.
+The intended full match ends when one player holds all the chips.
 
 **Status:** A controlled hand can now run through fold/check/call actions,
 street progression and real winner/tie comparison in Swing, in English or Chinese.
-Bots use a temporary check/call policy. Results await settlement: bets/raises,
+Bots use a temporary check/call policy. Accepted actions feed pending statistics.
+Results await settlement: bets/raises,
 postflop calls, payouts, repeated-hand matches and equity bots remain unfinished.
 
 ## Contributors
@@ -97,15 +99,16 @@ and required status-check enforcement still need verification after push.
 
 Run `bash ./gradlew build` for tests/static checks/coverage and
 `bash ./gradlew pitest` for mutation testing. The team suite and shared static
-checks run across the project; coverage/PIT use ten documented components,
-including InitialDeal and the shared session. These are not full-game metrics.
+checks run across the project; coverage/PIT use eleven documented components,
+including InitialDeal, HandStatistics and the shared session. These are not
+full-game metrics.
 [Quality results](docs/quality.md)
 list exact scope, report paths, adapted Checkstyle rules and reviewed SpotBugs
 exceptions. There is no invented metric threshold that hides findings.
 
 ## Documentation
 
-- [Game rules and requirements](docs/requirements/game-rules.md) (still needs to be completed)
+- [Game rules and requirements](docs/requirements/game-rules.md)
 - [System design and shared contract](docs/design/README.md)
 - [Card/deck and setup integration](docs/design/game-setup.md)
 - [Boundary value analysis](docs/bva/README.md)
@@ -120,16 +123,18 @@ exceptions. There is no invented metric threshold that hides findings.
 
 ### Code Coverage
 
-Coverage uses the documented ten-class scope, including InitialDeal and the
-shared session/view. The rubric targets 100% cyclomatic coverage, with View/Main/Enum exemptions. JaCoCo line, branch
+Coverage uses the documented eleven-class scope, including InitialDeal and the
+shared session/view and pending-statistics adapter. The rubric targets 100%
+cyclomatic coverage, with View/Main/Enum exemptions. JaCoCo line, branch
 and covered-complexity counters are reported separately; these do not prove
 independent basis-path execution. The exact class scope and results are in
-[quality.md](docs/quality.md); betting/state/statistics components remain outside this measurement scope,
+[quality.md](docs/quality.md); betting/state and the PlayStats domain collector
+remain outside this measurement scope,
 while their tests and shared static checks still run.
 
 ### Mutation Testing
 
-PIT uses the DEFAULTS operator group on the documented ten-class scope. The target
+PIT uses the DEFAULTS operator group on the documented eleven-class scope. The target
 is to kill every non-equivalent mutant. Actual raw scores and each surviving
 mutant's reasoning remain visible in [quality.md](docs/quality.md), including
 the unresolved acceptance of a contract-preserving constant hash. Survivor reasoning and acceptance limits are documented alongside the raw score.

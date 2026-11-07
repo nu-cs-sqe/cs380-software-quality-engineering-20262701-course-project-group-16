@@ -54,6 +54,7 @@ comparison; add English/Chinese support; configure and measure quality checks.
 | Done, merged through PR #15 | Estella / shared quality | Preserve setup/privacy checks, update mutation test selection and review findings; initial local checkpoint passed 939 tests with clean static checks; current merged verification is recorded below. | [Local TDD record](tdd/week6-session.md); [current shared-scope measurements](quality.md). |
 | Done | Kevin | Update README, BVA/design contracts and weekly report with checkpoint evidence and open dependencies. | `8a322f9`, report cleanup `42a02d5`; [BVA index](bva/README.md). |
 | Done, component only | Kevin | Reusable English/Chinese showdown display: winner/ties/uncontested, awaiting settlement, stale-input guards and clearing. Reads public names only; the played-hand screen uses its own translated inline result. | Branch `feature/showdown-display`; RED `2493bf3` → GREEN `750e7c4`; 18 cases; [result contract](design/showdown.md). |
+| Done | Kevin | Feed accepted human/bot actions once into pending PlayStats; preserve rejection/retry and failed-start state. Complete fixed-seat match/stop rules. | Branch `feature/week6-finish`, code `634b2c6`; 12 adapter + 16 integration cases; [BVA](bva/HandStatistics.md), [game rules](requirements/game-rules.md). |
 
 **Branches:** Initializer `feature/setup-dealing`; session/Swing `feature/swing-setup`
 (merged through PR #11); Kevin branch `feature/hand-evaluation`, based on
@@ -96,19 +97,27 @@ the November 6 setup/test refactoring build passed 746 tests. These are separate
 branch measurements. Both the 18 result-display cases and 11 isolated coordinator
 cases are retained in the combined branch.
 
-Latest verification: **November 6**, merged main `ac70b3b`, local `build pitest`.
-Gradle 9.7.1 ran on JDK 17; compilation/tests used JDK 11. The matching
-[GitHub CI run](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/actions/runs/42232032730)
-completed successfully. Earlier `c077d84` measurements were 764 tests and PIT
-190/197; those component-stage results remain in [quality history](quality.md).
+Latest local verification: **November 6**, branch `feature/week6-finish`,
+`build pitest` on Gradle 9.7.1 / JDK 17 with Java 11 compilation/tests. The merged
+baseline `ac70b3b` passed 970 tests and [GitHub CI](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/actions/runs/42232032730).
+These new changes still need push, remote CI and peer review. Historical
+component/shared measurements remain in [quality results](quality.md).
 
-| Check | Current merged result |
+| Check | Latest local result |
 | --- | --- |
-| Team tests | **970 passing**, zero failures/errors/skips; includes real engine, session, played-hand and bilingual UI cases. |
-| Checkstyle / SpotBugs | Zero main/test findings after documented exceptions; production Java lines limited to 100 characters. |
-| Shared measured scope: ten classes | **100%** counters: 438 lines, 216 branches, 204 complexity, 2,216 instructions and 96 methods covered. Includes InitialDeal and the shared session/view; excludes betting/state/statistics and Swing from the metric denominator. |
-| PIT | **230/237 killed (97.05%)**; the same seven reviewed baseline survivors; no uncovered/time-out/error mutants. |
-| UI | English/Chinese played actions, winner/tie/uncontested results and privacy cases pass. Native focus/font walkthrough remains pending. |
+| Team tests | **998 passing**, zero failures/errors/skips. |
+| Checkstyle / SpotBugs | Zero main/test findings after existing exceptions; 100-character production Java limit retained. |
+| Shared measured scope: eleven classes | **100% counters:** 471 lines, 226 branches, 217 complexity, 2,353 instructions, 104 methods. Includes InitialDeal, shared session/view and HandStatistics; excludes the betting/state/PlayStats engine and Swing from this denominator. |
+| PIT | **242/249 killed (97.19%)**; seven unchanged reviewed survivors; no uncovered/time-out/error mutants. |
+| UI | Existing English/Chinese played-flow/privacy cases pass. Native focus/font walkthrough remains pending. |
+
+New statistics checkpoint: RED had **25 failures / three existing passes** in
+28 new cases; GREEN passed all 28. Real-component integration checks cover
+accepted actions once, rejected requests, all-in runout, uncontested endings,
+bots, failed comparison/recording retries and restart preservation. Rates stay
+pending until real settlement; no completed-hand totals are claimed. Players
+keep their seats throughout a match; stopping the whole game is allowed. Full
+match carry-over/elimination remains future work. Code checkpoint: `634b2c6`.
 
 The refactoring preserves behavior. The 11 new coordinator cases were run
 first against an unimplemented injection boundary and all failed as expected,
@@ -198,7 +207,8 @@ and combined-source results (970) describe different checkpoints.
 - [ ] **Together:** Implement bets/raises and their action/reopening rules, including postflop calls; then complete pot/side-pot settlement and repeated-hand match flow.
 - [ ] **Together:** Split multi-step methods when changing them; `GamePanel.buildScreen` and `BettingEngine.advanceStreet` are candidates for focused rendering/transition helpers. Follow the [method-design guidance](design/README.md#method-design).
 - [ ] **Together:** Walk through native desktop focus-loss privacy and cross-platform fonts/layout.
-- [ ] **Together:** Complete [game rules](requirements/game-rules.md), reconcile proposed 5/10 versus implemented 10/20 blinds/button policy, confirm board assignees/status/PR links and record instructor-meeting evidence.
+- [x] **Kevin:** Complete [game rules](requirements/game-rules.md): agreed 10/20 blinds, random first button, fixed seats/no individual leaving, whole-game stop allowed; current hand vs future match behavior is explicit.
+- [ ] **Together:** Confirm board assignees/status/PR links and record meeting evidence.
 - [ ] **Together:** Review rubric interpretation and mutation survivors with the instructor; obtain partner-owned quality measurements separately.
 - [x] **Kevin:** Implementation branch merged through PR #13 (`d2a78f3`).
 - [ ] **Together:** CI passed for merged main [run 42232032730](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/actions/runs/42232032730); required review/check enforcement and deliberate failure detection still need separate verification.

@@ -65,7 +65,7 @@ For the six-player initial deal, the setup coordinator requests one card per sea
 
 ## Decisions still to confirm together
 
-The team selected 1,000 starting chips per player, fixed 10/20 blinds, a random first dealer, and no rebuys. These initialization settings are in `GameConfig` and the shared contract. Complete game-rule documentation remains to be finished.
+The team selected 1,000 starting chips per player, fixed 10/20 blinds, a random first dealer, and no rebuys. These initialization settings are in `GameConfig` and the shared contract. The [game rules](../requirements/game-rules.md) distinguish the current played subset from the full match contract.
 
 - `handContribution` includes `roundContribution`; the pot is derived from whole-hand contributions.
 - Use `GameInitializer.start(humanCount)` through SetupSession to create the first PREFLOP snapshot.

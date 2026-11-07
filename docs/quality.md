@@ -8,7 +8,36 @@ no `ignoreFailures`, global suppression or baseline hiding existing warnings. Re
 CI uploads test, coverage, mutation and static-analysis reports even after a
 failed step.
 
-## Current merged results — November 6, 2026
+## Pending-statistics checkpoint — November 6, 2026
+
+Branch `feature/week6-finish`, based on merged main `ac70b3b` plus the progress
+notes in `4baef67`; statistics code is `634b2c6`. Local `build pitest` exited 0 in 58 seconds on Gradle 9.7.1 /
+JDK 17, with Java 11 compilation/tests. Remote CI for this checkpoint is pending
+push; the earlier main CI result below does not verify these new changes.
+
+| Check | Result |
+| --- | --- |
+| Full team JUnit suite | **998 tests**, zero failures/errors/skips; includes 12 new adapter and 16 session-statistics cases. |
+| Checkstyle / SpotBugs | Zero main/test findings after the existing reviewed exceptions; zero analysis errors/missing classes. No new exclusions. |
+| Shared eleven-class JaCoCo scope | **2,353 instructions, 226 branches, 471 lines, 217 complexity counters, 104 methods, 11 classes**; zero missed counters. |
+| PIT | **242/249 killed (97.19%)**, seven unchanged survivors; no uncovered/time-out/error mutants. Line coverage 472/472; 16 selected test classes, 1,523 executions across mutants. |
+| New adapter / session | HandStatistics: 19 lines, 8 branches and 8 complexity counters covered; PIT 7/7 killed. SetupSession: 107 lines, 42 branches and 47 complexity counters covered; PIT 46/46 killed. |
+
+The scope now includes the pending-statistics adapter. PlayStats itself, the
+betting/state engine and Swing remain outside this metric denominator; their
+tests and shared static checks still run. Counters do not prove independent
+basis-path execution. The seven baseline survivors remain the six evaluator
+cases and the unresolved hash-contract case reviewed below.
+
+TDD first ran 28 new cases against the missing adapter/session connection:
+25 failed and three existing zero-rate cases passed. All 28 passed after
+implementation. Integration tests use real initialization, betting, adapter and
+PlayStats, capturing observation deliveries and injecting failures before
+mutation. No mock library, completed-hand totals or payout-dependent results
+were added. See [BVA](bva/HandStatistics.md). Native focus/font walkthrough,
+peer approval and new remote checks remain separate pending verification.
+
+## Merged baseline — November 6, 2026
 
 Verified main `ac70b3b` with `build pitest`: Gradle 9.7.1 on JDK 17 and
 Java 11 compilation/tests. The local run exited 0 in 1 minute 19 seconds;
@@ -27,7 +56,7 @@ These scoped metrics include InitialDeal and the shared application session/view
 not the whole betting/state/statistics engine or Swing. They do not prove
 independent basis-path execution. The seven survivors are the six evaluator
 cases and hash-code contract case documented below. Earlier branch measurements
-are preserved as history; the current merged results supersede their counts.
+are preserved as history. The pending-statistics checkpoint above is newer.
 
 ## Reproduce
 
@@ -113,14 +142,16 @@ change. Shared Checkstyle violations are fixed in source instead of baselined.
 ## Scope and interpretation
 
 SetupSession and SetupView include shared played-hand integration. The
-current configured scope has ten classes, including extracted InitialDeal.
+current configured scope has eleven classes, including extracted InitialDeal
+and the pending HandStatistics adapter.
 Earlier nine-class results below are historical, not current full-game
 coverage. PIT retains the renamed integration tests and the new session
 and played-hand tests.
 
 JaCoCo and PIT include `Card`, `Deck`, `PokerHandEvaluator`,
-`ShowdownResolver`, `ShowdownResult`, `GameInitializer`, `InitialDeal`, `SetupSession` and
-`SetupView` and `Localizations`, including their nested classes. `SetupView` remains in the scope
+`ShowdownResolver`, `ShowdownResult`, `GameInitializer`, `InitialDeal`,
+`HandStatistics`, `SetupSession`, `SetupView` and `Localizations`, including
+their nested classes. `SetupView` remains in the scope
 even though a display DTO could qualify for a view exemption: its private-card
 filtering is useful behavior to measure. Tests exercise these components
 through their public contracts; the complete JUnit suite also runs in the build.
@@ -130,9 +161,9 @@ test executions across mutants separately from the JUnit suite count. It uses th
 workers, HTML/XML output and deterministic report paths. A mutant may hang a
 loop; timeout permits twice its baseline test duration plus two seconds.
 
-Excluded from the **nine-class metric denominator**:
+Excluded from the **current eleven-class metric denominator**:
 
-- Partner-owned domain state, betting and statistics components; their test
+- Domain state, betting and PlayStats components; their test
   execution is retained, but their coverage is not established by this scope.
 - `HandEvaluator`, an interface without executable default methods, and the
   `Rank`/`Suit` and nested `ShowdownResult.Status` enums, whose constants have no hand-written branching behavior.
