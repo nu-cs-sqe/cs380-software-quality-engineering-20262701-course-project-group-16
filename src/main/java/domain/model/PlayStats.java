@@ -30,6 +30,17 @@ public final class PlayStats {
     public PlayStats() {
     }
 
+    /** Independent transactional copy, including pending observations and duplicate-ID history. */
+    public PlayStats copy() {
+        PlayStats copy = new PlayStats();
+        copy.completedHandIds.addAll(completedHandIds);
+        copy.pendingActions.addAll(pendingActions);
+        copy.activeHandId = activeHandId;
+        copy.dealtIn = dealtIn;
+        copy.totals = totals.clone();
+        return copy;
+    }
+
     /**
      * Begins a hand without changing lifetime totals.
      *

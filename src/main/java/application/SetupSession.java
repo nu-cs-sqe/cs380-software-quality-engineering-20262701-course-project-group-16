@@ -12,6 +12,8 @@ import domain.model.BettingEngine;
 import domain.model.BettingResult;
 import domain.model.ShowdownResolver;
 import domain.model.ShowdownResult;
+import domain.model.Settlement;
+import domain.model.PotSettlement;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -20,6 +22,8 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.Set;
+import java.util.Map;
+import java.util.Random;
 
 /** Owns one played hand and explicit private-card handoffs. Use on the UI thread. */
 public final class SetupSession {
@@ -31,6 +35,10 @@ public final class SetupSession {
     private final List<AcceptedAction> acceptedActions = new ArrayList<>();
     private Optional<GameState> state = Optional.empty();
     private Optional<ShowdownResult> result = Optional.empty();
+    private Optional<Settlement> settlement = Optional.empty();
+    private Optional<MatchStatistics> totals = Optional.empty();
+    private final PotSettlement payoutService = new PotSettlement();
+    private final NextHand continuation = new NextHand(new Random());
     private int viewerSeat;
     private boolean cardsRevealed;
 
@@ -158,13 +166,16 @@ public final class SetupSession {
         GameState started = initializer.start(humanCount);
         Consumer<AcceptedAction> recorder =
                 Objects.requireNonNull(statisticsFactory.apply(started));
+        MatchStatistics fresh = MatchStatistics.start(started);
         publishStart(started, recorder);
+        totals = Optional.of(fresh);
     }
 
     private void publishStart(GameState started, Consumer<AcceptedAction> recorder) {
         statistics = Optional.of(recorder);
         state = Optional.of(started);
         result = Optional.empty();
+        settlement = Optional.empty();
         acceptedActions.clear();
         viewerSeat = 0; // Setup assigns at least one human, starting at seat zero.
     }
@@ -231,6 +242,54 @@ public final class SetupSession {
             return Optional.of(resolver.resolve(candidate));
         }
         return Optional.empty();
+    }
+
+    /** Pays a finished hand and atomically publishes completed statistics, exactly once. */
+    public Settlement settleHand() {
+        hideCards();
+        GameState hand = requireMatch();
+        if (result.isEmpty() || settlement.isPresent()) {
+            throw new IllegalStateException("A hand must have an unpaid result.");
+        }
+        Settlement paid = payoutService.settle(hand);
+        MatchStatistics completed = totals.orElseThrow().complete(hand, paid, acceptedActions);
+        state = Optional.of(paid.getState());
+        totals = Optional.of(completed);
+        settlement = Optional.of(paid);
+        return paid;
+    }
+
+    /** Continues a settled match with stable identities, carried stacks and fresh private cards. */
+    public void nextHand() {
+        hideCards();
+        if (settlement.isEmpty()) {
+            throw new IllegalStateException("Settle this hand before continuing.");
+        }
+        GameState started = advanceClosedRounds(continuation.start(requireMatch()));
+        Optional<ShowdownResult> comparison = compareIfFinished(started);
+        Consumer<AcceptedAction> recorder =
+                Objects.requireNonNull(statisticsFactory.apply(started));
+        publishStart(started, recorder);
+        result = comparison;
+        selectActingHuman();
+    }
+
+    public Optional<Settlement> getSettlement() { return settlement; }
+
+    /** Immutable completed totals for the current match; no private cards or pending rates. */
+    public Map<String, StatisticsView> getStatistics() {
+        return totals.map(MatchStatistics::snapshot).orElseGet(Map::of);
+    }
+
+    /** A paid match with one positive stack has a total winner and cannot deal again. */
+    public Optional<Player> getMatchWinner() {
+        if (settlement.isEmpty()) {
+            return Optional.empty();
+        }
+        List<Player> remaining = requireMatch().getPlayers().stream()
+                .filter(player -> player.getChipStack() > 0)
+                .collect(java.util.stream.Collectors.toList());
+        return remaining.size() == 1 ? Optional.of(remaining.get(0)) : Optional.empty();
     }
 
     private GameState requireMatch() {
