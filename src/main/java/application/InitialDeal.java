@@ -5,6 +5,7 @@ import domain.model.Deck;
 import domain.model.GamePhase;
 import domain.model.GameState;
 import domain.model.PlayerState;
+import domain.model.PlayerStatus;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -23,7 +24,7 @@ final class InitialDeal {
         List<List<Card>> hands = dealHoleCards(table, deck);
         List<PlayerState> players = playersWithCards(table, hands);
         return new GameState(table.getConfig(), table.getHandId(), GamePhase.PREFLOP,
-                players, table.getPositions(), table.getCurrentActorId().orElseThrow(),
+                players, table.getPositions(), table.getCurrentActorId().orElse(null),
                 table.getCommunityCards(), deck.deal(deck.remainingCards()),
                 table.getBettingProgress());
     }
@@ -32,7 +33,7 @@ final class InitialDeal {
         int seatCount = table.getConfig().getSeatCount();
         List<List<Card>> hands = emptyHands(seatCount);
         for (int round = 0; round < 2; round++) {
-            dealClockwise(table.getDealerSeat(), hands, deck);
+            dealClockwise(table, hands, deck);
         }
         return hands;
     }
@@ -45,10 +46,12 @@ final class InitialDeal {
         return hands;
     }
 
-    private static void dealClockwise(int dealerSeat, List<List<Card>> hands, Deck deck) {
+    private static void dealClockwise(GameState table, List<List<Card>> hands, Deck deck) {
         for (int distance = 1; distance <= hands.size(); distance++) {
-            int seat = (dealerSeat + distance) % hands.size();
-            hands.get(seat).addAll(deck.deal(1));
+            int seat = (table.getDealerSeat() + distance) % hands.size();
+            if (table.getPlayerStates().get(seat).getStatus() != PlayerStatus.ELIMINATED) {
+                hands.get(seat).addAll(deck.deal(1));
+            }
         }
     }
 

@@ -34,11 +34,15 @@ separate failing-before-implementation cycles.
 | SS-INT-false/true | start; submitAction; getView; getResult | Real setup with controlled shuffle; prescribed call/fold/check then check-through | Shared-flush tie or sole seat 5 straight; five live players;21 actions; pot 100/stacks 5900;32 deck cards; awaiting settlement | PlayedHandIntegrationTest.actionsAndStreetProgressionReachTheRealEvaluator; passing |
 
 The accepted-action log is private and exposed as immutable snapshots. It is an
-event source for later statistics integration, not completed-hand aggregation.
+event source for pending statistics delivery, not completed-hand aggregation.
 Legal-action queries use the pure engine on discarded snapshots; only successful
 session submissions enter the log. Rejected actions hide the UI hand but do not
-change the authoritative game state. Completed-hand/payout statistics remain
-pending until settlement is implemented.
+change the authoritative game state. Comparison leaves totals pending; explicit settleHand now pays pots and
+aggregates completed statistics. See [completion cases](CompletedStatistics.md).
+
+[Statistics integration](HandStatistics.md) adds 16 session cases and 12 adapter
+cases: accepted actions reach pending PlayStats once after successful comparison;
+queries/rejections do not record, and failed comparison/recording can be retried.
 
 SessionBettingTest has 30 cases and PlayedHandIntegrationTest has 2. The fault
 case injects one failing evaluator call solely to check transaction recovery;

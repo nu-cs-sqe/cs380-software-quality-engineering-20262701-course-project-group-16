@@ -33,7 +33,11 @@ privacy and immutability cases.
 | `GamePanel` played flow | [PlayedGamePanel.md](PlayedGamePanel.md) |
 | `GameView` | [GameView.md](GameView.md) |
 | `PlayerView` | [PlayerView.md](PlayerView.md) |
-| `PlayStats` | [PlayStats.md](PlayStats.md) |
+| `HandStatistics` / session delivery | [HandStatistics.md](HandStatistics.md) |
+| `PlayStats` | [PlayStats.md](PlayStats.md), [transactional copy](CompletedStatistics.md) |
+| `PotSettlement` / `Settlement` | [PotSettlement.md](PotSettlement.md) |
+| `MatchStatistics` / `StatisticsView` / `NextHand` | [CompletedStatistics.md](CompletedStatistics.md) |
+| `GamePanel` / `StatisticsPanel` completion UI | [StatisticsPanel.md](StatisticsPanel.md) |
 | `StatsAction` | [StatsAction.md](StatsAction.md) |
 | `StatsContext` | [StatsContext.md](StatsContext.md) |
 
