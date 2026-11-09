@@ -78,11 +78,10 @@ class SessionBettingTest {
                 : kind.equals("unknown") ? new ActionRequest("missing", ActionType.CALL)
                 : kind.equals("outOfTurn") ? new ActionRequest(before.getPlayers().get(4).getId(), ActionType.CALL)
                 : kind.equals("bet") ? new ActionRequest(actor, ActionType.BET, 40)
-                : kind.equals("raise") ? new ActionRequest(actor, ActionType.RAISE, 40)
+                : kind.equals("raise") ? new ActionRequest(actor, ActionType.RAISE, 39)
                 : new ActionRequest(actor, ActionType.CHECK);
         session.revealCards();
-        Class<? extends RuntimeException> failure = kind.equals("bet") || kind.equals("raise")
-                ? UnsupportedOperationException.class : IllegalArgumentException.class;
+        Class<? extends RuntimeException> failure = IllegalArgumentException.class;
         assertThrows(failure, () -> session.submitAction(request));
         assertEquals(snapshot(before), snapshot(view(session)));
         assertTrue(view(session).getHoleCards().isEmpty());

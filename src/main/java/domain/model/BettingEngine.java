@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Applies unraised preflop actions and postflop checks/folds, and advances closed rounds.
+ * Applies full bets/raises and passive actions on every street; advances closed rounds.
  * The application records statistics after receiving an accepted result.
  */
 public final class BettingEngine {
@@ -99,26 +99,26 @@ public final class BettingEngine {
      * With no pending decisions or only one participant, the next actor is absent.
      * Street advancement and pot settlement are separate operations, not performed here.
      * A call adds at most the available stack; exhausting it preserves CALL semantics.
-     * @throws IllegalArgumentException for null inputs, out-of-turn actions,
+     * Full wagers use round targets; short all-in wager exceptions remain a later increment.
+     * @throws IllegalArgumentException for invalid inputs/targets, out-of-turn actions,
      *         a check while chips are owed or a zero-cost call
-     * @throws UnsupportedOperationException for non-betting phases, raised preflop rounds,
-     *         bets, raises or postflop calls
+     * @throws UnsupportedOperationException for non-betting phases
      */
     public BettingResult apply(GameState before, ActionRequest request) {
         requireCurrentActor(before, request);
-        requireSupportedDecision(before, request.getType());
+        requireBettingStreet(before);
         int seat = before.getCurrentActorSeat().orElseThrow();
         PlayerState actor = before.getPlayerStates().get(seat);
-        AcceptedAction accepted = resolveAction(before, actor, request.getType());
+        AcceptedAction accepted = resolveAction(before, actor, request);
 
         List<PlayerState> players = new ArrayList<>(before.getPlayerStates());
         players.set(seat, afterAction(actor, accepted));
-        BettingProgress progress = afterDecision(before, players, request.getPlayerId());
+        BettingProgress progress = BettingRound.after(before, players, accepted);
         GameState after = new GameState(before.getConfig(), before.getHandId(), before.getPhase(),
                 players, before.getPositions(),
                 nextPendingActor(players, progress.getPlayersToAct(), seat),
                 before.getCommunityCards(), before.getRemainingDeck(), progress,
-                before.getBettingHistory());
+                before.getBettingHistory().after(accepted));
         return new BettingResult(after, accepted);
     }
 
@@ -131,62 +131,40 @@ public final class BettingEngine {
         }
     }
 
-    private static void requireSupportedDecision(GameState before, ActionType type) {
+    private static void requireBettingStreet(GameState before) {
         switch (before.getPhase()) {
             case PREFLOP:
-                if (before.getCurrentBet() > before.getConfig().getBigBlind()
-                        || before.getBettingHistory().getFinalPreflopAggressorId().isPresent()) {
-                    throw new UnsupportedOperationException(
-                            "Raised preflop rounds are not implemented yet.");
-                }
-                return;
             case FLOP:
             case TURN:
             case RIVER:
-                if (type == ActionType.CHECK || type == ActionType.FOLD) {
-                    return;
-                }
-                throw new UnsupportedOperationException(
-                        "Postflop calling, betting and raising are not implemented yet.");
+                return;
             default:
                 throw new UnsupportedOperationException("Player actions require a betting street.");
         }
     }
 
     private static AcceptedAction resolveAction(GameState state, PlayerState actor,
-            ActionType type) {
-        long owed = state.getCurrentBet() - actor.getRoundContribution();
-        switch (type) {
-            case FOLD:
-                return accepted(state, actor, ResolvedActionType.FOLD, 0);
-            case CHECK:
-                if (owed != 0) {
-                    throw new IllegalArgumentException(
-                            "A player must call or fold when chips are owed.");
-                }
-                return accepted(state, actor, ResolvedActionType.CHECK, 0);
-            case CALL:
-                if (owed == 0) {
-                    throw new IllegalArgumentException(
-                            "Nothing is owed; use a check instead of a call.");
-                }
-                return accepted(state, actor, ResolvedActionType.CALL,
-                        Math.min(owed, actor.getPlayer().getChipStack()));
-            default:
-                throw new UnsupportedOperationException("Bets and raises are not implemented yet.");
-        }
-    }
-
-    private static AcceptedAction accepted(GameState state, PlayerState actor,
-            ResolvedActionType type, long chipsAdded) {
+            ActionRequest request) {
+        long chipsAdded = BettingAmounts.chipsAdded(state, actor, request);
+        ResolvedActionType type = ResolvedActionType.valueOf(request.getType().name());
         return new AcceptedAction(state.getHandId(), actor.getPlayer().getId(),
                 BettingStreet.valueOf(state.getPhase().name()), type, chipsAdded,
                 actor.getRoundContribution() + chipsAdded,
                 chipsAdded > 0 && chipsAdded == actor.getPlayer().getChipStack(),
-                contextFor(state, actor));
+                contextFor(state, actor, type));
     }
 
-    private static StatsContext contextFor(GameState state, PlayerState actor) {
+    private static StatsContext contextFor(GameState state, PlayerState actor,
+            ResolvedActionType type) {
+        if (state.getPhase() == GamePhase.PREFLOP) {
+            PreflopRaiseType level = type == ResolvedActionType.RAISE
+                    ? nextRaiseType(state.getBettingHistory().getPreflopRaiseCount())
+                    : PreflopRaiseType.NONE;
+            boolean opportunity = type != ResolvedActionType.CHECK
+                    && state.getBettingHistory().getPreflopRaiseCount() == 1
+                    && BettingAmounts.canMakeFullWager(state, actor);
+            return new StatsContext(level, opportunity, false, false);
+        }
         boolean opening = false;
         boolean facing = false;
         if (state.getPhase() == GamePhase.FLOP) {
@@ -195,8 +173,7 @@ public final class BettingEngine {
             boolean isAggressor = history.getFinalPreflopAggressorId()
                     .filter(playerId::equals).isPresent();
             opening = isAggressor && state.getCurrentBet() == 0
-                    && state.getBettingProgress().getPlayersAllowedToRaise().contains(playerId)
-                    && state.getPlayerStates().stream().filter(PlayerState::canAct).count() >= 2;
+                    && BettingAmounts.canMakeFullWager(state, actor);
             long cBet = history.getFlopCBetAmount().orElse(0);
             facing = cBet > 0 && !isAggressor && state.getCurrentBet() == cBet
                     && actor.getRoundContribution() < state.getCurrentBet();
@@ -219,38 +196,14 @@ public final class BettingEngine {
                 before.getHandContribution() + action.getChipsAdded());
     }
 
-    private static BettingProgress afterDecision(GameState before, List<PlayerState> players,
-            String actorId) {
-        Set<String> pending = new HashSet<>(before.getBettingProgress().getPlayersToAct());
-        Set<String> raising = new HashSet<>(before.getBettingProgress().getPlayersAllowedToRaise());
-        pending.remove(actorId);
-        raising.remove(actorId);
-        closeMatchedLoneActor(players, pending, raising);
-        if (players.stream().filter(PlayerState::isParticipating).count() <= 1
-                || pending.isEmpty()) {
-            pending.clear();
-            raising.clear();
+    private static PreflopRaiseType nextRaiseType(long previousRaises) {
+        if (previousRaises == 0) {
+            return PreflopRaiseType.OPENING_RAISE;
         }
-        long target = players.stream().filter(PlayerState::canAct).count() > 1
-                ? before.getCurrentBet() : players.stream()
-                        .mapToLong(PlayerState::getRoundContribution).max().orElseThrow();
-        return new BettingProgress(target, before.getLastFullRaiseSize(), pending, raising);
-    }
-
-    private static void closeMatchedLoneActor(List<PlayerState> players, Set<String> pending,
-            Set<String> raising) {
-        List<PlayerState> active = players.stream().filter(PlayerState::canAct)
-                .collect(java.util.stream.Collectors.toList());
-        if (active.size() == 1) {
-            raising.clear();
-            PlayerState actor = active.get(0);
-            long opposingBet = players.stream().filter(PlayerState::isParticipating)
-                    .filter(player -> player != actor).mapToLong(PlayerState::getRoundContribution)
-                    .max().orElse(0);
-            if (actor.getRoundContribution() >= opposingBet) {
-                pending.clear();
-            }
+        if (previousRaises == 1) {
+            return PreflopRaiseType.THREE_BET;
         }
+        return previousRaises == 2 ? PreflopRaiseType.FOUR_BET : PreflopRaiseType.LATER_RAISE;
     }
 
     private static String nextPendingActor(List<PlayerState> players, Set<String> pending,

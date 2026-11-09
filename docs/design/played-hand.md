@@ -79,9 +79,13 @@ check produces a real evaluator result awaiting settlement after 21 actions.
 Tests use legal deterministic shuffle choices to produce both a shared-board
 flush tie and a sole seat 5 six-high straight, without replacing game components.
 
-Supported engine actions remain unraised preflop FOLD/CHECK/CALL and postflop
-CHECK/FOLD. Bets/raises, raised-round responses, postflop CALL, equity bots and saved profiles remain later work. The
-action log and pending PlayStats receive the same accepted actions. Settlement
+The engine/session now accept full BET/RAISE and legal FOLD/CHECK/CALL on every
+street. For example, a round contribution of 10 and raise target of 100 adds 90
+chips. Full wagers reset other ACTIVE players' decisions and raise rights.
+Undersized all-in wagers and cumulative reopening remain K02. The screen and
+getAvailableActions still offer FOLD/CHECK/CALL only; engine-owned numeric limits
+and bet/raise controls remain K05/UI work. Equity bots and saved profiles are later
+work. The action log and pending PlayStats receive the same accepted actions. Settlement
 then consumes the ledger once to publish completed match totals.
 
 See [session BVA](../bva/SessionBetting.md) and
@@ -112,4 +116,4 @@ The existing comparison object remains historical and AWAITING_SETTLEMENT by
 contract; use getSettlement for actual paid status. GamePanel shows paid/match
 winner status and exposes separate settlement/continuation controls. Its tabs
 hide private cards. Statistics persist only for this open match; disk profiles
-and full bet/raise behavior are outside this checkpoint.
+and short all-in wager/reopening behavior remain later checkpoints.

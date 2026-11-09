@@ -49,7 +49,7 @@ application {
     mainClass.set("ui.Main")
 }
 
-// Shared scope includes settlement, completed statistics and stable-seat continuation.
+// Shared scope includes betting, settlement, statistics and stable-seat continuation.
 // This is not a whole-team coverage or mutation score.
 val measuredClasses = listOf(
     "domain.model.Card",
@@ -66,6 +66,10 @@ val measuredClasses = listOf(
     "domain.model.PotSettlement",
     "domain.model.Settlement",
     "domain.model.PlayStats",
+    "domain.model.BettingEngine",
+    "domain.model.BettingAmounts",
+    "domain.model.BettingRound",
+    "domain.model.BettingHistory",
     "application.SetupSession",
     "application.SetupView",
     "localization.Localizations"
@@ -145,6 +149,11 @@ pitest {
         "domain.model.PotSettlementTest", "domain.model.PlayStatsTest",
         "domain.model.PlayStatsCopyTest", "application.NextHandTest",
         "application.CompletedStatisticsIntegrationTest", "application.ShortBlindIntegrationTest",
+        "domain.model.FullBettingTest", "application.FullBettingIntegrationTest",
+        "domain.model.BettingEngineTest", "domain.model.BettingEngineFoldCheckTest",
+        "domain.model.BettingEngineAllInCallTest", "domain.model.PostflopActionsTest",
+        "domain.model.BettingHistoryTest", "domain.model.StreetAdvancementTest",
+        "integration.StreetAdvancementIntegrationTest", "integration.CheckThroughHandIntegrationTest",
         "application.SetupViewTest", "integration.SetupIntegrationTest",
         "integration.ShowdownIntegrationTest", "integration.PlayedHandIntegrationTest",
         "localization.LocalizationsTest"

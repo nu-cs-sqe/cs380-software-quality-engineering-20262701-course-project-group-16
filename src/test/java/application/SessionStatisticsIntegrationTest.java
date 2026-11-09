@@ -73,8 +73,7 @@ class SessionStatisticsIntegrationTest {
         session.revealCards();
         String actor = before.getPlayers().get(before.getCurrentActorSeat()).getId();
         ActionRequest request = invalidRequest(invalid, actor, before);
-        Class<? extends RuntimeException> expected = invalid.equals("bet") || invalid.equals("raise")
-                ? UnsupportedOperationException.class : IllegalArgumentException.class;
+        Class<? extends RuntimeException> expected = IllegalArgumentException.class;
         assertThrows(expected, () -> session.submitAction(request));
         assertEquals(snapshot(before), snapshot(view(session)));
         assertTrue(view(session).getHoleCards().isEmpty());
@@ -231,7 +230,7 @@ class SessionStatisticsIntegrationTest {
             case "outOfTurn": return new ActionRequest(before.getPlayers().get(0).getId(), ActionType.CALL);
             case "checkOwing": return new ActionRequest(actor, ActionType.CHECK);
             case "bet": return new ActionRequest(actor, ActionType.BET, 40);
-            default: return new ActionRequest(actor, ActionType.RAISE, 40);
+            default: return new ActionRequest(actor, ActionType.RAISE, 39);
         }
     }
 

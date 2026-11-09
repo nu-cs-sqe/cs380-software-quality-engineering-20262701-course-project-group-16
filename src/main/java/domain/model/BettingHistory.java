@@ -10,6 +10,7 @@ import java.util.OptionalLong;
 public final class BettingHistory {
     private final String finalPreflopAggressorId;
     private final long flopCBetAmount;
+    private final long preflopRaiseCount;
 
     /** Creates an unraised hand with no recorded flop continuation bet. */
     public BettingHistory() {
@@ -17,13 +18,18 @@ public final class BettingHistory {
     }
 
     /**
-     * Records authoritative engine history; GameState validates it against the hand.
+     * Seeds one preflop raise when an aggressor is supplied; GameState validates the hand.
+     * Engine transitions retain the exact accepted raise count.
      * @param finalPreflopAggressorId null for no preflop aggressor
      * @param flopCBetAmount original flop c-bet round target; zero if none occurred
      * @throws IllegalArgumentException for blank IDs, negative amounts,
      *         or a c-bet without an aggressor
      */
     public BettingHistory(String finalPreflopAggressorId, long flopCBetAmount) {
+        this(finalPreflopAggressorId, flopCBetAmount, finalPreflopAggressorId == null ? 0 : 1);
+    }
+
+    private BettingHistory(String finalPreflopAggressorId, long flopCBetAmount, long raises) {
         if ((finalPreflopAggressorId != null && finalPreflopAggressorId.isBlank())
                 || flopCBetAmount < 0 || (flopCBetAmount > 0 && finalPreflopAggressorId == null)) {
             throw new IllegalArgumentException(
@@ -31,6 +37,22 @@ public final class BettingHistory {
         }
         this.finalPreflopAggressorId = finalPreflopAggressorId;
         this.flopCBetAmount = flopCBetAmount;
+        this.preflopRaiseCount = raises;
+    }
+
+    long getPreflopRaiseCount() { return preflopRaiseCount; }
+
+    BettingHistory after(AcceptedAction action) {
+        if (action.getStreet() == BettingStreet.PREFLOP
+                && action.getType() == ResolvedActionType.RAISE) {
+            return new BettingHistory(action.getPlayerId(), 0, Math.addExact(preflopRaiseCount, 1));
+        }
+        if (action.getStreet() == BettingStreet.FLOP && action.getType() == ResolvedActionType.BET
+                && action.getStatsContext().hasFlopCBetOpportunity()) {
+            return new BettingHistory(finalPreflopAggressorId,
+                    action.getRoundContributionAfter(), preflopRaiseCount);
+        }
+        return this;
     }
 
     public Optional<String> getFinalPreflopAggressorId() {

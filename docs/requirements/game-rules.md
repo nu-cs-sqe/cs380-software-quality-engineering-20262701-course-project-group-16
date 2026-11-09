@@ -2,7 +2,7 @@
 
 This project uses [Texas Hold'em rules](https://www.pokerstars.com/poker/learn/lesson/texas-holdem-rules/)
 with the match settings below. The intended full game is no-limit Hold'em;
-the Week 6 playable subset is listed separately to show what is available now.
+the current engine support and desktop controls are described separately below.
 All chips are virtual and have no cash value.
 
 ## Table and match
@@ -41,14 +41,19 @@ each street. Players use their private cards and the five shared cards.
 
 The intended full rules allow folding, checking when owing zero, calling,
 betting and raising subject to stack and minimum-raise rules. The current
-engine supports unraised preflop FOLD/CHECK/CALL and postflop CHECK/FOLD.
+engine supports FOLD/CHECK/CALL and full BET/RAISE on every betting street.
+BET opens a postflop round for at least the big blind. RAISE specifies the total
+round commitment, and its increase must be at least the previous full increment.
+The engine deducts only the difference from the actor's existing contribution;
+the target cannot exceed that contribution plus their remaining chips.
 A short stack can call all-in for its remaining chips. Blinds are capped at the
 available stack. With multiple active opponents, a short big blind still leaves
 the normal minimum call; a lone active player need only match the opposing
 all-in amount. Once that player is matched, run out the board without another
-decision. Unsupported bets/raises
-and postflop calls are rejected; they are not playable yet. Out-of-turn or
-invalid actions preserve chips, cards, actor and accepted-action history.
+decision. Short all-in bets/raises below the full minimum and cumulative
+reopening remain K02; the current engine rejects those wagers. Swing still
+exposes fold/check/call only; numeric limits and bet/raise controls are planned.
+Out-of-turn or invalid actions preserve chips, cards, actor and accepted-action history.
 
 ## Hand result and chips
 
