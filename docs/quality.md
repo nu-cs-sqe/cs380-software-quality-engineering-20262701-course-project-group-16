@@ -8,7 +8,67 @@ no `ignoreFailures`, global suppression or baseline hiding existing warnings. Re
 CI uploads test, coverage, mutation and static-analysis reports even after a
 failed step.
 
-## Completed match statistics — November 6, 2026
+## Full betting checkpoint — November 9, 2026
+
+Branch `feature/week7-betting`, code `fda5bdf`, based on merged main `c71e9d6`. Local
+`build pitest` passed with Gradle 9.7.1 on JDK 17 and Java 11 compilation/tests.
+Push, new remote CI and partner approval remain pending.
+
+| Check | Result |
+| --- | --- |
+| Team suite | **1,091 passing**, zero failures/errors/skips; 58 added cases. |
+| Checkstyle / SpotBugs | Zero main/test findings, analysis errors or missing classes; existing exact exceptions retained. |
+| 21 configured parent components | **1,034 lines, 600 branches, 509 complexity counters, 5,468 instructions, 205 methods and 22 reported classes**, zero missed counters. |
+| PIT | **580/599 killed (96.83%)**, 19 survivors; zero uncovered, timeout or error mutants. Selected-test line coverage 1030/1032; 32 test classes and 6,097 executions across mutants. |
+
+The added components are BettingEngine, BettingAmounts, BettingRound and
+BettingHistory. This extends the earlier 17-parent scope; the remaining state
+classes are still outside it. Swing remains exempt from scoped metrics.
+JaCoCo uses the full JUnit suite; PIT uses selected tests, so its line count
+can differ. These counters do not prove whole-game or independent basis-path
+coverage. No mutation operator, target class or exclusion was removed to improve
+these results; K06 still includes the remaining betting/state measurement work.
+
+TDD: 45 boundary cases and two real played-hand integration cases failed before
+implementation, then passed. Eleven later regression cases address reported
+coverage/mutation gaps: affordable full-raise opportunity boundaries, opening
+minimum/stack limits, rejection before dealing, matched/aggressor c-bet context,
+short-blind targets and closing independent raise rights. The actual pipeline
+uses real setup/dealing, betting, evaluation, payouts and completed statistics,
+with controlled Random; it adds no mock library. Read-only code review found no
+actionable K01 issues.
+
+The raw 19 survivors remain visible. Seven are the unchanged evaluator/hash
+baseline reviewed below; the twelve additional betting survivors are reviewed
+separately below. K02 short all-in/reopening rules and K05 UI/limits are not
+claimed complete by these measurements.
+
+### Betting survivor review
+
+Read-only review of source, PIT reports and bytecode found these twelve survivors
+equivalent under the public engine contract (exception type, acceptance and
+immutable state). Guard-removal mutants can change error messages or exception
+origin; those are not promised by that contract. Keep all mutants in the raw
+score and reassess these conclusions when K02 changes validation/reopening.
+
+| Location / mutant | Count | Reason |
+| --- | --- | --- |
+| BettingEngine.contextFor:178, c-bet positive boundary | 1 | With cBet=0, the remaining conditions require currentBet=0 and a negative round contribution, which valid states reject. |
+| BettingEngine.nextPendingActor:211, loop boundary | 1 | The omitted final iteration revisits the actor, whose ID was already removed from pending decisions. |
+| BettingEngine.resolveAction:152, positive chip delta boundary | 1 | An ACTIVE actor has a positive stack; zero chips cannot equal that stack or make the actor all-in. |
+| BettingAmounts.canMakeFullWager:51, maximum/current boundary | 1 | Equality leaves zero increment, below the positive full minimum. |
+| BettingAmounts.chipsAdded:18, remove zero-cost CALL guard | 1 | AcceptedAction constructs StatsAction, which independently rejects zero-chip CALL before publishing state. |
+| BettingAmounts.wagerDelta:35, target/current boundary and removed ordering guard | 2 | Targets at/below currentBet have a nonpositive increment and still fail the later positive full minimum; subtracting nonnegative bounded amounts cannot overflow. |
+| BettingAmounts.wagerDelta:29/30, remove opening/PREFLOP checks | 2 | Bytecode indices 32/38 skip only the unopened-preflop phase rejection; the BET/opening-kind check remains. Their only new path is preflop BET, independently rejected by StatsAction.validateStreet. |
+| BettingRound.after:25, participant-count boundary | 1 | With exactly one participant, lone-actor cleanup already clears pending, or no active pending player remains. The pending-empty condition still closes both sets. |
+| BettingRound.after:27, remove pending.clear | 1 | Pending is already empty whenever this block runs; independent raise rights still clear. |
+| BettingRound.closeMatchedLoneActor:48, include actor in opposing maximum | 1 | Testing actor >= max(opponents, actor) gives the same result as actor >= max(opponents), including the empty-opponent zero default. |
+
+The other seven survivors retain the earlier six evaluator and one hash-contract
+rationales below. No additional exclusion or artificial hash-value assertion was
+added to force a perfect mutation score.
+
+## Completed match statistics — November 6, 2026 (historical)
 
 Branch `feature/week6-finish`; local `build pitest` uses Gradle 9.7.1 / JDK 17
 with Java 11 compilation/tests. Checkpoints: `1a99b7d` pays pots and refunds;
@@ -185,7 +245,7 @@ change. Shared Checkstyle violations are fixed in source instead of baselined.
 ## Scope and interpretation
 
 SetupSession and SetupView include shared played-hand integration. The
-current configured scope has 17 parent components, including dealing, settlement,
+current configured scope has 21 parent components, including betting, dealing, settlement,
 completed statistics, continuation and the shared session/view.
 Earlier nine-class results below are historical, not current full-game
 coverage. PIT retains the renamed integration tests and the new session
@@ -194,20 +254,22 @@ and played-hand tests.
 JaCoCo and PIT include `Card`, `Deck`, `PokerHandEvaluator`,
 `ShowdownResolver`, `ShowdownResult`, `GameInitializer`, `InitialDeal`,
 `HandStatistics`, `MatchStatistics`, `NextHand`, `StatisticsView`, `PotSettlement`,
-`Settlement`, `PlayStats`, `SetupSession`, `SetupView` and `Localizations`,
+`Settlement`, `PlayStats`, `BettingEngine`, `BettingAmounts`, `BettingRound`,
+`BettingHistory`, `SetupSession`, `SetupView` and `Localizations`,
 including their nested classes. `SetupView` remains in the scope
 even though a display DTO could qualify for a view exemption: its private-card
 filtering is useful behavior to measure. Tests exercise these components
 through their public contracts; the complete JUnit suite also runs in the build.
-PIT selects their focused domain/application tests plus deck-setup,
+PIT selects full-betting, raised-hand, capped-call and street-advancement tests,
+plus focused domain/application tests, deck-setup,
 setup/showdown integration and localization-loader tests. PIT counts repeated
 test executions across mutants separately from the JUnit suite count. It uses the standard `DEFAULTS` operator group, two
 workers, HTML/XML output and deterministic report paths. A mutant may hang a
 loop; timeout permits twice its baseline test duration plus two seconds.
 
-Excluded from the **current 17-component metric denominator**:
+Excluded from the **current 21-component metric denominator**:
 
-- The remaining domain state and betting components; their test
+- The remaining domain state components; their test
   execution is retained, but their coverage is not established by this scope.
 - `HandEvaluator`, an interface without executable default methods, and the
   `Rank`/`Suit` and nested `ShowdownResult.Status` enums, whose constants have no hand-written branching behavior.

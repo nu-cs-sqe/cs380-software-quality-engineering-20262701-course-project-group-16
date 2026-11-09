@@ -223,6 +223,45 @@ and combined-source results (970) describe different checkpoints.
 - [x] **Kevin:** Implementation branch merged through PR #13 (`d2a78f3`).
 - [ ] **Together:** CI passed for merged main [run 42232032730](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/actions/runs/42232032730); required review/check enforcement and deliberate failure detection still need separate verification.
 
+## Week 7 (11/09/2026–11/15/2026)
+
+**Goal:** Complete betting rules and application contracts, measure the added
+components, and document integration/localization plans on the project board.
+Carry forward native desktop checks and review workflow verification.
+
+### Planning and progress tracking
+
+| Status | Owner | Task and acceptance criteria | Evidence / checkpoint |
+| --- | --- | --- | --- |
+| Done, engine/session | Kevin | K01: full BET/RAISE, postflop CALL and raised-preflop responses; round targets, engine-owned deductions, turn order and unchanged rejected snapshots. | `feature/week7-betting`, code `fda5bdf`, based on merged main `c71e9d6`; [BVA](bva/FullBetting.md); FullBettingTest and two real-session integration cases. |
+| Planned | Kevin | K02: short all-in wagers, full/cumulative reopening and individual raise rights; retain BB option/short-blind behavior. | Full-size all-ins and capped CALL already work; undersized wagers remain rejected. |
+| Planned | Kevin | K03: complete authoritative aggression and opportunity context for all-in/reopening cases. | K01 records accepted full raises, latest preflop aggressor and actual flop c-bets; broader eligibility remains open. |
+| Planned | Kevin | K04: quit-as-fold, later-hand participation and turn handling without blocking play. | Revise the existing fixed-participation rule together with implementation/tests. |
+| Planned | Kevin | K05: engine-owned legal actions, calling costs and wager target limits shared by humans/bots. | Swing and its current queries still expose fold/check/call only. |
+| Started | Kevin | K06: extend coverage/mutation scope to betting/state and resolve actionable gaps. | K01 adds BettingEngine/Amounts/Round/History; remaining state classes still need measurement. |
+| Planned | Together | Record integration and i18n plans on the board; retain English/Chinese resources, privacy and regression tests. | Existing implementation/design is evidence, not a claim that board discussion is complete. |
+
+**TDD and integration:** All 45 new boundary cases and both real-session tests
+failed before implementation, then passed. Mutation-driven regressions follow
+these checks. The integration uses controlled Random and real dealing, betting,
+evaluation, payouts and statistics; no mock library. A raised hand reaches
+pot 1,480, four tied winners receive 370 each, and the next hand keeps chips/totals.
+Another hand verifies recorded three-bet and actual flop c-bet observations.
+
+**Progress evaluation:** K01 completes backend full wagers on every street.
+It does not complete K02–K06 or add bet/raise controls. The previous Week6
+checkpoint was merged through main `c71e9d6`; its historical counts stay above.
+Local `build pitest` passes **1,091 tests** and clean Checkstyle/SpotBugs on
+Gradle 9.7.1/JDK 17 with Java 11 compilation/tests. The expanded 21-parent scope
+has zero missed JaCoCo counters (1,034 lines/600 branches/509 complexity counters).
+PIT kills **580/599 (96.83%)**, with 19 reviewed survivors and none uncovered;
+[quality.md](quality.md) preserves exact scope, counters and survivor reasoning.
+Push, new remote CI and peer review remain pending for this branch.
+
+**Next steps:** Kevin continues K02 before exposing numeric wager limits in K05.
+Complete K03 context cases and K04 departure rules separately; coordinate UI/bot
+integration with Estella. Preserve small methods, chip conservation and privacy.
+
 ## Future weekly report template
 
 ### Week N (MM/DD/YYYY–MM/DD/YYYY)
