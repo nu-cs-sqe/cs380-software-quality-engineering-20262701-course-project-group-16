@@ -9,7 +9,8 @@ The intended full match ends when one player holds all the chips.
 and carries chips and player statistics into the next hand. Swing supports
 English and Chinese, explicit private-card handoffs and a read-only statistics
 tab. Bots use a temporary check/call policy. Bets/raises, postflop calls, equity
-bots and saved profiles remain unfinished.
+bots, profile screens and saved lifetime statistics remain unfinished. Local
+password-account backend APIs are implemented below.
 
 ## Contributors
 
@@ -94,6 +95,24 @@ player information and only the selected human's cards after explicit reveal.
 All domain classes are under `domain.model`; coordinators stay in `application`
 and Swing classes stay in `ui`.
 
+## Local account backend
+
+`ProfileService` provides `create(name, password)`, `list()`, `find(profileId)` and
+`authenticate(profileId, password)`. Passwords are caller-owned `char[]` values;
+registration requires 15–128 Unicode characters. Only authentication verifies
+access; list/find expose public selection metadata. IDs are generated separately
+from match participants and seats.
+
+Construct it with `new FileProfileRepository(dataDirectory)` and reuse the same
+application-data path after restart, for example
+`Path.of(System.getProperty("user.home"), ".cs380-holdem")`. Registration saves
+identity and a salted PBKDF2 hash together in `profiles.properties`; plaintext
+passwords are never saved. Read failures reject corrupt data without resetting it.
+The application must serialize writes. The Swing login screen, authenticated
+match binding and completed lifetime-statistics persistence (E02) are pending;
+the current **Start Game** flow still uses match-only identities/statistics.
+See [account design](docs/design/README.md#local-password-accounts).
+
 ## Continuous integration
 
 The [CI workflow](.github/workflows/ci.yml) runs the build, JUnit tests,
@@ -104,9 +123,9 @@ and required status-check enforcement still need verification after push.
 
 Run `bash ./gradlew build` for tests/static checks/coverage and
 `bash ./gradlew pitest` for mutation testing. The team suite and shared static
-checks run across the project; coverage/PIT use seventeen documented components,
-including dealing, settlement, continuation, PlayStats and the shared session. These are not
-full-game metrics.
+checks run across the project; coverage/PIT use twenty-three documented components,
+including dealing, settlement, continuation, PlayStats, profile storage/password
+services and the shared session. These are not full-game metrics.
 [Quality results](docs/quality.md)
 list exact scope, report paths, adapted Checkstyle rules and reviewed SpotBugs
 exceptions. There is no invented metric threshold that hides findings.
@@ -128,9 +147,9 @@ exceptions. There is no invented metric threshold that hides findings.
 
 ### Code Coverage
 
-Coverage uses the documented 17-component scope, including InitialDeal and the
-shared session/view, statistics collectors and settlement. The rubric targets 100%
-cyclomatic coverage, with View/Main/Enum exemptions. JaCoCo line, branch
+Coverage uses the documented 23-component scope, including InitialDeal and the
+shared session/view, statistics collectors, settlement and local accounts. The
+rubric targets 100% cyclomatic coverage, with View/Main/Enum exemptions. JaCoCo line, branch
 and covered-complexity counters are reported separately; these do not prove
 independent basis-path execution. The exact class scope and results are in
 [quality.md](docs/quality.md); the remaining betting/state components
@@ -139,7 +158,7 @@ while their tests and shared static checks still run.
 
 ### Mutation Testing
 
-PIT uses the DEFAULTS operator group on the documented 17-component scope. The target
+PIT uses the DEFAULTS operator group on the documented 23-component scope. The target
 is to kill every non-equivalent mutant. Actual raw scores and each surviving
 mutant's reasoning remain visible in [quality.md](docs/quality.md), including
 the unresolved acceptance of a contract-preserving constant hash. Survivor reasoning and acceptance limits are documented alongside the raw score.

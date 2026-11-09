@@ -16,6 +16,15 @@ privacy and immutability cases.
 | `Localizations` | [Localizations.md](Localizations.md) |
 | `GamePanel` localization behavior | [GamePanelLocalization.md](GamePanelLocalization.md) |
 | `Player` | [Player.md](Player.md) |
+| `PlayerProfile` | [PlayerProfile.md](PlayerProfile.md) |
+| `ProfileRepository` | [ProfileRepository.md](ProfileRepository.md) |
+| `StoredProfile` | [StoredProfile.md](StoredProfile.md) |
+| `PasswordHash` | [PasswordHash.md](PasswordHash.md) |
+| `PasswordHasher` | [PasswordHasher.md](PasswordHasher.md) |
+| `PasswordDeriver` | [PasswordDeriver.md](PasswordDeriver.md) |
+| `Pbkdf2PasswordHasher` | [Pbkdf2PasswordHasher.md](Pbkdf2PasswordHasher.md) |
+| `ProfileService` | [ProfileService.md](ProfileService.md) |
+| `FileProfileRepository` | [FileProfileRepository.md](FileProfileRepository.md) |
 | `GameConfig` | [GameConfig.md](GameConfig.md) |
 | `ActionRequest` | [ActionRequest.md](ActionRequest.md) |
 | `AcceptedAction` | [AcceptedAction.md](AcceptedAction.md) |

@@ -67,7 +67,8 @@ constructor validates it and engine operations preserve it across snapshots.
 Two integration demonstrations connect real setup/dealing, preflop actions,
 postflop checks/folds and advancement through SHOWDOWN without paying pots.
 Betting/raising, raised-round action handling, postflop CALL, pot
-settlement, bot strategy and profile storage follow later. See the
+settlement and bot strategy were outside that initial checkpoint; later payout
+and local-profile increments are described below. See the
 [engine BVA](../bva/BettingEngine.md).
 Best-five evaluation and closed-state winner/tie resolution are also implemented
 without payouts. SetupSession now connects the played betting flow to ShowdownResolver and Swing;
@@ -89,3 +90,41 @@ where coordination needs isolated tests. Prefer explicit absence to nullable
 internal values, while retaining validation at public boundaries. Splitting a
 method should improve its responsibilities, not merely move lines elsewhere.
 Apply these method-design rules to future changes.
+
+## Local password accounts
+
+`PlayerProfile` is an immutable stable ID and Unicode display name, separate
+from a match Player, seat, stack and unfinished hand. Names may repeat; profile
+selection uses the ID. `ProfileService` generates UUID IDs, registers an account
+with a password, lists public identities and authenticates the selected ID.
+`find`/`list` return selection metadata, never an authenticated session.
+
+The service injects `ProfileRepository`, `PasswordHasher` and an ID supplier for
+isolated tests. Its default collaborators use UUIDs and PBKDF2. `StoredProfile`
+combines identity and `PasswordHash` for one atomic file replacement. No profile
+is returned from registration before saving succeeds. Fresh service instances
+load from the same directory rather than relying on an in-memory cache.
+
+`FileProfileRepository` stores UTF-8 `profiles.properties` in a caller-supplied
+application-data directory. Catalog version 2 fixes the algorithm/work factor and
+stores identity plus Base64 salt/hash. The adapter validates the full snapshot,
+writes/closes a same-directory temporary file, then requests atomic replacement.
+Unsupported replacement or corrupt data produces IOException; it does not reset
+saved accounts. Profile IDs are values, never filesystem paths. The application
+must serialize writers; multi-process updates are outside this contract.
+
+`Pbkdf2PasswordHasher` uses PBKDF2-HMAC-SHA256, 600,000 iterations, independent
+16-byte SecureRandom salts and 32 derived bytes. Passwords contain 15–128 valid
+Unicode code points and are neither trimmed nor normalized. Verification uses
+MessageDigest.isEqual; temporary derived bytes and PBEKeySpec copies are cleared.
+Caller-owned char arrays must be cleared by the future UI/controller after use.
+The provider seam supports isolated failure/cleanup tests; independent reference
+vectors also verify the real JCA algorithm.
+
+The login/profile-selection screen and authenticated match binding remain future
+application integration. E02 must add completed lifetime counters and aggregation
+IDs transactionally; this catalog does not yet save statistics or match state.
+No real user data is created by tests: all file tests use JUnit temporary folders.
+See [service BVA](../bva/ProfileService.md),
+[file adapter BVA](../bva/FileProfileRepository.md) and
+[hashing BVA](../bva/Pbkdf2PasswordHasher.md).
