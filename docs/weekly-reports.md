@@ -234,11 +234,11 @@ Carry forward native desktop checks and review workflow verification.
 | Status | Owner | Task and acceptance criteria | Evidence / checkpoint |
 | --- | --- | --- | --- |
 | Done, engine/session | Kevin | K01: full BET/RAISE, postflop CALL and raised-preflop responses; round targets, engine-owned deductions, turn order and unchanged rejected snapshots. | `feature/week7-betting`, code `fda5bdf`, based on merged main `c71e9d6`; [BVA](bva/FullBetting.md); FullBettingTest and two real-session integration cases. |
-| Planned | Kevin | K02: short all-in wagers, full/cumulative reopening and individual raise rights; retain BB option/short-blind behavior. | Full-size all-ins and capped CALL already work; undersized wagers remain rejected. |
+| Done, engine/session | Kevin | K02: short all-in wagers, full/cumulative reopening and individual raise rights; retain BB option/short-blind behavior. | `feature/week7-betting`, code `978a826`; [K02 BVA](bva/ShortAllInBetting.md). Last-decision history stays immutable and resets on new streets/hands. |
 | Planned | Kevin | K03: complete authoritative aggression and opportunity context for all-in/reopening cases. | K01 records accepted full raises, latest preflop aggressor and actual flop c-bets; broader eligibility remains open. |
 | Planned | Kevin | K04: quit-as-fold, later-hand participation and turn handling without blocking play. | Revise the existing fixed-participation rule together with implementation/tests. |
 | Planned | Kevin | K05: engine-owned legal actions, calling costs and wager target limits shared by humans/bots. | Swing and its current queries still expose fold/check/call only. |
-| Started | Kevin | K06: extend coverage/mutation scope to betting/state and resolve actionable gaps. | K01 adds BettingEngine/Amounts/Round/History; remaining state classes still need measurement. |
+| Started | Kevin | K06: extend coverage/mutation scope to betting/state and resolve actionable gaps. | K01 adds BettingEngine/Amounts/Round/History; K02 adds BettingProgress. Remaining state classes still need measurement. |
 | Planned | Together | Record integration and i18n plans on the board; retain English/Chinese resources, privacy and regression tests. | Existing implementation/design is evidence, not a claim that board discussion is complete. |
 
 **TDD and integration:** All 45 new boundary cases and both real-session tests
@@ -248,8 +248,7 @@ evaluation, payouts and statistics; no mock library. A raised hand reaches
 pot 1,480, four tied winners receive 370 each, and the next hand keeps chips/totals.
 Another hand verifies recorded three-bet and actual flop c-bet observations.
 
-**Progress evaluation:** K01 completes backend full wagers on every street.
-It does not complete K02–K06 or add bet/raise controls. The previous Week6
+**K01 verification (historical):** Backend full wagers on every street; no bet/raise controls. The previous Week6
 checkpoint was merged through main `c71e9d6`; its historical counts stay above.
 Local `build pitest` passes **1,091 tests** and clean Checkstyle/SpotBugs on
 Gradle 9.7.1/JDK 17 with Java 11 compilation/tests. The expanded 21-parent scope
@@ -258,7 +257,15 @@ PIT kills **580/599 (96.83%)**, with 19 reviewed survivors and none uncovered;
 [quality.md](quality.md) preserves exact scope, counters and survivor reasoning.
 Push, new remote CI and peer review remain pending for this branch.
 
-**Next steps:** Kevin continues K02 before exposing numeric wager limits in K05.
+**K02 verification (Nov 11):** Local `build pitest` passes **1,127 tests**, with
+clean Checkstyle/SpotBugs. JaCoCo has no missed counters in the 22-component
+scope; PIT kills **621/635 (97.80%)**, with 14 documented survivors and none
+uncovered. Of the original 20 K02 cases, 15 failed before implementation; all
+passed afterward. Real-session tests verify cumulative reopening through
+side-pot settlement and short all-ins through automatic board runout.
+See [quality results](quality.md) for scope and survivor reasoning.
+
+**Next steps:** Kevin continues K03 statistics context before exposing numeric wager limits in K05.
 Complete K03 context cases and K04 departure rules separately; coordinate UI/bot
 integration with Estella. Preserve small methods, chip conservation and privacy.
 

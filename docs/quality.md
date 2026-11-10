@@ -8,7 +8,42 @@ no `ignoreFailures`, global suppression or baseline hiding existing warnings. Re
 CI uploads test, coverage, mutation and static-analysis reports even after a
 failed step.
 
-## Full betting checkpoint — November 9, 2026
+## Short all-ins and reopening — November 11, 2026
+
+Branch `feature/week7-betting`, code `978a826`, after K01 report commit
+`cc17bf4`. Local `build pitest` passed with Gradle 9.7.1 on JDK 17 and Java 11
+compilation/tests. Remote checks and partner approval remain pending.
+
+| Check | Result |
+| --- | --- |
+| Team suite | **1,127 passing**, zero failures/errors/skips; 36 cases added. |
+| Checkstyle / SpotBugs | Zero main/test findings; no new exclusions. The immutable map copy is explicit in its constructor. |
+| 22 configured parent components | **1,078 lines, 638 branches, 544 complexity counters, 5,700 instructions, 221 methods and 23 reported classes**, zero missed counters. |
+| PIT | **621/635 killed (97.80%)**, 14 survivors; zero uncovered, timeout or error mutants. Selected-test line coverage 1,074/1,076; 36 test classes and 6,493 executions across mutants. |
+
+The scope adds BettingProgress. GameState's new decision-history validation is
+covered by the full suite; GameState and the other state classes remain outside
+the measurement scope pending K06. Scoped JaCoCo counters do not prove
+whole-game coverage or independent basis paths.
+
+The [K02 cases](bva/ShortAllInBetting.md) first showed 13 of 18 engine cases
+failing and both application cases failing, then all passing. The first full
+run and code review caught an opening-minimum regression with a valid unopened
+snapshot carrying a stale prior increment. A short-opening regression also
+failed before the correction. The final run covers short/full openings,
+individual reopening, exact-stack calls, side pots and automatic board runout.
+
+Seven survivors are the unchanged evaluator/hash baseline described below.
+The other seven preserve the engine contract for the same reasons as at K01:
+three BettingEngine boundary changes (zero c-bet, zero chip delta and revisiting
+the acting seat), three BettingAmounts guards (zero-cost CALL and two routes
+past unopened preflop BET validation), and one BettingRound predicate (including
+the lone actor in the opposing maximum). The redundant guards can affect
+exception text but still reject the same requests before publishing state.
+The target-at-current-wager guard now matters for exact-stack matches; a
+regression kills both mutations there. No survivors were excluded from the score.
+
+## Full betting checkpoint — November 9, 2026 (historical)
 
 Branch `feature/week7-betting`, code `fda5bdf`, based on merged main `c71e9d6`. Local
 `build pitest` passed with Gradle 9.7.1 on JDK 17 and Java 11 compilation/tests.
@@ -245,7 +280,7 @@ change. Shared Checkstyle violations are fixed in source instead of baselined.
 ## Scope and interpretation
 
 SetupSession and SetupView include shared played-hand integration. The
-current configured scope has 21 parent components, including betting, dealing, settlement,
+current configured scope has 22 parent components, including betting, dealing, settlement,
 completed statistics, continuation and the shared session/view.
 Earlier nine-class results below are historical, not current full-game
 coverage. PIT retains the renamed integration tests and the new session
@@ -255,19 +290,19 @@ JaCoCo and PIT include `Card`, `Deck`, `PokerHandEvaluator`,
 `ShowdownResolver`, `ShowdownResult`, `GameInitializer`, `InitialDeal`,
 `HandStatistics`, `MatchStatistics`, `NextHand`, `StatisticsView`, `PotSettlement`,
 `Settlement`, `PlayStats`, `BettingEngine`, `BettingAmounts`, `BettingRound`,
-`BettingHistory`, `SetupSession`, `SetupView` and `Localizations`,
+`BettingHistory`, `BettingProgress`, `SetupSession`, `SetupView` and `Localizations`,
 including their nested classes. `SetupView` remains in the scope
 even though a display DTO could qualify for a view exemption: its private-card
 filtering is useful behavior to measure. Tests exercise these components
 through their public contracts; the complete JUnit suite also runs in the build.
-PIT selects full-betting, raised-hand, capped-call and street-advancement tests,
+PIT selects full/short betting, reopening-state, raised-hand, capped-call and street-advancement tests,
 plus focused domain/application tests, deck-setup,
 setup/showdown integration and localization-loader tests. PIT counts repeated
 test executions across mutants separately from the JUnit suite count. It uses the standard `DEFAULTS` operator group, two
 workers, HTML/XML output and deterministic report paths. A mutant may hang a
 loop; timeout permits twice its baseline test duration plus two seconds.
 
-Excluded from the **current 21-component metric denominator**:
+Excluded from the **current 22-component metric denominator**:
 
 - The remaining domain state components; their test
   execution is retained, but their coverage is not established by this scope.
