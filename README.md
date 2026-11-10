@@ -9,7 +9,8 @@ The intended full match ends when one player holds all the chips.
 and carries chips and player statistics into the next hand. Swing supports
 English and Chinese, explicit private-card handoffs and a read-only statistics
 tab. Bots use a temporary check/call policy. Bets/raises, postflop calls, equity
-bots and saved profiles remain unfinished.
+bots remain unfinished. Local password accounts and lifetime statistics are
+connected to the desktop interface.
 
 ## Contributors
 
@@ -29,10 +30,10 @@ repository root. Gradle uses the installed JDK 11 toolchain to compile and run
 tests; setting `JAVA_HOME` to JDK 11 does not select the required Gradle runtime.
 The first build downloads Gradle and dependencies. CI installs both JDKs automatically.
 
-On macOS, select the locally verified JDK 17 runtime with:
+On macOS, select the locally verified JDK 25 runtime with:
 
 ```bash
-export JAVA_HOME="$(/usr/libexec/java_home -v 17)"
+export JAVA_HOME="$(/usr/libexec/java_home -v 25)"
 ```
 
 On Linux or Windows, set `JAVA_HOME` to your JDK 17 or 25 installation directory.
@@ -58,30 +59,29 @@ installation directory and add
 
 Test reports appear at `build/reports/tests/test/index.html`.
 
-## Run the supported hand demo
+## Run the desktop game
 
 With the JDKs configured above, run `bash ./gradlew run` (Windows:
-`.\gradlew.bat run`) on a computer with a desktop display. Enter 1–6 human
-players, select English or Chinese, and choose **Start Game**; bots fill the remaining seats. The highlighted
-seat is the current human actor; bots act automatically. Use the enabled
-**Fold**, **Check** or **Call** control, then pass the computer to the next human.
-The board and winner/tie result update as rounds finish. Select a human in
-**Private hand** and pass the computer
-to that person before choosing **Reveal cards**. Switching humans, restarting
-or leaving the window hides the cards. Language changes also hide cards while
-preserving the match. English is the explicit default, independent of the
-computer's language settings. Add future languages through resources/configuration;
-see [localization](docs/design/localization.md).
+`.\gradlew.bat run`) on a computer with a desktop display. Choose English or
+Chinese, then use **Profiles** to create a name/password account. Enter its
+password under **Sign in**, choose **Sign in and add**, and repeat for 1–6 humans.
+Choose **Start Game**; bots fill the remaining seats. Removing a profile from the
+next-match roster does not change an ongoing match.
 
-This is shared-computer privacy by handoff, not authentication: anyone using the
-computer can select another human. Actions are enabled only for the current
-human viewer. After a result, choose **Settle hand** to pay pots and update
-statistics, then **Next hand** to keep playing with the same players and stacks.
-The **Statistics** tab shows completed-hand totals; N/A means no qualifying
-opportunity. Switching tabs conceals cards. A match finishes when one player
-holds all chips. **Start Game** starts a separate match and resets totals.
-Statistics are kept in memory for this match; closing the game discards them.
-Tests run headlessly, without opening a desktop window.
+Use **Fold**, **Check** or **Call** for the current human, passing the computer
+at each handoff. Choose **Reveal cards** only after passing it to the selected
+person. Switching humans/tabs, changing language, restarting or leaving the window
+hides cards and clears password fields. Each signed-in human is identified by
+profile name; private-card access still relies on the shared-computer handoff.
+
+After a result, choose **Settle hand**, then **Next hand**. **Statistics** shows
+current-match totals; **Profiles** shows the selected signed-in account's lifetime
+totals. N/A means no qualifying opportunity. A new match resets stacks/match totals
+and retains completed lifetime data. Closing discards unfinished play. Saved
+accounts/statistics are local in `~/.cs380-holdem/profiles.properties`; they reopen
+after password verification. Storage errors leave settlement retryable.
+New locales use resources/configuration; see [localization](docs/design/localization.md).
+Tests run headlessly with temporary catalogs, without creating real profiles.
 
 ## Application initialization
 
@@ -94,6 +94,28 @@ player information and only the selected human's cards after explicit reveal.
 All domain classes are under `domain.model`; coordinators stay in `application`
 and Swing classes stay in `ui`.
 
+## Local account backend
+
+`ProfileService` provides `create(name, password)`, `list()`, `find(profileId)` and
+`authenticate(profileId, password)`. `login` returns a verified account handle
+for lifetime statistics and `SetupSession.startProfiles`. Passwords are caller-owned `char[]` values;
+new registration requires 6–15 characters. Existing longer account passwords still verify. Only authentication verifies
+access; list/find expose public selection metadata. IDs are generated separately
+from match participants and seats.
+
+Construct it with `new FileProfileRepository(dataDirectory)` and reuse the same
+application-data path after restart, for example
+`Path.of(System.getProperty("user.home"), ".cs380-holdem")`. Registration saves
+identity and a salted PBKDF2 hash together in `profiles.properties`; plaintext
+passwords are never saved. Read failures reject corrupt data without resetting it.
+The application must serialize writes. Profile-bound matches save completed raw
+counters and duplicate-prevention IDs before publishing settlement; failed saves
+remain retryable. Lifetime data survives restarts while new matches reset stacks
+and match totals. Unfinished matches are never saved. The desktop Profiles tab
+uses these APIs; account/password work runs off Swing's event thread. The optional
+`cs380.profileDirectory` JVM property selects another local data directory.
+See [account design](docs/design/README.md#local-password-accounts).
+
 ## Continuous integration
 
 The [CI workflow](.github/workflows/ci.yml) runs the build, JUnit tests,
@@ -104,9 +126,9 @@ and required status-check enforcement still need verification after push.
 
 Run `bash ./gradlew build` for tests/static checks/coverage and
 `bash ./gradlew pitest` for mutation testing. The team suite and shared static
-checks run across the project; coverage/PIT use seventeen documented components,
-including dealing, settlement, continuation, PlayStats and the shared session. These are not
-full-game metrics.
+checks run across the project; coverage/PIT use twenty-seven documented components,
+including dealing, settlement, continuation, PlayStats, profile storage/password
+services and the shared session. These are not full-game metrics.
 [Quality results](docs/quality.md)
 list exact scope, report paths, adapted Checkstyle rules and reviewed SpotBugs
 exceptions. There is no invented metric threshold that hides findings.
@@ -128,9 +150,9 @@ exceptions. There is no invented metric threshold that hides findings.
 
 ### Code Coverage
 
-Coverage uses the documented 17-component scope, including InitialDeal and the
-shared session/view, statistics collectors and settlement. The rubric targets 100%
-cyclomatic coverage, with View/Main/Enum exemptions. JaCoCo line, branch
+Coverage uses the documented 27-component scope, including InitialDeal and the
+shared session/view, statistics collectors, settlement and local accounts. The
+rubric targets 100% cyclomatic coverage, with View/Main/Enum exemptions. JaCoCo line, branch
 and covered-complexity counters are reported separately; these do not prove
 independent basis-path execution. The exact class scope and results are in
 [quality.md](docs/quality.md); the remaining betting/state components
@@ -139,7 +161,7 @@ while their tests and shared static checks still run.
 
 ### Mutation Testing
 
-PIT uses the DEFAULTS operator group on the documented 17-component scope. The target
+PIT uses the DEFAULTS operator group on the documented 27-component scope. The target
 is to kill every non-equivalent mutant. Actual raw scores and each surviving
 mutant's reasoning remain visible in [quality.md](docs/quality.md), including
 the unresolved acceptance of a contract-preserving constant hash. Survivor reasoning and acceptance limits are documented alongside the raw score.

@@ -53,6 +53,16 @@ application {
 // This is not a whole-team coverage or mutation score.
 val measuredClasses = listOf(
     "domain.model.Card",
+    "domain.model.PlayerProfile",
+    "domain.model.CompletedStatistics",
+    "application.AuthenticatedProfile",
+    "application.ProfileMatch",
+    "persistence.StatisticsProperties",
+    "domain.model.PasswordHash",
+    "domain.model.StoredProfile",
+    "security.Pbkdf2PasswordHasher",
+    "application.ProfileService",
+    "persistence.FileProfileRepository",
     "domain.model.Deck",
     "domain.model.PokerHandEvaluator",
     "domain.model.ShowdownResolver",
@@ -135,7 +145,15 @@ pitest {
     targetClasses.set(measuredClasses.flatMap { listOf(it, "$it\$*") }.toSet())
     excludedClasses.set(setOf("domain.model.ShowdownResult\$Status"))
     targetTests.set(setOf(
-        "domain.model.CardTest", "domain.model.DeckTest", "domain.model.DeckSetupTest",
+        "domain.model.CompletedStatisticsTest", "application.LifetimeStatisticsTest",
+        "application.ProfiledMatchIntegrationTest", "persistence.LifetimeStorageTest",
+        "persistence.StatisticsPropertiesTest",
+        "domain.model.CardTest", "domain.model.PlayerProfileTest",
+        "domain.model.PasswordHashTest", "domain.model.StoredProfileTest",
+        "security.PasswordBufferTest", "integration.Pbkdf2PasswordHasherIntegrationTest",
+        "application.ProfileServiceTest", "persistence.FileProfileRepositoryTest",
+        "integration.ProfilePersistenceIntegrationTest",
+        "domain.model.DeckTest", "domain.model.DeckSetupTest",
         "domain.model.PokerHandEvaluatorTest", "domain.model.PokerHandRankingTest",
         "domain.model.ShowdownResolverTest",
         "domain.model.ShowdownResultTest", "application.GameInitializerTest",

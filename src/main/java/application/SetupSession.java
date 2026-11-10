@@ -37,6 +37,7 @@ public final class SetupSession {
     private Optional<ShowdownResult> result = Optional.empty();
     private Optional<Settlement> settlement = Optional.empty();
     private Optional<MatchStatistics> totals = Optional.empty();
+    private Optional<ProfileMatch> profileMatch = Optional.empty();
     private final PotSettlement payoutService = new PotSettlement();
     private final NextHand continuation = new NextHand(new Random());
     private int viewerSeat;
@@ -163,12 +164,35 @@ public final class SetupSession {
      */
     public void start(int humanCount) {
         hideCards();
-        GameState started = initializer.start(humanCount);
+        startMatch(initializer.start(humanCount), Optional.empty());
+    }
+
+    private void startMatch(GameState started, Optional<ProfileMatch> binding) {
         Consumer<AcceptedAction> recorder =
                 Objects.requireNonNull(statisticsFactory.apply(started));
         MatchStatistics fresh = MatchStatistics.start(started);
         publishStart(started, recorder);
         totals = Optional.of(fresh);
+        profileMatch = binding;
+    }
+
+    /** Starts a fresh match bound to password-verified local human accounts. */
+    public void startProfiles(ProfileService profiles, List<AuthenticatedProfile> humans) {
+        hideCards();
+        ProfileMatch.requireAccounts(profiles, humans);
+        GameState started = initializer.start(humans.size());
+        ProfileMatch binding = new ProfileMatch(profiles, humans, started);
+        startMatch(started, Optional.of(binding));
+    }
+
+    /** Public stable bindings; neither credentials nor private cards are included. */
+    public Map<String, String> getProfileIds() {
+        return profileMatch.map(ProfileMatch::profileIds).orElseGet(Map::of);
+    }
+
+    /** Fresh persisted lifetime totals, separate from getStatistics's match-only totals. */
+    public Map<String, StatisticsView> getLifetimeStatistics() throws java.io.IOException {
+        return profileMatch.isPresent() ? profileMatch.orElseThrow().snapshot() : Map.of();
     }
 
     private void publishStart(GameState started, Consumer<AcceptedAction> recorder) {
@@ -244,12 +268,17 @@ public final class SetupSession {
         return Optional.empty();
     }
 
-    /** Pays a finished hand and atomically publishes completed statistics, exactly once. */
+    /**
+     * Pays a finished hand after any profile save succeeds; failure remains retryable.
+     * @throws java.io.UncheckedIOException if lifetime storage fails before publication
+     */
     public Settlement settleHand() {
         hideCards();
         GameState hand = requireMatch();
         Settlement paid = payoutService.settle(hand);
-        MatchStatistics completed = totals.orElseThrow().complete(hand, paid, acceptedActions);
+        MatchStatistics delta = MatchStatistics.start(hand).complete(hand, paid, acceptedActions);
+        MatchStatistics completed = totals.orElseThrow().addHand(delta);
+        profileMatch.ifPresent(binding -> binding.save(delta));
         state = Optional.of(paid.getState());
         totals = Optional.of(completed);
         settlement = Optional.of(paid);

@@ -98,12 +98,14 @@ the November 6 setup/test refactoring build passed 746 tests. These are separate
 branch measurements. Both the 18 result-display cases and 11 isolated coordinator
 cases are retained in the combined branch.
 
-Latest local verification: **November 6**, branch `feature/week6-finish`,
-`build pitest` on Gradle 9.7.1 / JDK 17 with Java 11 compilation/tests. These
-changes need push, remote CI and peer approval. Earlier main `ac70b3b` passed 970
-tests and [GitHub CI](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/actions/runs/42232032730);
-that result predates this checkpoint. [Quality history](quality.md) retains the
-998-test pending-only checkpoint and all earlier measurements.
+Latest merged baseline: [PR #19](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/pull/19)
+merged on November 8 into main `c71e9d6`. Its recorded local verification is the
+November 6 `feature/week6-finish` `build pitest` run on Gradle 9.7.1 / JDK 17
+with Java 11 compilation/tests. Its [CI run](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/actions/runs/42324270929)
+passed build, Checkstyle, SpotBugs and PIT. No new local run is claimed by this
+planning update. Formal review/enforcement evidence remains separate.
+Earlier main `ac70b3b` passed 970 tests and its own CI; [quality history](quality.md)
+retains the 998-test pending-only checkpoint and earlier measurements.
 
 | Check | Latest local result |
 | --- | --- |
@@ -211,17 +213,284 @@ and combined-source results (970) describe different checkpoints.
 
 ### Remaining work and next steps
 
-- [x] **Estella + Kevin:** Supported fold/check/call flow, streets, real results and bilingual Swing merged through PR #15/#16. CI passed for main `ac70b3b`; full betting and settlement remain below.
+- [x] **Estella + Kevin:** Supported fold/check/call flow, streets, real results and bilingual Swing merged through PR #15/#16. PR #19 subsequently adds settlement, completed totals and continuation; full betting carries into Week 7.
 - [x] **Kevin:** Real pot/refund settlement, completed match statistics, fixed-seat continuation/elimination and bilingual statistics display.
-- [ ] **Together:** Implement bets/raises and action/reopening rules, including postflop calls; add equity bots and saved profiles in later milestones.
+- [ ] **Together:** Carry full betting, reopening, postflop calls, profiles and adaptive bots into [Week 7 issue #20](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/issues/20): Kevin K01–K06; Estella E01–E06.
 - [x] **Kevin:** Split GamePanel construction into header/sidebar/private/action/table/footer helpers.
 - [ ] **Together:** Keep later changes small and cohesive; BettingEngine.advanceStreet remains a possible focused refactor. Follow [method-design guidance](design/README.md#method-design).
 - [ ] **Together:** Walk through native desktop focus-loss privacy and cross-platform fonts/layout.
-- [x] **Kevin:** Complete [game rules](requirements/game-rules.md): agreed 10/20 blinds, random first button, fixed seats/no individual leaving, whole-game stop allowed; implemented match behavior and saved-profile limits are explicit.
+- [x] **Kevin:** Complete [game rules](requirements/game-rules.md) for the Week 6 scope: 10/20 blinds, random first button, fixed seats and whole-game stop. Week 7 K04 must replace the current individual-leaving prohibition with the requested quit-as-fold lifecycle; profiles remain pending E01/E02.
 - [ ] **Together:** Confirm board assignees/status/PR links and record meeting evidence.
 - [ ] **Together:** Review rubric interpretation and mutation survivors with the instructor; obtain partner-owned quality measurements separately.
 - [x] **Kevin:** Implementation branch merged through PR #13 (`d2a78f3`).
-- [ ] **Together:** CI passed for merged main [run 42232032730](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/actions/runs/42232032730); required review/check enforcement and deliberate failure detection still need separate verification.
+- [ ] **Together:** [PR #19 CI](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/actions/runs/42324270929) passed for the current implementation baseline; required review/check enforcement and deliberate failure detection still need separate verification under Week 7 Q09.
+
+## Week 7 (11/09/2026–11/15/2026)
+
+[Plan and live checklist: issue #20](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/issues/20).
+
+**Status:** In progress: E01/E02 backends verified locally November 9; desktop
+profile integration verified locally November 10, against main `c71e9d6` plus
+account commit `e1a96f4`. Kevin is Member A
+(betting/departure/contracts); Estella is Member B (profiles/adaptive bots).
+The checklist IDs below match issue #20. Update both locations as work is
+verified; record local/in-review work accurately without checking it as merged Done.
+
+### Goal
+
+Complete the agreed backend, with adaptive bot AI tracked as a separate backend workstream. Frontend expansion follows the resulting application APIs; preserve existing Swing privacy and locale behavior.
+
+### Verified baseline
+
+- [x] B01 — PR #19 merged into main at `c71e9d6`: setup, evaluation, basic actions, settlement, main/side pots, ties/refunds, completed statistics and match continuation already exist.
+- [x] B02 — PR #19 records 1,033 passing tests. Its [CI run](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/actions/runs/42324270929) passed build, Checkstyle, SpotBugs and PIT. This is baseline evidence, not a new Week 7 run.
+- Current measurement covers 17 parent components; remaining betting/state classes are outside its denominator. Baseline PIT: 440/447 killed, seven documented survivors. These are not whole-backend or independent basis-path claims.
+
+Baseline: [PR #19](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/pull/19). Documentation: [weekly report](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/blob/main/docs/weekly-reports.md), [quality scope](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/blob/main/docs/quality.md), [instructor review](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/blob/main/docs/instructor-code-review.md).
+
+### Requirements to preserve
+
+- Six stable seats; 1–6 human players; bots fill remaining seats at setup.
+- Shared-computer private-card handoffs.
+- Virtual chips; 1,000 starting chips per player; fixed 10/20 blinds.
+- Complete no-limit Hold'em: all-ins, side pots, ties and elimination.
+- Continue matches until one player holds all 6,000 chips.
+- Quit-as-fold. The existing prohibition on individual leaving must be revised; define current/non-current actor, already-all-in and later-hand behavior before implementation.
+- Persistent password-protected local human accounts and completed statistics.
+- No saved unfinished matches.
+- English/Chinese support; new locales through resources/configuration without editing existing Java code.
+- Bots use legitimate information, varied decisions and learned opponent tendencies. Keep equity, range and strategy diagnostics internal.
+
+### Kevin — Member A (@kevinwang328)
+
+Owner of betting, departure behavior and application contracts.
+
+- [ ] K01 — Complete betting on every street: BET, RAISE, postflop CALL and responses to raised preflop rounds. Preserve raise-to semantics; requests supply round targets and the engine calculates deductions.
+- [ ] K02 — Complete full/short all-ins and reopening: full raises, short all-in raises, cumulative reopening, pending decisions and individual raise eligibility. Preserve the big blind's option and short-blind behavior.
+- [ ] K03 — Produce authoritative statistics context: opening raises, three-bets and later raises separately from reopening eligibility; final preflop aggressor and actual flop c-bet history. All-in calls remain CALL.
+- [ ] K04 — Implement quit-as-fold and revise the conflicting game rule. Specify and test turn order, already-all-in players and later hands; preserve seats, chip ownership and participation statistics. Departure cannot block progression.
+- [ ] K05 — Expose legal-action information: available actions, actual calling cost, minimum full bet/raise targets, maximum targets and permitted short all-ins. Humans and bots consume the same engine-owned limits.
+- [ ] K06 — Include betting/state components and relevant tests in coverage/mutation measurement; resolve uncovered paths and non-equivalent survivors.
+
+### Estella — Member B (@estellaxie)
+
+Owner of profiles and the adaptive-bot task.
+
+#### Profiles and completed statistics
+
+- [ ] E01 — Provide backend operations to register, reopen and authenticate password-protected local human profiles. Keep profile IDs separate from match participant IDs and seats; never save plaintext passwords.
+- [ ] E02 — Persist completed lifetime statistics across restarts/new matches, distinct from match totals. New matches reset stacks; lifetime totals remain. Save deduplication identity and test failed writes, invalid data and retries without duplicate aggregation. Do not save pending matches.
+
+**E01 progress (November 9):** Verified locally on `feature/player-profiles`:
+registration with UUID profile IDs, public identity listing/lookup, password
+authentication and atomic local identity/credential storage. Reload tests reopen
+the same IDs and verify passwords. The full suite passes 1,144 tests;
+Checkstyle/SpotBugs are clean. The six profile/account classes have zero missed
+JaCoCo counters and kill 86/86 mutants; shared PIT is 526/533 with seven baseline
+survivors. BVA records the observed local RED/GREEN cycles and later regressions.
+This is the E01 checkpoint; the user's account implementation commit is
+`e1a96f4`. E02 below adds authenticated match binding and completed lifetime
+persistence. Login/profile screens and verified review/CI/merge gates remain
+pending; E01 stays unchecked until those gates are met.
+
+**E02 progress (November 9):** Verified locally on `feature/player-profiles`:
+authenticated human/profile bindings, completed raw counters and duplicate IDs,
+V2 → V3 catalog upgrade, separate match/lifetime totals, atomic save-before-payment,
+restart/new-match behavior and retries before/after durable save. Final build:
+1,196 tests passing; Checkstyle/SpotBugs clean. Four new executable components
+kill 72/72 mutants; all ten new/modified E02 components kill 331/331. Shared PIT
+is 636/643 with seven unchanged baseline survivors; scoped coverage has zero
+missed counters. Local TDD observed 28 RED → GREEN and 11 RED → GREEN cases;
+no separate Git checkpoints or E02 commit/push are claimed. Login/profile screens,
+remote CI, peer review and merge remain pending; E02/I04 remain unchecked.
+
+**Desktop profile integration (November 10):** Production startup now uses local
+password accounts. English/Chinese registration, sign-in, 1–6-human selection,
+profile names, saved lifetime rows and retryable storage errors are connected to
+the E01/E02 APIs. Password work runs off the event thread and captured char arrays
+are cleared after success/failure. Existing private-card handoffs remain in place;
+roster removal affects only the next match. Local suite: 1,219 passing, including
+23 new profile-screen cases. The original 20 cases were observed RED before UI
+implementation; three later regressions are additional hardening. One exact live-
+Swing-model serialization exception is documented. Native visual/focus checking
+remains pending because the computer-use bridge was unavailable; automated layouts
+pass in both languages. Final build/PIT passed: Checkstyle/SpotBugs clean;
+PIT 636/643, seven baseline survivors unchanged. No commit/push, new remote CI or
+peer approval is claimed. E01/E02/I04 and review/merge gates remain unchecked.
+
+**Password length follow-up (November 10):** New accounts now require 6–15
+characters; English/Chinese hints use plain wording and two lines. Sign-in retains
+6–128-character verification for existing credentials, with no file migration or
+hashing change. Revised BVA ran 15 password cases against the prior policy:
+7 expected failures and 8 existing passes, then all 15 passed after implementation.
+The current full test suite passes 1,223 tests; static checks are clean. Final
+coverage/mutation evidence is recorded in quality.md. No commit/push or review/
+merge completion is claimed; task checklist states remain unchanged.
+
+#### Adaptive bot AI — separate backend task
+
+Implement independently testable equity estimation, opponent modeling, range sampling and decision-policy responsibilities; reuse the existing evaluator and action contracts.
+
+- [ ] E03 — Implement Monte Carlo equity estimation: sample compatible opponent hands and board cards without duplicates; include multiway outcomes, fractional tie shares and side-pot eligibility. Use only the bot's cards and legitimate public information.
+- [ ] E04 — Implement opponent learning from eligible public decisions, opportunity counts, confidence and context using a small smoothed model. Keep exact PlayStats reporting separate from beliefs. Exclude forced blinds, rejected actions and quit-generated automatic folds from strategic-preference learning.
+- [ ] E05 — Implement varied decisions using equity, pot odds, position, stacks, legal limits and opponent estimates. Use documented probability distributions over reasonable legal actions and modest personality differences. Describe this as an adaptive probability-based policy; do not claim proven GTO play.
+- [ ] E06 — Integrate bounded, cancellable calculations without blocking Swing's event thread. Reject stale decisions from an old hand/state/match. Engine validation remains authoritative.
+
+### Together — complete backend integration
+
+- [ ] I01 — A raised hand progresses through streets, settles correctly, updates statistics once and continues.
+- [ ] I02 — Short all-ins produce correct reopening decisions, pots, refunds and elimination.
+- [ ] I03 — Quit-as-fold preserves the documented lifecycle and chip totals.
+- [ ] I04 — Completed profile statistics survive restart without duplicate counting.
+- [ ] I05 — Bots act legally using filtered information; changing inaccessible cards/deck data cannot alter their observable inputs or seeded decisions.
+- [ ] I06 — Controlled opponents demonstrate measurable learning and variation.
+- [ ] I07 — Heads-up transition and final match completion conserve all 6,000 chips.
+
+At least two substantial integration flows must run real components; distinguish these from isolated unit tests.
+
+### Bot evaluation
+
+- [ ] M01 — Measure equity error against manageable exact cases, action legality, action-prediction quality, learning enabled/disabled comparisons, action distributions and decision latency. Use controlled seeds/opponents and uncertainty across repeated games; do not require a bot to win an individual test.
+
+### Rubric and instructor-review gates
+
+The course rubric is cumulative from D through A. Backend completion alone does not establish final frontend/application completion or an individual A.
+
+- [ ] Q01 — BVA matches the implemented methods, system states, boundary inputs and assertions. Maintain the required per-class documentation convention and add/update analysis for new/extracted non-view, non-enum classes.
+- [ ] Q02 — Preserve genuine test-first RED → GREEN → refactor Git evidence for applicable non-View/non-Main code. Keep historical evidence accurate.
+- [ ] Q03 — All existing and new tests pass. Preserve privacy, short-blind, conservation and failure/retry regressions.
+- [ ] Q04 — Coverage includes all applicable backend code with only rubric-permitted exemptions. Meet the 100% cyclomatic-coverage target; report line/branch/complexity separately and review paths rather than treating JaCoCo counters alone as independent basis-path proof.
+- [ ] Q05 — Kill every non-equivalent mutant. Review and document every survivor, report raw results and justify equivalence; resolve the outstanding baseline interpretation with the instructor.
+- [ ] Q06 — Apply Clean Code: focused named responsibilities, controlled/injectable collaborators for isolated tests, explicit internal absence and boundary validation. Review engine, session, continuation, storage and AI code; retain the 100-character production line limit.
+- [ ] Q07 — Checkstyle, SpotBugs and CI pass; review exact existing exclusions and record actual scope/results. Green CI alone does not establish complete coverage or mutation compliance.
+- [ ] Q08 — Preserve English/Chinese startup selection and resource-based extension, including new outcomes/errors and existing UI regression tests. Verify full new frontend flows when those interfaces are implemented.
+- [ ] Q09 — Both teammates review each other's changes. Verify main requires PR approval and required CI checks; coordinate with a repository administrator where necessary.
+- [ ] Q10 — Keep game rules, detailed project-board tasks and the existing weekly report synchronized with actual status, evidence and limitations. Preserve early CI/process history and record instructor-meeting participation and individual contributions; complete peer evaluation when due.
+
+### Definition of done and status updates
+
+Each task keeps its ID in this issue and the Week 7 weekly-report section.
+
+- Leave an item unchecked while Planned, In progress, Verified locally/awaiting commit, or In review.
+- Check it only after its acceptance criteria and relevant BVA/tests/quality checks are verified, evidence is linked, and code changes have completed peer review and merge.
+- For each completed item, update both this issue and the existing weekly report with the same ID, implementation PR/commit, relevant test/CI evidence and any remaining limitation.
+- Keep this issue open until all implementation, integration, evaluation and quality items are complete. Do not mark current scoped baseline measurements as full-backend evidence.
+
+The backend is finished when every agreed feature works through application APIs; tests pass; applicable coverage/mutation gaps are resolved; static checks/CI pass; peer review and enforcement are verified; and rules, board and weekly report match the implementation. Frontend expansion remains a separate application milestone.
+
+
+### E01 profile identity increment — November 9
+
+Historical model-only checkpoint: 20 expected RED failures, then 20 passing
+PlayerProfile cases; full suite 1,053 passing, clean static checks, zero missed
+profile counters and 5/5 profile mutants killed. The later account increment below
+supersedes the original pending-service/storage status. These are local test runs,
+not separate RED/GREEN Git commits.
+
+Evidence: [PlayerProfile model](../src/main/java/domain/model/PlayerProfile.java),
+[unit tests](../src/test/java/domain/model/PlayerProfileTest.java),
+[case mapping and RED/GREEN evidence](bva/PlayerProfile.md),
+[measured scope and mutation review](quality.md#playerprofile-model--november-9-2026).
+No Week 7 task is marked Done by this local increment.
+
+### E01 local password accounts — November 9
+
+User clarification: profiles live on this device and require passwords when
+reopened. The backend now registers accounts, lists saved public identities and
+authenticates the selected stable profile ID after restart. Registration publishes
+identity plus salted PBKDF2 credential atomically; failed writes, corrupt data and
+provider failures do not create a successful partial account. No passwordless
+registration API or saved unfinished match was added.
+
+Observed TDD: service/storage 53 RED → 53 GREEN; password-account tests 84 RED →
+84 GREEN. Seven later provider/input/corrupt-catalog regressions are not claimed
+as feature RED cycles. Final suite: 1,144 passing; static checks clean; six new
+profile/account classes fully covered by reported JaCoCo counters and 86/86 mutants
+killed. Shared scope is 23 parent components, not the complete backend. Its seven
+baseline survivors and PIT's generated-cleanup line marker remain visible in
+[quality results](quality.md#local-password-accounts--november-9-2026).
+
+Evidence: [service](../src/main/java/application/ProfileService.java),
+[file adapter](../src/main/java/persistence/FileProfileRepository.java),
+[real reload/authentication tests](../src/test/java/integration/ProfilePersistenceIntegrationTest.java),
+[account BVA](bva/ProfileService.md) and [storage BVA](bva/FileProfileRepository.md).
+All file tests use JUnit temporary directories; no real profile data was created.
+At this E01 checkpoint, the login screen, match binding and E02 persistence were
+pending. The E02 increment below adds the backend binding/persistence. Login and
+lifetime-statistics screens remain pending; the original account commit is
+`e1a96f4`. No E02 commit/push or new remote CI/review/merge is claimed.
+
+### E02 completed lifetime statistics — November 9
+
+Implemented immutable raw completed snapshots and restoration, issuer-bound login
+handles, stable human-only profile bindings and one atomic V3 catalog save for all
+human completion deltas. V2 password accounts load with empty totals and upgrade
+only on successful save. Match totals and stacks reset for new matches; lifetime
+counters and completed IDs persist. Bots and unfinished matches are not saved.
+
+TDD: 28 expected RED → 28 GREEN snapshot cases, then 11 expected RED → 11 GREEN
+service/storage/application cases. Thirteen later validation/privacy/failure-window
+regressions are additional coverage, not claimed feature RED cycles. Final suite:
+1,196 passing; Checkstyle/SpotBugs clean. `build pitest` passed on the same final
+production code with 636/643 mutants killed; seven baseline survivors remain.
+The final extra PM-C05 test then passed with the full build; production was unchanged.
+Four new executable components kill 72/72 mutants; all ten added/modified E02
+components kill 331/331. Scope is 27 components, not the entire backend, with
+zero missed JaCoCo counters. See [quality evidence](quality.md#completed-lifetime-statistics--november-9-2026).
+
+Real integration covers a played showdown saved/reloaded into a fresh match,
+failed-write retry before payment, and durable-save/error/retry without a second
+write or increment. The latter verifies completion IDs survive actual disk reload.
+Evidence: [lifetime BVA](bva/LifetimeStatistics.md),
+[snapshot model](../src/main/java/domain/model/CompletedStatistics.java),
+[profile binding](../src/main/java/application/ProfileMatch.java) and
+[integration tests](../src/test/java/application/ProfiledMatchIntegrationTest.java).
+No real user data or extra scratch reports were created. The existing Swing
+Start Game remains unprofiled until login/profile screens consume these APIs.
+E02/I04 are verified locally, awaiting the user's commit, remote CI, peer review
+and merge. All 30 top-level Week 7 items remain unchecked under the agreed gates.
+
+### Desktop profile integration — November 10
+
+Completed the next frontend increment: Main opens Profiles, where users create
+and password-sign-in to local accounts, select the ordered human roster, start
+profile-bound matches and inspect lifetime statistics. Existing Table and
+Statistics flows use profile names and preserve the shared-computer handoff.
+Register/sign-in/list/read operations use background workers; game mutation is
+disabled during those operations. Wrong passwords and storage/provider failures
+have localized feedback. A failed settlement can be retried without paying or
+counting twice. Ongoing matches keep their bindings when the next-match roster changes.
+
+Evidence: [profile-screen BVA](bva/ProfileScreen.md),
+[view](../src/main/java/ui/ProfilePanel.java),
+[23 component/integration cases](../src/test/java/ui/ProfileGamePanelTest.java),
+[quality results and exception review](quality.md#desktop-profile-flow--november-10-2026).
+Full local `build pitest` passed: 1,219 tests; Checkstyle/SpotBugs clean;
+636/643 mutants killed with seven unchanged baseline survivors. UI/Main keep the
+documented coverage/mutation exemption; all static checks still run. No real account data or extra scratch
+reports were created. The attempted native preview could not be inspected because
+the desktop bridge was unavailable and was closed. Native font/focus walkthrough,
+commit, remote CI, peer review and merge remain pending.
+
+### Progress evaluation
+
+Planning was recorded on November 8, 2026. On November 9, E01's profile model/account
+backend and E02 completed-lifetime-statistics backend were verified locally as
+recorded above. B01/B02 remain
+the verified merged baseline; all 30 top-level Week 7 items remain unchecked
+because their complete acceptance/review/merge criteria have not been met.
+The 1,033-test baseline belongs to PR #19; the latest local suite passes 1,219 after the November 10 desktop increment.
+Adaptive AI remains a distinct backend workstream with its own acceptance criteria.
+
+### Next steps
+
+Agree on the K05 action/amount contract and K04 departure lifecycle together.
+Kevin implements K01–K06; Estella reviews/commits E01–E02 and then proceeds with
+AI E03–E06 as a separate workstream using the agreed K05 action contract. Review each other's work and link commits/PRs, BVA/tests,
+CI results, measurements and limitations under the corresponding task IDs.
+Keep issue #20 and this existing report synchronized; close the issue only after
+all acceptance gates pass.
+
 
 ## Future weekly report template
 

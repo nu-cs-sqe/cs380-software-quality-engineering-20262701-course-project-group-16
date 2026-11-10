@@ -2,6 +2,10 @@ package ui;
 
 import application.SetupSession;
 import application.SetupView;
+import application.ProfileService;
+import java.util.Map;
+import java.util.LinkedHashMap;
+import java.io.UncheckedIOException;
 import domain.model.Card;
 import domain.model.Player;
 import domain.model.PlayerType;
@@ -42,7 +46,7 @@ public final class GamePanel extends JPanel {
     private final Localizations messages = Localizations.load();
     private final JComboBox<String> language = named(new JComboBox<>(), "language");
     private String selectedLanguage = messages.defaultLanguage();
-    private enum ErrorMessage { NONE, INVALID_COUNT, INVALID_ACTION }
+    private enum ErrorMessage { NONE, INVALID_COUNT, INVALID_ACTION, STORAGE, PROFILE_SELECTION }
 
     private ErrorMessage errorMessage = ErrorMessage.NONE;
     private final JTextField humanCount = named(new JTextField("1"), "humanCount");
@@ -69,9 +73,21 @@ public final class GamePanel extends JPanel {
     private final JPanel seats = new JPanel(new GridLayout(2, 3, 12, 12));
     private final List<Player> humanViewers = new ArrayList<>();
     private boolean rendering;
+    private boolean profileBusy;
+    private final List<ProfilePanel> profiles;
+    private Map<String, String> matchNames = Map.of();
 
-    public GamePanel(SetupSession session) {
+    /** Connects the desktop to local authenticated profiles. */
+    public GamePanel(SetupSession session, ProfileService profiles) {
+        this(session, List.of(profiles));
+    }
+
+    public GamePanel(SetupSession session) { this(session, List.of()); }
+
+    private GamePanel(SetupSession session, List<ProfileService> services) {
         this.session = java.util.Objects.requireNonNull(session, "session");
+        profiles = services.stream().map(service -> new ProfilePanel(service, messages,
+                this::profileBusy, this::profilesChanged)).collect(Collectors.toUnmodifiableList());
         for (String tag : messages.languages()) {
             language.addItem(messages.languageName(tag));
         }
@@ -86,7 +102,7 @@ public final class GamePanel extends JPanel {
         start.addActionListener(event -> startGame());
         humanCount.addActionListener(event -> startGame());
         viewers.addActionListener(event -> {
-            if (!rendering && viewers.getSelectedIndex() >= 0) {
+            if (!rendering && !profileBusy && viewers.getSelectedIndex() >= 0) {
                 session.selectViewer(humanViewers.get(viewers.getSelectedIndex()).getId());
                 refresh();
             }
@@ -105,10 +121,26 @@ public final class GamePanel extends JPanel {
         });
         setPreferredSize(new Dimension(1100, 740));
         buildScreen();
+        profiles.forEach(ProfilePanel::loadProfiles);
+    }
+
+    private void profileBusy(boolean busy) {
+        profileBusy = busy;
+        session.hideCards();
+        putClientProperty("profileBusy", busy);
+        refresh();
+    }
+
+    private void profilesChanged() {
+        if (!profiles.isEmpty()) {
+            humanCount.setText(Integer.toString(profiles.get(0).humanCount()));
+        }
+        refresh();
     }
 
     /** Conceals the selected hand, including when the containing window loses focus. */
     public void hidePrivateCards() {
+        profiles.forEach(ProfilePanel::clearPasswords);
         session.hideCards();
         refresh();
     }
@@ -124,9 +156,16 @@ public final class GamePanel extends JPanel {
             setBorder(BorderFactory.createEmptyBorder(20, 22, 20, 22));
             add(buildHeader(), BorderLayout.NORTH);
             add(buildSidebar(), BorderLayout.WEST);
+            int selectedTab = sections.getSelectedIndex();
             sections.removeAll();
+            profiles.forEach(profile -> {
+                profile.language(selectedLanguage);
+                sections.addTab(text("profile.tab"), profile);
+            });
             sections.addTab(text("table.title"), buildTable());
             sections.addTab(text("stats.title"), statistics);
+            sections.setSelectedIndex(Math.max(0,
+                    Math.min(selectedTab, sections.getTabCount() - 1)));
             add(sections, BorderLayout.CENTER);
         } finally {
             rendering = false;
@@ -168,6 +207,10 @@ public final class GamePanel extends JPanel {
         addRow(sidebar, new JLabel(text("humanCount")));
         humanCount.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
         humanCount.getAccessibleContext().setAccessibleName(text("humanCount"));
+        humanCount.setEditable(profiles.isEmpty());
+        if (!profiles.isEmpty()) {
+            humanCount.setText(Integer.toString(profiles.get(0).humanCount()));
+        }
         addRow(sidebar, humanCount);
         addRow(sidebar, new JLabel(text("botsFill")));
         start.setText(text("start"));
@@ -265,10 +308,16 @@ public final class GamePanel extends JPanel {
     }
 
     private void advanceHand(Runnable operation) {
+        if (profileBusy) {
+            return;
+        }
         session.hideCards();
         try {
             operation.run();
             errorMessage = ErrorMessage.NONE;
+            profiles.forEach(ProfilePanel::refreshLifetime);
+        } catch (UncheckedIOException storage) {
+            errorMessage = ErrorMessage.STORAGE;
         } catch (IllegalArgumentException | IllegalStateException invalid) {
             errorMessage = ErrorMessage.INVALID_ACTION;
         }
@@ -281,18 +330,41 @@ public final class GamePanel extends JPanel {
     }
 
     private void startGame() {
+        if (profileBusy) {
+            return;
+        }
         session.hideCards();
+        profiles.forEach(ProfilePanel::clearPasswords);
         try {
-            session.start(Integer.parseInt(humanCount.getText().trim()));
+            startSelectedMatch();
             session.playBotTurns();
             errorMessage = ErrorMessage.NONE;
-        } catch (IllegalArgumentException invalid) {
-            errorMessage = ErrorMessage.INVALID_COUNT;
+            sections.setSelectedIndex(profiles.isEmpty() ? 0 : 1);
+        } catch (IllegalArgumentException | IllegalStateException invalid) {
+            errorMessage = profiles.isEmpty() ? ErrorMessage.INVALID_COUNT
+                    : ErrorMessage.PROFILE_SELECTION;
         }
         refresh();
     }
 
+    private void startSelectedMatch() {
+        if (profiles.isEmpty()) {
+            session.start(Integer.parseInt(humanCount.getText().trim()));
+            matchNames = Map.of();
+        } else {
+            ProfilePanel profile = profiles.get(0);
+            profile.startMatch(session);
+            Map<String, String> names = profile.profileNames();
+            Map<String, String> players = new LinkedHashMap<>();
+            session.getProfileIds().forEach((player, id) -> players.put(player, names.get(id)));
+            matchNames = Map.copyOf(players);
+        }
+    }
+
     private void submitAction(ActionType type) {
+        if (profileBusy) {
+            return;
+        }
         Optional<SetupView> display = session.getView();
         if (display.isEmpty() || display.orElseThrow().getCurrentActorSeat() < 0) {
             return;
@@ -333,7 +405,17 @@ public final class GamePanel extends JPanel {
             nextHand.setEnabled(session.getSettlement().isPresent()
                     && session.getMatchWinner().isEmpty());
             statistics.render(view.map(SetupView::getPlayers).orElseGet(List::of),
-                    session.getStatistics(), messages, selectedLanguage);
+                    session.getStatistics(), matchNames, messages, selectedLanguage);
+            start.setEnabled(!profileBusy && (profiles.isEmpty()
+                    || profiles.get(0).humanCount() > 0));
+            if (profileBusy) {
+                for (JComponent control : List.of(viewers, reveal, hide, fold, check, call,
+                        settle, nextHand, humanCount)) {
+                    control.setEnabled(false);
+                }
+            } else {
+                humanCount.setEnabled(true);
+            }
             handoff.setMaximumSize(new Dimension(Integer.MAX_VALUE,
                     handoff.getPreferredSize().height));
         } finally {
@@ -349,6 +431,10 @@ public final class GamePanel extends JPanel {
                 return text("invalidCount");
             case INVALID_ACTION:
                 return text("invalidAction");
+            case STORAGE:
+                return wrapped(text("profile.storageError"));
+            case PROFILE_SELECTION:
+                return wrapped(text("profile.selectHumans"));
             default:
                 return " ";
         }
@@ -358,7 +444,7 @@ public final class GamePanel extends JPanel {
         for (Player player : view.getPlayers()) {
             if (player.getType() == PlayerType.HUMAN) {
                 humanViewers.add(player);
-                viewers.addItem(playerName(player));
+                viewers.addItem(ProfilePanel.labelText(playerName(player)));
             }
         }
         for (int i = 0; i < humanViewers.size(); i++) {
@@ -383,8 +469,8 @@ public final class GamePanel extends JPanel {
                 : text("communityDealt", view.getCommunityCards().stream()
                         .map(GamePanel::cardText).collect(Collectors.joining("   "))));
         phase.setText(text("phase." + view.getPhase().name()));
-        result.setText(session.getResult()
-                .map(comparison -> resultText(comparison, view)).orElse(" "));
+        result.setText(ProfilePanel.labelText(session.getResult()
+                .map(comparison -> resultText(comparison, view)).orElse(" ")));
     }
 
     private void showWaitingTable() {
@@ -488,7 +574,8 @@ public final class GamePanel extends JPanel {
     }
 
     private String playerName(Player player) {
-        return text(player.getType() == PlayerType.HUMAN ? "human" : "bot", player.getSeat() + 1);
+        return matchNames.getOrDefault(player.getId(),
+                text(player.getType() == PlayerType.HUMAN ? "human" : "bot", player.getSeat() + 1));
     }
 
     private String text(String key, Object... arguments) {
@@ -515,7 +602,7 @@ public final class GamePanel extends JPanel {
     }
 
     private static String wrapped(String text) {
-        return "<html><div style=\"width: 180px\">" + text + "</div></html>";
+        return "<html><div style=\"width: 180px\">" + ProfilePanel.escape(text) + "</div></html>";
     }
 
     private static void addRow(JPanel parent, JComponent child) {
@@ -525,7 +612,7 @@ public final class GamePanel extends JPanel {
         parent.add(Box.createVerticalStrut(10));
     }
     private static JLabel label(String text, int size, Color color) {
-        JLabel label = new JLabel(text);
+        JLabel label = new JLabel(ProfilePanel.labelText(text));
         label.setFont(new Font(Font.DIALOG, Font.BOLD, size));
         label.setForeground(color);
         return label;
