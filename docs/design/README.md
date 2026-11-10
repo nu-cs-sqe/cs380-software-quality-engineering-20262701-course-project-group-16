@@ -89,3 +89,46 @@ where coordination needs isolated tests. Prefer explicit absence to nullable
 internal values, while retaining validation at public boundaries. Splitting a
 method should improve its responsibilities, not merely move lines elsewhere.
 Apply these method-design rules to future changes.
+
+
+## Standalone equity (E03)
+
+`EquityRequest.fromView` copies only the viewer's two cards, the public board and
+ordered ACTIVE/ALL_IN participant IDs. Folded/eliminated seats are excluded.
+`EquityPot` describes an awardable public scenario: amount, identity and eligible
+players. The engine/application must supply this eligibility and remove uncalled
+refunds. E03 does not reconstruct settlement layers or action legality. Scenarios
+may describe a prospective legal call rather than the currently displayed pot.
+
+`UniformDealSampler` builds a fresh unseen 52-card universe from rank/suit values,
+removes known cards, then samples remaining board cards and two cards per live
+opponent without replacement. All live opponents are sampled, including those
+ineligible for a particular pot. This preserves card blocking across pots.
+The sampled board is shared by all seven-card holdings. Hidden folded cards and
+unobserved burns are marginalized under this uniform model; actual hidden cards
+and physical deck order are never accessed. Uniform hands are a baseline design
+choice, not learned ranges or a GTO claim.
+
+`MonteCarloEquityEstimator` reuses `PokerHandEvaluator`. Each trial compares the
+hero with each opponent once; each pot then uses only its eligible contenders.
+A win contributes 1, a loss 0 and a tie with k eligible opponents 1/(k+1).
+The returned map contains mean shares, including 0 for hero-ineligible pots.
+Expected payout is the amount-weighted sum of these shares. Equity divides this
+expectation by the total hero-eligible awardable amount. Neither value includes
+refunds, future betting, integer odd-chip allocation or net profit; action EV
+requires calling costs and later strategy. Values stay numeric and unrounded.
+
+The ports `HandEvaluator`, `DealSampler` and `EquityEstimator` permit isolated
+unit tests. Integration tests separately cover real comparisons, a six-way royal
+flush, exact enumeration of all 990 heads-up river hands, and hidden-data
+invariance. Fixed seeds reproduce results; they do not establish a general error
+bound. Error and observational latency are recorded in standard JUnit output.
+
+Requests are immutable, have checked chip totals and bound trials to 1–10,000.
+That initial cap limits work, not wall-clock latency. Cancellation or interruption
+is checked between trials and throws without returning a partial result; retries
+start fresh totals. RNG-backed estimator instances belong to one worker. E06 must
+run them off Swing's event thread, attach match/hand/state identity and discard
+stale results before submitting actions. E04 adds smoothed opponent beliefs/range
+sampling; E05 chooses varied legal actions using the shared engine contract.
+None of those later integrations is completed by this calculator.

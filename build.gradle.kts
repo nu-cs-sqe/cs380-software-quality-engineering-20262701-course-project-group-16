@@ -49,7 +49,7 @@ application {
     mainClass.set("ui.Main")
 }
 
-// Shared scope includes settlement, completed statistics and stable-seat continuation.
+// Shared scope includes settlement, statistics, continuation and standalone equity calculation.
 // This is not a whole-team coverage or mutation score.
 val measuredClasses = listOf(
     "domain.model.Card",
@@ -68,7 +68,12 @@ val measuredClasses = listOf(
     "domain.model.PlayStats",
     "application.SetupSession",
     "application.SetupView",
-    "localization.Localizations"
+    "localization.Localizations",
+    "bot.EquityPot",
+    "bot.EquityRequest",
+    "bot.EquityEstimate",
+    "bot.UniformDealSampler",
+    "bot.MonteCarloEquityEstimator"
 )
 val measuredClassFiles = measuredClasses.flatMap {
     val path = it.replace('.', '/')
@@ -147,7 +152,10 @@ pitest {
         "application.CompletedStatisticsIntegrationTest", "application.ShortBlindIntegrationTest",
         "application.SetupViewTest", "integration.SetupIntegrationTest",
         "integration.ShowdownIntegrationTest", "integration.PlayedHandIntegrationTest",
-        "localization.LocalizationsTest"
+        "localization.LocalizationsTest",
+        "bot.EquityPotTest", "bot.EquityRequestTest", "bot.UniformDealSamplerTest",
+        "bot.MonteCarloEquityEstimatorTest", "bot.EquityViewIntegrationTest",
+        "bot.EquityIntegrationTest"
     ))
     threads.set(2)
     mutators.set(setOf("DEFAULTS"))

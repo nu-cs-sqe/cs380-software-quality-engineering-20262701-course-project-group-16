@@ -40,6 +40,13 @@ privacy and immutability cases.
 | `GamePanel` / `StatisticsPanel` completion UI | [StatisticsPanel.md](StatisticsPanel.md) |
 | `StatsAction` | [StatsAction.md](StatsAction.md) |
 | `StatsContext` | [StatsContext.md](StatsContext.md) |
+| `EquityPot` | [EquityPot.md](EquityPot.md) |
+| `EquityRequest` | [EquityRequest.md](EquityRequest.md) |
+| `DealSampler` | [DealSampler.md](DealSampler.md) |
+| `UniformDealSampler` | [UniformDealSampler.md](UniformDealSampler.md) |
+| `EquityEstimator` | [EquityEstimator.md](EquityEstimator.md) |
+| `MonteCarloEquityEstimator` | [MonteCarloEquityEstimator.md](MonteCarloEquityEstimator.md) |
+| `EquityEstimate` | [EquityEstimate.md](EquityEstimate.md) |
 
 [Combined setup integration cases](setup-integration.md) cover the card/deck-to-state boundary.
 [Showdown integration](../design/showdown.md) covers the initialized-card-to-result boundary.

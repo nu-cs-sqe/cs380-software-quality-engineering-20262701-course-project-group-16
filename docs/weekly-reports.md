@@ -223,6 +223,45 @@ and combined-source results (970) describe different checkpoints.
 - [x] **Kevin:** Implementation branch merged through PR #13 (`d2a78f3`).
 - [ ] **Together:** CI passed for merged main [run 42232032730](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/actions/runs/42232032730); required review/check enforcement and deliberate failure detection still need separate verification.
 
+## Week 7 (11/09/2026–11/15/2026)
+
+**Goal:** Complete the agreed backend; track adaptive bots as a separate backend
+workstream. The full shared plan, preserved requirements, Kevin's K01–K06 tasks
+and integration/quality gates are in [issue #20](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/issues/20).
+Quit-as-fold remains the agreed requirement; the older prohibition in the rules
+still needs Kevin's K04 revision and implementation.
+
+| Status | Owner | Task and acceptance criteria | Evidence / branch / PR |
+| --- | --- | --- | --- |
+| Separate committed branch; review/merge pending | Estella | E01/E02: local profiles, lifetime persistence and desktop account integration | `feature/player-profiles`, latest local commit `e0d6015`; detailed checkpoints in issue #20. Those sources are separate from this E03 branch. |
+| Verified locally; awaiting commit/review/CI/merge | Estella | E03: legitimate-information Monte Carlo equity, multiway fractional ties, public side-pot eligibility, bounded/cancellable calculation | `feature/monte-carlo-equity`, based on main `c71e9d6`; 51 new cases, full suite 1,084 passing; [BVA](bva/MonteCarloEquityEstimator.md), [design](design/README.md#standalone-equity-e03), [quality](quality.md#e03-standalone-equity--november-10-2026). |
+| Planned | Estella | E04: smoothed public-decision opponent learning and contextual uncertainty | Keep beliefs separate from exact PlayStats; exclude forced/rejected/departure-generated actions. |
+| Planned | Estella | E05: varied legal decisions using equity, odds, position, stacks and beliefs | Consume Kevin's authoritative legal-action limits and public pot scenarios. |
+| Planned | Estella | E06: off-EDT execution, cancellation and stale-decision rejection | Match/hand/state identity must be checked before engine submission. |
+| Track in shared issue | Kevin | K01–K06: full betting/reopening, statistics context, quit-as-fold, legal-action contracts and applicable quality scope | Status not independently verified by this E03 task. |
+| Pending | Together | I01–I07, M01 and Q01–Q10: real integration flows, bot evaluation, complete quality/process gates | E03 supplies equity-error, privacy and observational latency evidence only; reviews, remote CI and merge remain pending. |
+
+**Progress evaluation:** E03 uses only own/public cards, reuses the existing
+evaluator and samples compatible hypothetical deals without duplicates. It
+returns numeric per-pot shares, eligible-pot equity and expected payout.
+All five new executable components have zero missed scoped JaCoCo counters and
+kill 108/108 mutants. Shared PIT kills 548/555; seven baseline survivors remain
+visible. Checkstyle and SpotBugs pass without new exclusions. Local TDD observed
+8 + 15 + 17 + 3 expected RED cases followed by GREEN; later hardening/integration
+cases are recorded separately in BVA/quality. No agent commits/pushes or separate
+scratch reports were created.
+
+These results derive from main's 1,033 tests, not the profile branch's 1,223;
+the two branches must be integrated through their PRs. No current bot actions
+were changed: the calculator is ready for E04–E06, while public scenario creation
+remains an engine/application contract. Scoped counters do not prove full-backend
+coverage or independent basis paths. Task checkboxes stay open until accepted
+review, CI and merge evidence is available.
+
+**Next steps:** Review/commit E03, run remote CI and obtain Kevin's review.
+Then implement E04 opponent learning, coordinate public pot/legal-action APIs,
+and complete E05/E06 with real-game integration and repeated controlled evaluation.
+
 ## Future weekly report template
 
 ### Week N (MM/DD/YYYY–MM/DD/YYYY)

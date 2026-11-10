@@ -8,6 +8,61 @@ no `ignoreFailures`, global suppression or baseline hiding existing warnings. Re
 CI uploads test, coverage, mutation and static-analysis reports even after a
 failed step.
 
+## E03 standalone equity — November 10, 2026
+
+Verified locally on `feature/monte-carlo-equity`, based on merged main `c71e9d6`.
+The separate profile branch retains its committed E01/E02/UI work; it is not part
+of this branch's 1,033-test baseline. No profile changes were removed. Gradle
+9.7.1 runs on JDK 25; compilation/tests use the Java 11 toolchain.
+
+| Check | Result |
+| --- | --- |
+| Full JUnit suite | **1,084 passing**, zero failures/errors/skips; 51 new E03 invocations. |
+| Checkstyle / SpotBugs | Zero main/test violations or unexcluded findings; zero analysis errors/missing classes; no new suppression. |
+| Five executable E03 classes | **188 lines, 110 branches, 107 complexity counters, 912 instructions, 52 methods**, zero missed. |
+| Shared 22-parent scope | **1,015 lines, 541 branches, 498 complexity counters, 5,295 instructions, 226 methods, 23 reported classes**, zero missed. The nested PlayStats counter enum accounts for the extra class. |
+| E03 PIT | **108/108 killed**, no survivors or uncovered/error/timeout mutants. |
+| Shared PIT | **548/555 killed (98.74%)**, seven unchanged baseline survivors; no uncovered/error/timeout mutants. PIT line coverage 1,011/1,011; 28 selected classes, 3,518 test executions across mutants. |
+
+Coverage/PIT now include EquityPot, EquityRequest, EquityEstimate,
+UniformDealSampler and MonteCarloEquityEstimator. The two functional ports have
+no executable defaults. Existing unmeasured betting/state components remain
+outside the denominator. These counters do not establish independent basis
+paths or whole-backend compliance; the seven baseline survivor interpretations
+below still require review.
+
+Local TDD observed eight pot-value RED cases, then fifteen request RED cases,
+then seventeen sampler/estimator RED cases, and three filtered-view RED cases,
+each followed by GREEN. The initial combined request attempt had a fixture
+initialization failure while EquityPot was a stub; that attempt is not counted
+as behavioral request RED evidence. Four later boundary/mutation regressions
+and four real-equity integrations are additional checks, not new feature RED
+claims. No Git TDD checkpoints, commits or pushes were created by the agent.
+
+The first PIT run exposed four actionable gaps: invalid opponent identity masked
+by invalid pot membership, unknown pot eligibility masked by missing hero
+eligibility, and a losing hand masking an ineligible-pot error. Focused valid-
+otherwise scenarios now kill all four mutants. No new equivalence claim or
+exclusion was introduced. Isolated estimator tests use controlled sampler and
+evaluator ports; separate integrations use the real evaluator and filtered views.
+
+Exact river equity over all **990** possible opponent holdings is
+**0.869191919**. With 2,048 trials, seeds 7/23/91 returned
+0.870849609 / 0.864257813 / 0.869873047; absolute errors were
+0.001657690 / 0.004934107 / 0.000681128 (all below the fixed 0.06 regression
+tolerance). Observed river calculations took 28.371 / 20.811 / 20.639 ms in the
+final JUnit run. A six-player preflop calculation with 1,000 trials took
+115.856 ms. These are local observations, not latency or general statistical
+accuracy guarantees. A shared royal flush verifies a six-way fractional tie;
+changing actual hidden cards/deck order leaves seeded estimates unchanged.
+Output stays in standard JUnit reports under build/.
+
+E03 supplies a standalone synchronous calculator with between-trial cancellation.
+Engine-owned pot-scenario construction, learned opponent ranges, varied legal
+actions, off-EDT execution and stale-result rejection remain E04–E06/shared
+integration work. CI, peer review and merge for this branch are pending; leave
+E03 unchecked in issue #20 until those gates are met.
+
 ## Completed match statistics — November 6, 2026
 
 Branch `feature/week6-finish`; local `build pitest` uses Gradle 9.7.1 / JDK 17
