@@ -19,7 +19,7 @@ class PasswordBufferTest {
         Pbkdf2PasswordHasher hasher = new Pbkdf2PasswordHasher(salt -> Arrays.fill(salt, (byte) 0),
                 specification -> { captured.set(specification); return derived; });
 
-        PasswordHash hash = hasher.hash("correct horse battery staple".toCharArray());
+        PasswordHash hash = hasher.hash("PokerPlayer123".toCharArray());
 
         assertEquals(expected, hash.getHashBase64());
         assertArrayEquals(new byte[32], derived);
@@ -39,7 +39,7 @@ class PasswordBufferTest {
                 salt -> { throw new AssertionError("Verification must use the stored salt"); },
                 specification -> { captured.set(specification); return derived; });
 
-        assertTrue(hasher.matches("correct horse battery staple".toCharArray(), hash));
+        assertTrue(hasher.matches("PokerPlayer123".toCharArray(), hash));
         assertArrayEquals(new byte[32], derived);
         PBEKeySpec specification = Objects.requireNonNull(captured.get());
         assertArrayEquals(new byte[16], specification.getSalt());
@@ -57,7 +57,7 @@ class PasswordBufferTest {
                 });
 
         assertSame(failure, assertThrows(GeneralSecurityException.class,
-                () -> hasher.hash("correct horse battery staple".toCharArray())));
+                () -> hasher.hash("PokerPlayer123".toCharArray())));
         PBEKeySpec specification = Objects.requireNonNull(captured.get());
         assertThrows(IllegalStateException.class, specification::getPassword);
         assertThrows(IllegalArgumentException.class,
@@ -70,7 +70,7 @@ class PasswordBufferTest {
         Pbkdf2PasswordHasher hasher = new Pbkdf2PasswordHasher(
                 salt -> Arrays.fill(salt, (byte) 0), specification -> derived);
         assertThrows(IllegalArgumentException.class,
-                () -> hasher.hash("correct horse battery staple".toCharArray()));
+                () -> hasher.hash("PokerPlayer123".toCharArray()));
         assertArrayEquals(new byte[31], derived);
     }
 

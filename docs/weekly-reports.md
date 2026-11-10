@@ -229,8 +229,9 @@ and combined-source results (970) describe different checkpoints.
 
 [Plan and live checklist: issue #20](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/issues/20).
 
-**Status:** In progress: E01 password-account backend verified locally on November 9,
-against merged main `c71e9d6`. Kevin is Member A
+**Status:** In progress: E01/E02 backends verified locally November 9; desktop
+profile integration verified locally November 10, against main `c71e9d6` plus
+account commit `e1a96f4`. Kevin is Member A
 (betting/departure/contracts); Estella is Member B (profiles/adaptive bots).
 The checklist IDs below match issue #20. Update both locations as work is
 verified; record local/in-review work accurately without checking it as merged Done.
@@ -287,9 +288,44 @@ the same IDs and verify passwords. The full suite passes 1,144 tests;
 Checkstyle/SpotBugs are clean. The six profile/account classes have zero missed
 JaCoCo counters and kill 86/86 mutants; shared PIT is 526/533 with seven baseline
 survivors. BVA records the observed local RED/GREEN cycles and later regressions.
-No RED/GREEN Git commits, push or new remote CI are claimed. Login/profile screens,
-authenticated match binding and E02 completed lifetime statistics remain pending;
-E01 stays unchecked until its acceptance, review and merge gates are met.
+This is the E01 checkpoint; the user's account implementation commit is
+`e1a96f4`. E02 below adds authenticated match binding and completed lifetime
+persistence. Login/profile screens and verified review/CI/merge gates remain
+pending; E01 stays unchecked until those gates are met.
+
+**E02 progress (November 9):** Verified locally on `feature/player-profiles`:
+authenticated human/profile bindings, completed raw counters and duplicate IDs,
+V2 → V3 catalog upgrade, separate match/lifetime totals, atomic save-before-payment,
+restart/new-match behavior and retries before/after durable save. Final build:
+1,196 tests passing; Checkstyle/SpotBugs clean. Four new executable components
+kill 72/72 mutants; all ten new/modified E02 components kill 331/331. Shared PIT
+is 636/643 with seven unchanged baseline survivors; scoped coverage has zero
+missed counters. Local TDD observed 28 RED → GREEN and 11 RED → GREEN cases;
+no separate Git checkpoints or E02 commit/push are claimed. Login/profile screens,
+remote CI, peer review and merge remain pending; E02/I04 remain unchecked.
+
+**Desktop profile integration (November 10):** Production startup now uses local
+password accounts. English/Chinese registration, sign-in, 1–6-human selection,
+profile names, saved lifetime rows and retryable storage errors are connected to
+the E01/E02 APIs. Password work runs off the event thread and captured char arrays
+are cleared after success/failure. Existing private-card handoffs remain in place;
+roster removal affects only the next match. Local suite: 1,219 passing, including
+23 new profile-screen cases. The original 20 cases were observed RED before UI
+implementation; three later regressions are additional hardening. One exact live-
+Swing-model serialization exception is documented. Native visual/focus checking
+remains pending because the computer-use bridge was unavailable; automated layouts
+pass in both languages. Final build/PIT passed: Checkstyle/SpotBugs clean;
+PIT 636/643, seven baseline survivors unchanged. No commit/push, new remote CI or
+peer approval is claimed. E01/E02/I04 and review/merge gates remain unchecked.
+
+**Password length follow-up (November 10):** New accounts now require 6–15
+characters; English/Chinese hints use plain wording and two lines. Sign-in retains
+6–128-character verification for existing credentials, with no file migration or
+hashing change. Revised BVA ran 15 password cases against the prior policy:
+7 expected failures and 8 existing passes, then all 15 passed after implementation.
+The current full test suite passes 1,223 tests; static checks are clean. Final
+coverage/mutation evidence is recorded in quality.md. No commit/push or review/
+merge completion is claimed; task checklist states remain unchanged.
 
 #### Adaptive bot AI — separate backend task
 
@@ -379,24 +415,78 @@ Evidence: [service](../src/main/java/application/ProfileService.java),
 [real reload/authentication tests](../src/test/java/integration/ProfilePersistenceIntegrationTest.java),
 [account BVA](bva/ProfileService.md) and [storage BVA](bva/FileProfileRepository.md).
 All file tests use JUnit temporary directories; no real profile data was created.
-The login screen, authenticated match binding, E02 completed lifetime totals and
-deduplication persistence remain pending. No commit/push, new remote CI, peer
-review or merge is claimed; E01 remains unchecked.
+At this E01 checkpoint, the login screen, match binding and E02 persistence were
+pending. The E02 increment below adds the backend binding/persistence. Login and
+lifetime-statistics screens remain pending; the original account commit is
+`e1a96f4`. No E02 commit/push or new remote CI/review/merge is claimed.
+
+### E02 completed lifetime statistics — November 9
+
+Implemented immutable raw completed snapshots and restoration, issuer-bound login
+handles, stable human-only profile bindings and one atomic V3 catalog save for all
+human completion deltas. V2 password accounts load with empty totals and upgrade
+only on successful save. Match totals and stacks reset for new matches; lifetime
+counters and completed IDs persist. Bots and unfinished matches are not saved.
+
+TDD: 28 expected RED → 28 GREEN snapshot cases, then 11 expected RED → 11 GREEN
+service/storage/application cases. Thirteen later validation/privacy/failure-window
+regressions are additional coverage, not claimed feature RED cycles. Final suite:
+1,196 passing; Checkstyle/SpotBugs clean. `build pitest` passed on the same final
+production code with 636/643 mutants killed; seven baseline survivors remain.
+The final extra PM-C05 test then passed with the full build; production was unchanged.
+Four new executable components kill 72/72 mutants; all ten added/modified E02
+components kill 331/331. Scope is 27 components, not the entire backend, with
+zero missed JaCoCo counters. See [quality evidence](quality.md#completed-lifetime-statistics--november-9-2026).
+
+Real integration covers a played showdown saved/reloaded into a fresh match,
+failed-write retry before payment, and durable-save/error/retry without a second
+write or increment. The latter verifies completion IDs survive actual disk reload.
+Evidence: [lifetime BVA](bva/LifetimeStatistics.md),
+[snapshot model](../src/main/java/domain/model/CompletedStatistics.java),
+[profile binding](../src/main/java/application/ProfileMatch.java) and
+[integration tests](../src/test/java/application/ProfiledMatchIntegrationTest.java).
+No real user data or extra scratch reports were created. The existing Swing
+Start Game remains unprofiled until login/profile screens consume these APIs.
+E02/I04 are verified locally, awaiting the user's commit, remote CI, peer review
+and merge. All 30 top-level Week 7 items remain unchecked under the agreed gates.
+
+### Desktop profile integration — November 10
+
+Completed the next frontend increment: Main opens Profiles, where users create
+and password-sign-in to local accounts, select the ordered human roster, start
+profile-bound matches and inspect lifetime statistics. Existing Table and
+Statistics flows use profile names and preserve the shared-computer handoff.
+Register/sign-in/list/read operations use background workers; game mutation is
+disabled during those operations. Wrong passwords and storage/provider failures
+have localized feedback. A failed settlement can be retried without paying or
+counting twice. Ongoing matches keep their bindings when the next-match roster changes.
+
+Evidence: [profile-screen BVA](bva/ProfileScreen.md),
+[view](../src/main/java/ui/ProfilePanel.java),
+[23 component/integration cases](../src/test/java/ui/ProfileGamePanelTest.java),
+[quality results and exception review](quality.md#desktop-profile-flow--november-10-2026).
+Full local `build pitest` passed: 1,219 tests; Checkstyle/SpotBugs clean;
+636/643 mutants killed with seven unchanged baseline survivors. UI/Main keep the
+documented coverage/mutation exemption; all static checks still run. No real account data or extra scratch
+reports were created. The attempted native preview could not be inspected because
+the desktop bridge was unavailable and was closed. Native font/focus walkthrough,
+commit, remote CI, peer review and merge remain pending.
 
 ### Progress evaluation
 
-Planning was recorded on November 8, 2026. On November 9, E01's profile model and
-password-account backend were implemented and verified locally as recorded above. B01/B02 remain
+Planning was recorded on November 8, 2026. On November 9, E01's profile model/account
+backend and E02 completed-lifetime-statistics backend were verified locally as
+recorded above. B01/B02 remain
 the verified merged baseline; all 30 top-level Week 7 items remain unchecked
 because their complete acceptance/review/merge criteria have not been met.
-The 1,033-test baseline belongs to PR #19; the new local suite passes 1,144.
+The 1,033-test baseline belongs to PR #19; the latest local suite passes 1,219 after the November 10 desktop increment.
 Adaptive AI remains a distinct backend workstream with its own acceptance criteria.
 
 ### Next steps
 
 Agree on the K05 action/amount contract and K04 departure lifecycle together.
-Kevin implements K01–K06; Estella implements E01–E06, with AI E03–E06 tracked
-separately from profiles. Review each other's work and link commits/PRs, BVA/tests,
+Kevin implements K01–K06; Estella reviews/commits E01–E02 and then proceeds with
+AI E03–E06 as a separate workstream using the agreed K05 action contract. Review each other's work and link commits/PRs, BVA/tests,
 CI results, measurements and limitations under the corresponding task IDs.
 Keep issue #20 and this existing report synchronized; close the issue only after
 all acceptance gates pass.

@@ -20,7 +20,10 @@ find(id) and list() expose public identity metadata for selection; they do not
 authenticate and never return credentials. Null/blank lookup IDs are rejected;
 unknown IDs are unavailable. Lists are immutable independent snapshots. The
 application must serialize writers and use authenticate before opening a profile.
-The login screen/session binding and E02 lifetime statistics remain pending.
+The login screen remains pending. login returns an issuer-bound AuthenticatedProfile;
+getLifetimeStatistics requires that handle. Application-only saveCompleted merges
+one completed hand per bound human and saves all updates atomically. See
+[lifetime BVA](LifetimeStatistics.md) for LS-C01–05 and PM-C01–04.
 
 ## Cases
 
@@ -57,7 +60,7 @@ A fresh service and in-memory repository are used unless stated otherwise.
 | PS-A01 | create; authenticate; list | Correct/wrong/null password and unknown selected ID | Only matching credentials return identity; public metadata retained | Yes - locally passing |
 | PS-A02 | create; authenticate | Derivation or verification provider fails | Same checked failure; no partially created account | Yes - locally passing |
 | PS-A03 | authenticate; injected constructor | Null/blank ID, read failure or null hasher | Reject invalid dependencies; preserve read failure | Yes - locally passing |
-| PI-C04 | create; list | Null or 14-character password with real hasher/repository | No account or catalog created | Yes - locally passing |
+| PI-C04 | create; list | Null or 5-character password with real hasher/repository | No account or catalog created | Yes - locally passing |
 
 ## Mapping
 

@@ -54,6 +54,10 @@ application {
 val measuredClasses = listOf(
     "domain.model.Card",
     "domain.model.PlayerProfile",
+    "domain.model.CompletedStatistics",
+    "application.AuthenticatedProfile",
+    "application.ProfileMatch",
+    "persistence.StatisticsProperties",
     "domain.model.PasswordHash",
     "domain.model.StoredProfile",
     "security.Pbkdf2PasswordHasher",
@@ -141,6 +145,9 @@ pitest {
     targetClasses.set(measuredClasses.flatMap { listOf(it, "$it\$*") }.toSet())
     excludedClasses.set(setOf("domain.model.ShowdownResult\$Status"))
     targetTests.set(setOf(
+        "domain.model.CompletedStatisticsTest", "application.LifetimeStatisticsTest",
+        "application.ProfiledMatchIntegrationTest", "persistence.LifetimeStorageTest",
+        "persistence.StatisticsPropertiesTest",
         "domain.model.CardTest", "domain.model.PlayerProfileTest",
         "domain.model.PasswordHashTest", "domain.model.StoredProfileTest",
         "security.PasswordBufferTest", "integration.Pbkdf2PasswordHasherIntegrationTest",

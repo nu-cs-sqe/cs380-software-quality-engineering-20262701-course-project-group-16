@@ -160,3 +160,12 @@ or a multi-hand sequence. Public constructor and all public methods are covered.
 | PS-Z08 | Constructor, getFoldToFlopCBetPercent() | New instance; denominator is zero | OptionalDouble.empty() | Yes |
 | PS-Z09 | Constructor, getWtsdPercent() | New instance; denominator is zero | OptionalDouble.empty() | Yes |
 | PS-Z10 | Constructor, getWonAtShowdownPercent() | New instance; denominator is zero | OptionalDouble.empty() | Yes |
+
+## Completed persistence boundary
+
+completedSnapshot exports only committed raw counters and completed-hand IDs;
+active ID/actions are excluded. fromCompleted restores those counters/history
+with no active hand. CS-C01, CS-C25, CS-C27–28 in CompletedStatisticsTest cover
+empty/restored rates, duplicate protection, unfinished-hand exclusion, null input
+and nonparticipant completion. ST-C05 verifies all metric types after real file
+reload. See [snapshot BVA](CompletedStatisticsSnapshot.md).

@@ -21,7 +21,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ProfileServiceTest {
-    private static final char[] PASSWORD = "correct horse battery staple".toCharArray();
+    private static final char[] PASSWORD = "PokerPlayer123".toCharArray();
     private static final String SALT = "AAECAwQFBgcICQoLDA0ODw==";
     private static final String HASH = "7xdxRO7JQgy8EJPSqLNEqSvFBtDU7JwCjdGfgyTYweY=";
 

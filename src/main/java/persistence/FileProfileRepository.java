@@ -4,6 +4,7 @@ import application.ProfileRepository;
 import domain.model.PlayerProfile;
 import domain.model.StoredProfile;
 import domain.model.PasswordHash;
+import domain.model.CompletedStatistics;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
@@ -20,6 +21,7 @@ import java.util.Set;
 
 /** Versioned UTF-8 identity catalog. The application owns single-writer coordination. */
 public final class FileProfileRepository implements ProfileRepository {
+    private final StatisticsProperties statistics = new StatisticsProperties();
     private final Path directory;
     private final Path catalog;
 
@@ -45,29 +47,41 @@ public final class FileProfileRepository implements ProfileRepository {
         }
     }
 
-    private static List<StoredProfile> readProfiles(Properties properties) {
+    private List<StoredProfile> readProfiles(Properties properties) {
         int count = requireSchema(properties);
+        boolean legacy = "2".equals(properties.getProperty("formatVersion"));
         List<StoredProfile> profiles = new ArrayList<>();
         Set<String> seen = new HashSet<>();
+        long expectedProperties = 2L;
         for (int index = 0; index < count; index++) {
-            String prefix = "profile." + index;
-            StoredProfile profile = new StoredProfile(
-                    new PlayerProfile(properties.getProperty(prefix + ".id"),
-                            properties.getProperty(prefix + ".name")),
-                    new PasswordHash(properties.getProperty(prefix + ".salt"),
-                            properties.getProperty(prefix + ".hash")));
+            StoredProfile profile = readProfile(properties, "profile." + index, legacy);
             requireUnique(profile, seen);
             profiles.add(profile);
+            expectedProperties += 4L
+                    + (legacy ? 0 : statistics.propertyCount(profile.getStatistics()));
+        }
+        if (properties.size() != expectedProperties) {
+            throw new IllegalArgumentException("Unexpected or missing profile properties.");
         }
         return List.copyOf(profiles);
     }
 
+    private StoredProfile readProfile(Properties properties, String prefix, boolean legacy) {
+        return new StoredProfile(
+                new PlayerProfile(properties.getProperty(prefix + ".id"),
+                        properties.getProperty(prefix + ".name")),
+                new PasswordHash(properties.getProperty(prefix + ".salt"),
+                        properties.getProperty(prefix + ".hash")),
+                legacy ? new CompletedStatistics() : statistics.read(properties, prefix));
+    }
+
     private static int requireSchema(Properties properties) {
-        if (!"2".equals(properties.getProperty("formatVersion"))) {
+        String version = properties.getProperty("formatVersion");
+        if (!"2".equals(version) && !"3".equals(version)) {
             throw new IllegalArgumentException("Unsupported profile catalog version.");
         }
         int count = Integer.parseInt(properties.getProperty("profileCount"));
-        if (count < 0 || properties.size() != 2L + 4L * count) {
+        if (count < 0) {
             throw new IllegalArgumentException("Profile records do not match the catalog count.");
         }
         return count;
@@ -78,12 +92,12 @@ public final class FileProfileRepository implements ProfileRepository {
         writeCatalog(writeProfiles(profiles));
     }
 
-    private static Properties writeProfiles(List<StoredProfile> profiles) {
+    private Properties writeProfiles(List<StoredProfile> profiles) {
         if (profiles == null) {
             throw new IllegalArgumentException("A profile collection is required.");
         }
         Properties properties = new Properties();
-        properties.setProperty("formatVersion", "2");
+        properties.setProperty("formatVersion", "3");
         properties.setProperty("profileCount", Integer.toString(profiles.size()));
         Set<String> seen = new HashSet<>();
         for (int index = 0; index < profiles.size(); index++) {
@@ -94,6 +108,7 @@ public final class FileProfileRepository implements ProfileRepository {
             properties.setProperty(prefix + ".name", profile.getProfile().getDisplayName());
             properties.setProperty(prefix + ".salt", profile.getPasswordHash().getSaltBase64());
             properties.setProperty(prefix + ".hash", profile.getPasswordHash().getHashBase64());
+            statistics.write(properties, prefix, profile.getStatistics());
         }
         return properties;
     }

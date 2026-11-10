@@ -8,13 +8,143 @@ no `ignoreFailures`, global suppression or baseline hiding existing warnings. Re
 CI uploads test, coverage, mutation and static-analysis reports even after a
 failed step.
 
+## Password length revision — November 10, 2026
+
+New-account registration enforces 6–15 characters; sign-in verification accepts
+6–128 to retain existing account access. The English/Chinese hint uses plain
+wording with two lines. Credentials, the hashing algorithm/work factor and the
+catalog schema are unchanged. No existing user account is rewritten.
+
+Revised password tests ran against the prior policy: **15 cases, 7 expected
+failures and 8 passes**, then all 15 GREEN after implementation. Boundaries are
+5/6/7/14/15/16 for registration, with independent existing 28/127/128-character
+credential vectors for compatibility and the existing 129-character rejection.
+Fixtures creating new accounts use a valid 14-character sample.
+
+Final `build pitest` exited 0 in 4m19s: **1,223 tests passing**, zero failures/
+errors/skips; Checkstyle/SpotBugs clean with the existing documented exceptions.
+Pbkdf2PasswordHasher kills **24/24 mutants** and covers all 39 lines, 18 branches,
+18 complexity counters, 154 instructions and 9 methods. Shared scope remains
+27 components: 1,184 lines, 597 branches, 562 complexity counters, 6,027 instructions
+and 262 methods, all with zero missed counters. Shared PIT is **636/643 killed**,
+seven unchanged baseline survivors, no uncovered/timeout/error mutants; 35 selected
+test classes and 3,780 executions. Its synthetic-cleanup line marker remains
+1,189/1,190. Earlier results below are historical checkpoints.
+
+These are local results; no separate Git TDD commits, commit/push, new remote CI
+or peer/merge completion is claimed. Standard Gradle outputs only; no extra
+scratch report, second checkout or real user profile data was created.
+
+## Desktop profile flow — November 10, 2026
+
+The production Main now opens a profile-enabled GamePanel. Registration, password
+sign-in, an ordered 1–6-human next-match roster, saved lifetime statistics and
+profile names are connected to the existing backend. Account work uses SwingWorker;
+UI callbacks stay on the event thread and a busy guard serializes profile writes
+against match mutation. Only authenticated profiles reveal lifetime rows.
+
+The original 20 UI cases ran RED with 20 expected UnsupportedOperationException
+failures against a compiling constructor stub. First implementation passed 19/20;
+the remaining test exposed saved-profile selection being reset on refresh. After
+fixing selection, all original cases passed. Three later regressions cover markup-
+like names, password cleanup after provider failure and same-name account choices.
+These are local observations, not separate RED/GREEN Git commits.
+
+| Check | Result |
+| --- | --- |
+| Full JUnit suite | **1,219 passing**, zero failures/errors/skips; 23 new profile-screen cases above E02's 1,196. |
+| Profile integration | Real registration/login → actions → settlement → lifetime display → restart/login → fresh match; temporary file catalogs and real hashing in the end-to-end case. |
+| UI failure/privacy checks | Wrong passwords, duplicate/full rosters, invalid registration, corrupt storage, retryable settlement, nonblocking gated hashing, cleared password arrays, hidden card handoffs, markup-like names and both-language layouts. |
+| Static analysis | Zero main/test Checkstyle violations and unexcluded SpotBugs findings; zero analysis errors/missing classes. One exact SE_BAD_FIELD exception is added for ProfilePanel.model, consistent with the existing live GamePanel exceptions. No broad suppression or disabled check. |
+| JaCoCo | Same 27-component backend scope: 1,184 lines, 597 branches, 562 complexity counters, 6,025 instructions and 262 methods; zero missed counters. Swing/Main retain the documented view exemption; their tests/static checks still run. |
+| PIT | **636/643 killed (98.91%)**, seven unchanged baseline survivors, zero uncovered/timeout/error mutants; 35 selected test classes and 3,748 executions across mutants. PIT line coverage 1,189/1,190 retains the documented synthetic-cleanup marker. |
+
+Final `bash ./gradlew --no-daemon build pitest` exited 0 in 4m15s with the above
+results, using JDK 25 for Gradle and JDK 11 compilation/tests. No subsequent
+production/test/configuration changes were made; only documentation was updated.
+
+The explicit serialization exception is reviewed against the code boundary:
+ProfilePanel.model contains services, authenticated handles and view callbacks;
+Main never serializes/restores Swing screens. FileProfileRepository writes only
+explicit identity, credential and completed-statistics properties. Persisting the
+UI graph or marking its live fields transient is not a supported restore design.
+The filter matches only ui.ProfilePanel / model / SE_BAD_FIELD. Peer review of this
+exception and the full changes remains pending.
+
+Headless layout checks pass at 1,100×740 in English/Chinese. A native desktop
+preview used an empty temporary profile path, but the computer-use native bridge
+failed to initialize, so no screenshot/native-focus walkthrough could be verified.
+The preview process was closed; no accounts were created there. A native visual
+check on the user's Mac remains pending. All automated file tests use JUnit TempDir;
+no real user profile data, scratch report, second checkout, commit or push was made.
+
+The old baseline survivor reasoning and broader backend measurement gaps remain
+visible below. Local UI completion does not mark review, remote CI or merge gates
+Done and does not establish whole-project A compliance.
+
+## Completed lifetime statistics — November 9, 2026
+
+E02 is verified locally on `feature/player-profiles`, building on the user's E01
+commit `e1a96f4`. Password-verified handles bind human profiles to stable match
+players. Completed raw counters/history survive restart, while new matches reset
+stacks and match totals. Settlement publishes paid chips and match totals only
+after saving all bound human lifetime deltas atomically. Both failure before save
+and a reported failure after a durable save are retryable without double counting.
+Existing V2 accounts load unchanged and upgrade to V3 on a successful save.
+
+TDD observed **28 expected RED failures → 28 GREEN** for snapshots/restoration,
+then **11 expected RED failures → 11 GREEN** for service/storage/application
+integration. Thirteen additional boundary, independent-validation, privacy and
+failure-window regressions improve the final tests; they are not claimed as
+additional feature RED cycles. These are local executions, not separate Git
+RED/GREEN commits. No E02 commit, push, new remote CI or peer approval is claimed.
+
+| Check | Recorded result |
+| --- | --- |
+| Latest full JUnit suite | **1,196 passing**, zero failures/errors/skips; 52 cases above E01's 1,144. |
+| Checkstyle / SpotBugs | Zero main/test violations or unexcluded findings, analysis errors or missing classes; no new suppression. |
+| Four new executable components | CompletedStatistics, AuthenticatedProfile, ProfileMatch and StatisticsProperties: **124 lines, 72 branches, 61 complexity counters, 688 instructions and 25 methods**, zero missed counters. Statistic is an enum with stable storage keys. |
+| New-component PIT | **72/72 killed**. Across all ten new/modified E02 components, **331/331 killed**; none surviving or uncovered. |
+| Shared JaCoCo scope | **27 parent components / 27 reported classes**; **1,184 lines, 597 branches, 562 complexity counters, 6,025 instructions and 262 methods**, zero missed counters. The former private PlayStats counter enum is replaced by the separate exempt Statistic enum. |
+| Shared PIT | **636/643 killed (98.91%)**, seven pre-existing survivors, zero uncovered/timeout/error mutants; 35 selected test classes, 3,794 executions across mutants. |
+
+`build pitest` passed on the final production code with 1,195 tests. The additional
+PM-C05 durable-save/error/retry regression was then added without changing
+production code; the final `build` passed all 1,196 tests in 48 seconds. Runtime:
+Gradle 9.7.1 on JDK 25, JDK 11 compilation/tests. PIT was not repeated after that
+pure test addition. PIT line coverage is **1,189/1,190**; its one uncovered marker
+remains the existing generated finally-cleanup brace in Pbkdf2PasswordHasher,
+as explained in the earlier checkpoint below. JaCoCo reports zero missed counters.
+
+Mutation testing drove explicit assertions for rejected-start card concealment,
+six versus seven distinct accounts, negative counters independent of other
+validation, and duplicate nonparticipant history. Redundant size bounds and
+non-contractual ID sorting were removed without weakening catalog validation.
+Malformed large counts still fail promptly on the first missing/duplicate record
+without allocating by the declared count. The seven unchanged baseline survivors
+remain the six evaluator cases and Card.hashCode constant return reviewed below.
+The hash-contract interpretation still needs instructor acceptance.
+
+BVA maps constructors, raw snapshots, restoration, authentication ownership,
+missing/corrupt storage, V2/V3 upgrade, multiple-account atomicity and retries.
+Real integration flows include setup → actions → showdown → save → restart/new
+match and setup → finished hand → failed save → retry/payment. Isolated tests
+inject repositories/hashers and exercise the codec/model directly. No saved
+unfinished match, real user data, extra scratch report or second checkout was
+created. The Swing profile/login/lifetime screens remain pending.
+
+The remaining betting/state classes are still outside this measurement scope;
+these results do not establish whole-backend coverage or independent basis-path
+execution. Coverage counters and BVA/path review are reported separately. E02/I04
+stay unchecked pending commit, remote CI, peer review and merge.
+
 ## Local password accounts — November 9, 2026
 
-E01 now implements registration, public identity selection, password verification
+This historical E01 checkpoint implements registration, public identity selection, password verification
 and local identity/credential persistence on `feature/player-profiles`. A new
-service/repository instance reopens the same accounts with unchanged IDs. The
-Swing account screens, authenticated match binding and E02 lifetime-statistics
-storage remain pending. No unfinished match is serialized.
+service/repository instance reopens the same accounts with unchanged IDs. At this checkpoint the Swing account screens, authenticated match binding and E02
+storage were pending. The later E02 increment adds binding and completed lifetime
+persistence; the Swing account screens remain pending. No unfinished match is serialized.
 
 TDD observations: the original model ran 20 expected RED failures then 20 GREEN;
 metadata service/storage ran 53 RED then 53 GREEN; the password-account suite ran
@@ -259,6 +389,7 @@ in these classes still fail. These are not metric exclusions.
 | `GameState.getCommunityCards/getPlayerStates/getRemainingDeck` | `EI_EXPOSE_REP` / 3 | Constructor helpers call `List.copyOf`; callers cannot mutate internal lists. |
 | `GameView.getPlayers/getCommunityCards` | `EI_EXPOSE_REP` / 2 | Players use `Collectors.toUnmodifiableList`; community comes from the immutable state snapshot. |
 | `PlayerView.getHoleCards` | `EI_EXPOSE_REP` / 1 | Constructor uses immutable `PlayerState.getHoleCards()` or `List.of()`. |
+| `ProfilePanel.model` | `SE_BAD_FIELD` / 1 | Live Swing view model contains services, authenticated handles and callbacks. Main never serializes screens; FileProfileRepository writes explicit profile/statistics properties. Making it transient would not create a valid restorable UI. Added November 10; peer review remains pending. |
 | `GamePanel.session/messages/humanViewers` | `SE_BAD_FIELD` / 3 | `JPanel` inherits serialization, but this live setup screen is never serialized; session/resources are intentional live runtime state. |
 
 The immutable-collection contracts are also covered by existing state/view tests.
@@ -268,15 +399,17 @@ change. Shared Checkstyle violations are fixed in source instead of baselined.
 ## Scope and interpretation
 
 SetupSession and SetupView include shared played-hand integration. The
-current configured scope has 23 parent components, including local account
-identity/storage/password services, dealing, settlement, completed statistics,
-continuation and the shared session/view.
+current configured scope has 27 parent components, including local account
+identity/storage/password services, immutable completed snapshots, authenticated
+match bindings, dealing, settlement, continuation and the shared session/view.
 Earlier nine-class results below are historical, not current full-game
 coverage. PIT retains the renamed integration tests and the new session
 and played-hand tests.
 
 JaCoCo and PIT include `Card`, `PlayerProfile`, `PasswordHash`, `StoredProfile`,
-`ProfileService`, `FileProfileRepository`, `Pbkdf2PasswordHasher`, `Deck`, `PokerHandEvaluator`,
+`ProfileService`, `FileProfileRepository`, `Pbkdf2PasswordHasher`,
+`CompletedStatistics`, `AuthenticatedProfile`, `ProfileMatch`, `StatisticsProperties`,
+`Deck`, `PokerHandEvaluator`,
 `ShowdownResolver`, `ShowdownResult`, `GameInitializer`, `InitialDeal`,
 `HandStatistics`, `MatchStatistics`, `NextHand`, `StatisticsView`, `PotSettlement`,
 `Settlement`, `PlayStats`, `SetupSession`, `SetupView` and `Localizations`,
@@ -290,13 +423,13 @@ test executions across mutants separately from the JUnit suite count. It uses th
 workers, HTML/XML output and deterministic report paths. A mutant may hang a
 loop; timeout permits twice its baseline test duration plus two seconds.
 
-Excluded from the **current 23-component metric denominator**:
+Excluded from the **current 27-component metric denominator**:
 
 - The remaining domain state and betting components; their test
   execution is retained, but their coverage is not established by this scope.
 - `HandEvaluator`, `ProfileRepository`, `PasswordHasher` and `PasswordDeriver`,
   interfaces without executable default methods, and the
-  `Rank`/`Suit` and nested `ShowdownResult.Status` enums, whose constants have no hand-written branching behavior.
+  `Statistic`, `Rank`/`Suit` and nested `ShowdownResult.Status` enums, whose constants have no hand-written branching behavior.
 - Swing `ui` classes and launch code, using the rubric's UI exemption; headless
   behavior tests still run and shared static analysis still checks those files.
 

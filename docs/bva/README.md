@@ -14,10 +14,15 @@ privacy and immutability cases.
 | `ShowdownResolver` | [ShowdownResolver.md](ShowdownResolver.md) |
 | `ShowdownResult` | [ShowdownResult.md](ShowdownResult.md) |
 | `Localizations` | [Localizations.md](Localizations.md) |
+| `ProfilePanel` / profile-enabled `GamePanel` | [ProfileScreen.md](ProfileScreen.md) |
 | `GamePanel` localization behavior | [GamePanelLocalization.md](GamePanelLocalization.md) |
 | `Player` | [Player.md](Player.md) |
 | `PlayerProfile` | [PlayerProfile.md](PlayerProfile.md) |
 | `ProfileRepository` | [ProfileRepository.md](ProfileRepository.md) |
+| `CompletedStatistics` | [CompletedStatisticsSnapshot.md](CompletedStatisticsSnapshot.md) |
+| `AuthenticatedProfile` | [AuthenticatedProfile.md](AuthenticatedProfile.md) |
+| `ProfileMatch` | [ProfileMatch.md](ProfileMatch.md) |
+| `StatisticsProperties` | [StatisticsProperties.md](StatisticsProperties.md) |
 | `StoredProfile` | [StoredProfile.md](StoredProfile.md) |
 | `PasswordHash` | [PasswordHash.md](PasswordHash.md) |
 | `PasswordHasher` | [PasswordHasher.md](PasswordHasher.md) |
@@ -45,7 +50,8 @@ privacy and immutability cases.
 | `HandStatistics` / session delivery | [HandStatistics.md](HandStatistics.md) |
 | `PlayStats` | [PlayStats.md](PlayStats.md), [transactional copy](CompletedStatistics.md) |
 | `PotSettlement` / `Settlement` | [PotSettlement.md](PotSettlement.md) |
-| `MatchStatistics` / `StatisticsView` / `NextHand` | [CompletedStatistics.md](CompletedStatistics.md) |
+| `MatchStatistics` | [MatchStatistics.md](MatchStatistics.md), [lifetime integration](LifetimeStatistics.md) |
+| `StatisticsView` / `NextHand` | [CompletedStatistics.md](CompletedStatistics.md) |
 | `GamePanel` / `StatisticsPanel` completion UI | [StatisticsPanel.md](StatisticsPanel.md) |
 | `StatsAction` | [StatsAction.md](StatsAction.md) |
 | `StatsContext` | [StatsContext.md](StatsContext.md) |

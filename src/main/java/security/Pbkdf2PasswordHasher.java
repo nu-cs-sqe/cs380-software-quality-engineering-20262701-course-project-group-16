@@ -41,8 +41,8 @@ public final class Pbkdf2PasswordHasher implements PasswordHasher {
 
     @Override
     public PasswordHash hash(char[] password) throws GeneralSecurityException {
-        if (!validPassword(password)) {
-            throw new IllegalArgumentException("Use 15 to 128 valid Unicode password characters.");
+        if (!validPassword(password, 15)) {
+            throw new IllegalArgumentException("Use 6 to 15 characters for a new password.");
         }
         byte[] salt = new byte[16];
         saltSource.accept(salt);
@@ -61,7 +61,8 @@ public final class Pbkdf2PasswordHasher implements PasswordHasher {
         if (credential == null) {
             throw new IllegalArgumentException("A password credential is required.");
         }
-        if (!validPassword(password)) {
+        // Continue accepting credentials registered under the former longer-password policy.
+        if (!validPassword(password, 128)) {
             return false;
         }
         byte[] salt = Base64.getDecoder().decode(credential.getSaltBase64());
@@ -74,12 +75,12 @@ public final class Pbkdf2PasswordHasher implements PasswordHasher {
         }
     }
 
-    private static boolean validPassword(char[] password) {
+    private static boolean validPassword(char[] password, int maximumLength) {
         if (password == null) {
             return false;
         }
         int length = Character.codePointCount(password, 0, password.length);
-        return length >= 15 && length <= 128
+        return length >= 6 && length <= maximumLength
                 && StandardCharsets.UTF_8.newEncoder().canEncode(CharBuffer.wrap(password));
     }
 

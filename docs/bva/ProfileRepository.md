@@ -18,3 +18,9 @@ covered by FileProfileRepositoryTest and ProfilePersistenceIntegrationTest.
 The repository is used by a serialized application writer, not a multi-process
 transaction service. See [file adapter BVA](FileProfileRepository.md) and
 [service BVA](ProfileService.md).
+
+Version-3 snapshots also include immutable completed raw counters and completion
+IDs in each StoredProfile. Identity, credential and completed data share one
+atomic replacement. ST-C01–05 and PM-C01–05 in
+[lifetime BVA](LifetimeStatistics.md) verify migration, exact round trips and
+failure/retry behavior. The port still serializes application writers.

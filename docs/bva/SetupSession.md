@@ -43,3 +43,12 @@ SetupView is a view model (course view exemption); its data and privacy are
 checked through these session tests. UI callbacks use the session on the Swing
 event thread. Real setup/deck/state components run with a fixed dealer stub and
 seeded shuffle source; no game components are mocked.
+
+## Authenticated profile matches
+
+Public startProfiles(ProfileService,List<AuthenticatedProfile>), getProfileIds and
+getLifetimeStatistics are mapped by PM-C01–04 in
+[lifetime BVA](LifetimeStatistics.md). Binding persists across nextHand and is
+cleared by successful unprofiled start. settleHand saves lifetime deltas before
+publishing paid state/match totals; failed IO is wrapped in UncheckedIOException,
+leaving the original hand retryable. Existing unprofiled APIs remain in-memory.

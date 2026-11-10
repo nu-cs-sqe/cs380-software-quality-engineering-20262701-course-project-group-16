@@ -58,3 +58,9 @@ existing 17 GamePanel cases still verify private-card handoff/hiding behavior.
 The application must clear the result between hands and render it again using
 the selected language. Attaching it to Estella's session result is a later
 integration checkpoint; these tests do not claim a played result screen.
+
+The November 10 profile flow adds 23 headless component cases mapped in
+[ProfileScreen.md](ProfileScreen.md), including registration/sign-in/lifetime
+feedback in both languages, password/card concealment, storage retries and
+same-name account selection. New messages remain resource-backed and catalog-
+validated; no locale switch is implemented as a language-specific Java branch.

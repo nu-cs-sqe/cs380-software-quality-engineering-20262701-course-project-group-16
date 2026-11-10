@@ -17,7 +17,7 @@ import security.Pbkdf2PasswordHasher;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ProfilePersistenceIntegrationTest {
-    private static final char[] PASSWORD = "correct horse battery staple".toCharArray();
+    private static final char[] PASSWORD = "PokerPlayer123".toCharArray();
 
     @TempDir Path directory;
 
@@ -38,7 +38,7 @@ class ProfilePersistenceIntegrationTest {
                 "incorrect password".toCharArray()).isEmpty());
         assertTrue(reopened.authenticate("missing", PASSWORD.clone()).isEmpty());
         String catalog = Files.readString(directory.resolve("profiles.properties"));
-        assertFalse(catalog.contains("correct horse battery staple"));
+        assertFalse(catalog.contains("PokerPlayer123"));
         var records = new FileProfileRepository(directory).load();
         assertNotEquals(records.get(0).getPasswordHash().getSaltBase64(),
                 records.get(1).getPasswordHash().getSaltBase64());
@@ -84,7 +84,7 @@ class ProfilePersistenceIntegrationTest {
 
         assertThrows(IllegalArgumentException.class, () -> service.create("Player", null));
         assertThrows(IllegalArgumentException.class,
-                () -> service.create("Player", "a".repeat(14).toCharArray()));
+                () -> service.create("Player", "a".repeat(5).toCharArray()));
 
         assertTrue(service.list().isEmpty());
         assertFalse(Files.exists(directory.resolve("profiles.properties")));

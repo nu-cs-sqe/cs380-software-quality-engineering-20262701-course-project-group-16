@@ -73,4 +73,12 @@
         <Field name="humanViewers"/>
         <Bug pattern="SE_BAD_FIELD"/>
     </Match>
+    <!-- ProfilePanel.model is live UI state: services, authenticated handles and
+         callbacks. Like GamePanel's session, it is never serialized or restored.
+         Persistence writes explicit profile/statistics properties only. -->
+    <Match>
+        <Class name="ui.ProfilePanel"/>
+        <Field name="model"/>
+        <Bug pattern="SE_BAD_FIELD"/>
+    </Match>
 </FindBugsFilter>

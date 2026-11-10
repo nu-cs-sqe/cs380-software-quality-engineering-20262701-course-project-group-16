@@ -2,6 +2,9 @@ package application;
 
 import domain.model.PlayerProfile;
 import domain.model.StoredProfile;
+import domain.model.CompletedStatistics;
+import domain.model.PlayStats;
+import java.util.Map;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
@@ -66,6 +69,56 @@ public final class ProfileService {
             return stored.map(StoredProfile::getProfile);
         }
         return Optional.empty();
+    }
+
+    /** Opens a password-verified, process-local account handle. */
+    public Optional<AuthenticatedProfile> login(String profileId, char[] password)
+            throws IOException, GeneralSecurityException {
+        return authenticate(profileId, password)
+                .map(profile -> new AuthenticatedProfile(this, profile));
+    }
+
+    /** Returns immutable completed lifetime rates for a password-verified account. */
+    public StatisticsView getLifetimeStatistics(AuthenticatedProfile account) throws IOException {
+        requireAccount(account);
+        StoredProfile stored = findStored(account.getProfile().getProfileId()).orElseThrow(() ->
+                new IllegalArgumentException("The authenticated account no longer exists."));
+        return new StatisticsView(PlayStats.fromCompleted(stored.getStatistics()));
+    }
+
+    void requireAccount(AuthenticatedProfile account) {
+        if (account == null || !account.belongsTo(this)) {
+            throw new IllegalArgumentException("A login from this profile service is required.");
+        }
+    }
+
+    // Only the application hand-completion boundary supplies these authoritative deltas.
+    void saveCompleted(Map<String, AuthenticatedProfile> accounts,
+            Map<String, CompletedStatistics> hand) throws IOException {
+        List<StoredProfile> records = new ArrayList<>(repository.load());
+        boolean changed = false;
+        for (Map.Entry<String, AuthenticatedProfile> binding : accounts.entrySet()) {
+            AuthenticatedProfile account = binding.getValue();
+            requireAccount(account);
+            int index = recordIndex(records, account.getProfile().getProfileId());
+            StoredProfile before = records.get(index);
+            CompletedStatistics next = before.getStatistics().addHand(hand.get(binding.getKey()));
+            changed |= next != before.getStatistics();
+            records.set(index, new StoredProfile(before.getProfile(),
+                    before.getPasswordHash(), next));
+        }
+        if (changed) {
+            repository.save(List.copyOf(records));
+        }
+    }
+
+    private static int recordIndex(List<StoredProfile> records, String profileId) {
+        for (int index = 0; index < records.size(); index++) {
+            if (records.get(index).getProfile().getProfileId().equals(profileId)) {
+                return index;
+            }
+        }
+        throw new IllegalArgumentException("The authenticated account no longer exists.");
     }
 
     /** Public identity lookup only; this method does not authenticate access. */

@@ -16,3 +16,12 @@ StatisticsGamePanelTest.tableHeadersStayVisibleAtTheDefaultWindowSize. Existing 
 privacy, played-result and localization completeness/signature tests remain
 part of the full build. Native operating-system focus delivery and cross-platform
 font checks still need the team's manual walkthrough.
+
+## Profile lifetime rows
+
+The view also renders authenticated profiles with their saved StatisticsView
+values (UI-AC01/03/04). UI-AC03 verifies a real settled hand after application
+restart, profile names, read-only cells and separate fresh-match totals. Empty/
+unauthenticated selection has zero rows; unavailable rates retain the existing
+locale formatting. UI-AC09 covers failed-save feedback/retry; UI-AC13 escapes
+markup-like names. See [profile-screen BVA](ProfileScreen.md).

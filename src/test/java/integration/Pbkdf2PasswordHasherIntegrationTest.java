@@ -12,27 +12,27 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class Pbkdf2PasswordHasherIntegrationTest {
     private static final String SALT = "AAECAwQFBgcICQoLDA0ODw==";
-    private static final String HASH = "7xdxRO7JQgy8EJPSqLNEqSvFBtDU7JwCjdGfgyTYweY=";
+    private static final String HASH = "/JGVI+bQrJH+dHGHwfHOyz9ErSMZNIfma88nn8bg6UE=";
 
     @Test
     @DisplayName("PW-C01: matches an independently computed PBKDF2 reference vector")
     void matchesIndependentReferenceVectorAndPreservesCallerPassword() throws GeneralSecurityException {
         Pbkdf2PasswordHasher hasher = fixedSalt();
-        char[] password = "correct horse battery staple".toCharArray();
+        char[] password = "PokerPlayer123".toCharArray();
         char[] original = password.clone();
         PasswordHash hash = hasher.hash(password);
 
         assertEquals(SALT, hash.getSaltBase64());
         assertEquals(HASH, hash.getHashBase64());
         assertTrue(hasher.matches(password, hash));
-        assertFalse(hasher.matches("an incorrect long password".toCharArray(), hash));
+        assertFalse(hasher.matches("PokerPlayer124".toCharArray(), hash));
         assertFalse(hasher.matches(null, hash));
         assertFalse(hasher.matches(new char[0], hash));
         assertArrayEquals(original, password);
     }
 
     @ParameterizedTest(name = "PW-C02-{0}: enforces password length")
-    @ValueSource(ints = {0, 14, 129})
+    @ValueSource(ints = {0, 5, 16, 129})
     void rejectsLengthsOutsideThePolicy(int length) throws GeneralSecurityException {
         Pbkdf2PasswordHasher hasher = fixedSalt();
         char[] password = "a".repeat(length).toCharArray();
@@ -41,7 +41,7 @@ class Pbkdf2PasswordHasherIntegrationTest {
     }
 
     @ParameterizedTest(name = "PW-C03-{0}: accepts policy boundary lengths")
-    @ValueSource(ints = {15, 16, 127, 128})
+    @ValueSource(ints = {6, 7, 14, 15})
     void acceptsBoundaryLengths(int length) throws GeneralSecurityException {
         Pbkdf2PasswordHasher hasher = fixedSalt();
         char[] password = "a".repeat(length).toCharArray();
@@ -68,7 +68,7 @@ class Pbkdf2PasswordHasherIntegrationTest {
     @DisplayName("PW-C05: identical passwords receive independent random salts")
     void usesIndependentSaltsWithTheProductionSource() throws GeneralSecurityException {
         Pbkdf2PasswordHasher hasher = new Pbkdf2PasswordHasher();
-        char[] password = "correct horse battery staple".toCharArray();
+        char[] password = "PokerPlayer123".toCharArray();
         PasswordHash first = hasher.hash(password);
         PasswordHash second = hasher.hash(password);
         assertNotEquals(first.getSaltBase64(), second.getSaltBase64());
@@ -85,6 +85,27 @@ class Pbkdf2PasswordHasherIntegrationTest {
         assertThrows(IllegalArgumentException.class,
                 () -> hasher.matches("a".repeat(15).toCharArray(), null));
         assertThrows(IllegalArgumentException.class, () -> new Pbkdf2PasswordHasher(null));
+    }
+
+    @Test
+    @DisplayName("PW-C07: an existing longer password still verifies but cannot register anew")
+    void keepsExistingPasswordVerificationCompatible() throws GeneralSecurityException {
+        Pbkdf2PasswordHasher hasher = fixedSalt();
+        PasswordHash legacy = new PasswordHash(SALT,
+                "7xdxRO7JQgy8EJPSqLNEqSvFBtDU7JwCjdGfgyTYweY=");
+        char[] password = "correct horse battery staple".toCharArray();
+        assertTrue(hasher.matches(password, legacy));
+        assertThrows(IllegalArgumentException.class, () -> hasher.hash(password));
+    }
+
+    @ParameterizedTest(name = "PW-C08-{0}: accepts the existing verification upper boundary")
+    @ValueSource(ints = {127, 128})
+    void verifiesExistingLongPasswordsAtTheOldUpperBoundary(int length)
+            throws GeneralSecurityException {
+        String encoded = length == 127 ? "aBsAU3iqfriGGbLv/383veUTi6CjAYVppPvXdqZObOY="
+                : "M+TBAUktvmpkL3eWWxFZJxg7z0xInK+O/jKmndfg/7o=";
+        assertTrue(fixedSalt().matches("a".repeat(length).toCharArray(),
+                new PasswordHash(SALT, encoded)));
     }
 
     private static Pbkdf2PasswordHasher fixedSalt() {

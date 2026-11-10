@@ -3,9 +3,11 @@
 ## Contract
 
 FileProfileRepository(Path directory) implements ProfileRepository. It stores a
-version-2 UTF-8 profiles.properties catalog in the supplied directory.
-The header contains formatVersion=2 and profileCount. Each indexed record has
-id, name, salt and hash; the version fixes PBKDF2-HMAC-SHA256 at 600,000 iterations,
+version-3 UTF-8 profiles.properties catalog in the supplied directory.
+The header contains formatVersion=3 and profileCount. V2 catalogs are also readable
+with empty lifetime data; reads do not rewrite them. The next successful save
+upgrades to V3 without changing identity/credentials. Each indexed record has
+id, name, salt, hash, 16 named raw counters, a completed-ID count and its IDs; the version fixes PBKDF2-HMAC-SHA256 at 600,000 iterations,
 a 16-byte salt and a 32-byte derived hash. No raw password is serialized.
 Profile IDs are values, never path segments; names and IDs retain exact text.
 
@@ -57,15 +59,17 @@ All filesystem cases use JUnit-owned temporary directories.
 | FP-C28 | load | Invalid Base64 salt | Same failure | Yes - locally passing |
 | FP-C29 | load | Hash decodes to 31 bytes | Same failure | Yes - locally passing |
 | FP-C30 | load | Old metadata-only version 1 | Unsupported version rejected; no silent migration | Yes - locally passing |
-| PI-C04 | create via service | Null or too-short password | No account or catalog created | Yes - locally passing |
+| PI-C04 | create via service | Null or 5-character password | No account or catalog created | Yes - locally passing |
 
 ## Mapping and lifecycle
 
 FileProfileRepositoryTest tests the real filesystem adapter.
 ProfilePersistenceIntegrationTest exercises real service/storage/domain boundaries.
-Identity/name metadata and salted password credentials are stored; match state and completed statistics are
-not serialized by this E01 adapter. E02 remains responsible for completed counters
-and deduplication history. Profile selection UI remains later work.
+Identity/name metadata, salted credentials, completed counters and duplicate-
+prevention IDs are saved together. No active-hand state, cards or chip stacks are
+serialized. New V3/corruption/migration cases ST-C01–05 are mapped in
+[lifetime BVA](LifetimeStatistics.md) and [the codec BVA](StatisticsProperties.md).
+Profile selection UI remains later work.
 
 ## TDD status
 
