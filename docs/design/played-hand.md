@@ -82,7 +82,7 @@ flush tie and a sole seat 5 six-high straight, without replacing game components
 The engine/session now accept full BET/RAISE and legal FOLD/CHECK/CALL on every
 street. For example, a round contribution of 10 and raise target of 100 adds 90
 chips. Full wagers reset other ACTIVE players' decisions and raise rights.
-Undersized all-in wagers and cumulative reopening remain K02. The screen and
+Short all-in wagers and individual cumulative reopening are supported. The screen and
 getAvailableActions still offer FOLD/CHECK/CALL only; engine-owned numeric limits
 and bet/raise controls remain K05/UI work. Equity bots and saved profiles are later
 work. The action log and pending PlayStats receive the same accepted actions. Settlement
@@ -116,4 +116,4 @@ The existing comparison object remains historical and AWAITING_SETTLEMENT by
 contract; use getSettlement for actual paid status. GamePanel shows paid/match
 winner status and exposes separate settlement/continuation controls. Its tabs
 hide private cards. Statistics persist only for this open match; disk profiles
-and short all-in wager/reopening behavior remain later checkpoints.
+remain later checkpoints; short all-in wagers and reopening now run through this session.

@@ -22,7 +22,7 @@ privacy and immutability cases.
 | `PlayerState` | [PlayerState.md](PlayerState.md) |
 | `BettingProgress` | [BettingProgress.md](BettingProgress.md) |
 | `BettingHistory` | [BettingHistory.md](BettingHistory.md) |
-| `BettingEngine` (actions and street advancement) | [BettingEngine.md](BettingEngine.md), [full bets/raises](FullBetting.md) |
+| `BettingEngine` (actions and street advancement) | [BettingEngine.md](BettingEngine.md), [full bets/raises](FullBetting.md), [short all-ins/reopening](ShortAllInBetting.md) |
 | `BettingResult` | [BettingResult.md](BettingResult.md) |
 | `HandPositions` | [HandPositions.md](HandPositions.md) |
 | `SeatOrder` | [SeatOrder.md](SeatOrder.md) |

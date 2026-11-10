@@ -131,7 +131,7 @@ class FullBettingTest {
     }
 
     @Test
-    void aShortCallIsStillACallAndUndersizedAllInWagersWaitForK02() {
+    void aShortCallIsStillACallAndARaiseMustExceedTheCurrentTarget() {
         FoundationFixtures.Fixture fixture = PostflopFixtures.street(GamePhase.FLOP);
         PostflopFixtures.contribution(fixture, 0, 60);
         fixture.player(1, 20, PlayerStatus.ACTIVE, 10, 50);
@@ -156,8 +156,8 @@ class FullBettingTest {
     }
 
     @ParameterizedTest
-    @CsvSource({"50,false", "89,false", "90,true", "91,true"})
-    void threeBetOpportunityRequiresAnAffordableFullRaise(long stack, boolean opportunity) {
+    @CsvSource({"50,false", "89,true", "90,true", "91,true"})
+    void threeBetOpportunityIncludesAnAffordableShortAllIn(long stack, boolean opportunity) {
         FoundationFixtures.Fixture fixture = preflop();
         fixture.player(0, 940, PlayerStatus.ACTIVE, 60, 60);
         fixture.player(3, stack, PlayerStatus.ACTIVE, 10, 10);
@@ -178,14 +178,14 @@ class FullBettingTest {
         fixture.player(4, 1920 - stack, PlayerStatus.ACTIVE, 0, 40);
         fixture.betting = new BettingProgress(0, 40, FoundationFixtures.allIds(), FoundationFixtures.allIds());
         GameState before = PostflopFixtures.build(fixture, new BettingHistory("p1", 0));
-        assertEquals(fullBet, engine.apply(before, request(before, ActionType.CHECK))
+        assertTrue(engine.apply(before, request(before, ActionType.CHECK))
                 .getAcceptedAction().getStatsContext().hasFlopCBetOpportunity());
         if (fullBet) {
             BettingResult result = money(before, ActionType.BET, stack);
             assertEquals(stack, result.getState().getLastFullRaiseSize());
             assertEquals(stack, result.getState().getBettingHistory().getFlopCBetAmount().orElseThrow());
         } else {
-            assertThrows(IllegalArgumentException.class, () -> money(before, ActionType.BET, stack));
+            assertTrue(money(before, ActionType.BET, stack).getAcceptedAction().becameAllIn());
         }
     }
 

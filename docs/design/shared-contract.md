@@ -100,8 +100,19 @@ match an opposing all-in commitment. `lastFullRaiseSize` starts at the big blind
 to act and IDs whose raising rights remain open. Both sets contain only active players;
 raising rights need not be a subset of pending actors. The engine updates these explicitly
 after full bets/raises. Full wagers restore decisions and raising rights for every
-other ACTIVE player, including players who already checked. Incomplete all-in wagers
-and cumulative reopening are planned in K02; they are currently rejected.
+other ACTIVE player, including players who already checked. Short all-ins create
+responses for players who owe more without automatically restoring their raise rights.
+The engine retains immutable last-decision targets for ACTIVE players. A cumulative
+increase of at least the last full increment reopens that player's rights; an
+intermediate CALL resets only that player's decision level. Forced blinds are not
+voluntary decisions, so the unacted big blind retains its option.
+
+`BettingProgress` keeps its four-argument constructor for legacy snapshots. Its new
+five-argument overload accepts `Map<String, Long> lastDecisionTargets`; it copies the
+map and rejects missing IDs/values or levels outside 0..currentBet. GameState validates
+that recorded players can act. Engine transitions retain/update this provenance;
+callers constructing a mid-round snapshot must supply it to support cumulative
+reopening after prior actions. A new street or hand starts with an empty map.
 
 The old small `GameState` constructor is replaced by the full snapshot constructor.
 `getCurrentActorSeat()` now returns `OptionalInt`; `getCurrentActorId()` returns
@@ -124,8 +135,12 @@ FOLD/CHECK/CALL, opening postflop BET and full RAISE on every betting street,
 including responses to raised preflop rounds. A full opening bet is at least the
 big blind. A raise target must exceed the current target by at least the last
 full increment; it cannot exceed the actor's stack plus their round contribution.
-Preflop uses RAISE over the blinds, not BET. Short all-in wager exceptions remain
-K02; [K01 BVA](../bva/FullBetting.md) records the implemented boundaries.
+Preflop uses RAISE over the blinds, not BET. An undersized wager is accepted only
+when its target uses the entire remaining stack and the player may raise. It leaves
+the full increment unchanged. An unacted player facing a short opening of 5 must
+raise by at least 20 to 25, not merely complete to 20 (default blinds).
+[K01 BVA](../bva/FullBetting.md) and [K02 BVA](../bva/ShortAllInBetting.md)
+record the boundaries.
 A CALL adds `min(currentBet - roundContribution, remainingStack)`
 when chips are owed. A short or exact-stack call leaves zero chips, sets ALL_IN
 and produces an accepted CALL with `becameAllIn=true`. It removes the caller's
@@ -154,8 +169,8 @@ one raise when an aggressor is present; engine-produced snapshots retain the exa
 count. Accepted raises carry opening/three-bet/four-bet/later-raise context.
 
 For FLOP actions, an opening c-bet opportunity requires that actor to be the
-recorded aggressor, unopened betting, betting rights, an affordable full bet and
-another ACTIVE player.
+recorded aggressor, unopened betting, betting rights, enough chips to increase
+the wager (including a short all-in) and another ACTIVE player.
 Facing a c-bet requires an explicitly recorded actual c-bet, chips owed and the
 original betting level. A subsequent raise is not a direct fold to the original
 c-bet. Ordinary opening bets and equal-sized turn/river bets create no flop

@@ -38,18 +38,15 @@ final class BettingAmounts {
         }
         long minimumIncrement = opening ? state.getConfig().getBigBlind()
                 : state.getLastFullRaiseSize();
-        if (target - state.getCurrentBet() < minimumIncrement) {
+        if (target - state.getCurrentBet() < minimumIncrement && target != maximum) {
             throw new IllegalArgumentException("The wager is below the full bet or raise minimum.");
         }
         return target - actor.getRoundContribution();
     }
 
-    static boolean canMakeFullWager(GameState state, PlayerState actor) {
+    static boolean canWager(GameState state, PlayerState actor) {
         long maximum = actor.getRoundContribution() + actor.getPlayer().getChipStack();
-        long increment = state.getCurrentBet() == 0 ? state.getConfig().getBigBlind()
-                : state.getLastFullRaiseSize();
-        return hasWagerRights(state, actor) && maximum > state.getCurrentBet()
-                && maximum - state.getCurrentBet() >= increment;
+        return hasWagerRights(state, actor) && maximum > state.getCurrentBet();
     }
 
     private static boolean hasWagerRights(GameState state, PlayerState actor) {

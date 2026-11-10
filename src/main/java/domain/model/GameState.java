@@ -196,7 +196,8 @@ public final class GameState {
         Set<String> eligible = players.stream().filter(PlayerState::canAct)
                 .map(state -> state.getPlayer().getId()).collect(Collectors.toSet());
         if (!eligible.containsAll(betting.getPlayersToAct())
-                || !eligible.containsAll(betting.getPlayersAllowedToRaise())) {
+                || !eligible.containsAll(betting.getPlayersAllowedToRaise())
+                || !eligible.containsAll(betting.getLastDecisionTargets().keySet())) {
             throw new IllegalArgumentException(
                 "Only active players may have pending decisions or raise rights.");
         }

@@ -50,9 +50,15 @@ A short stack can call all-in for its remaining chips. Blinds are capped at the
 available stack. With multiple active opponents, a short big blind still leaves
 the normal minimum call; a lone active player need only match the opposing
 all-in amount. Once that player is matched, run out the board without another
-decision. Short all-in bets/raises below the full minimum and cumulative
-reopening remain K02; the current engine rejects those wagers. Swing still
-exposes fold/check/call only; numeric limits and bet/raise controls are planned.
+decision. A bet/raise below the full minimum is legal only as an exact all-in
+when the player has raising rights. Short wagers retain the last full increment.
+A player who already acted can raise again once cumulative increases since their
+own last decision reach that increment; players who have not acted keep rights.
+Calling an intermediate increase resets that caller's level. Checking before a
+short opening does not reopen rights until a full cumulative bet is faced.
+These follow [Poker TDA rules 45/49](https://www.pokertda.com/view-poker-tda-rules/).
+Swing still exposes fold/check/call only; numeric limits and bet/raise controls
+are planned.
 Out-of-turn or invalid actions preserve chips, cards, actor and accepted-action history.
 
 ## Hand result and chips

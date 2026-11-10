@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Applies full bets/raises and passive actions on every street; advances closed rounds.
+ * Applies bets/raises, including short all-ins, and passive actions; advances closed rounds.
  * The application records statistics after receiving an accepted result.
  */
 public final class BettingEngine {
@@ -99,7 +99,7 @@ public final class BettingEngine {
      * With no pending decisions or only one participant, the next actor is absent.
      * Street advancement and pot settlement are separate operations, not performed here.
      * A call adds at most the available stack; exhausting it preserves CALL semantics.
-     * Full wagers use round targets; short all-in wager exceptions remain a later increment.
+     * Wagers use round targets; an undersized bet/raise must commit the entire stack.
      * @throws IllegalArgumentException for invalid inputs/targets, out-of-turn actions,
      *         a check while chips are owed or a zero-cost call
      * @throws UnsupportedOperationException for non-betting phases
@@ -162,7 +162,7 @@ public final class BettingEngine {
                     : PreflopRaiseType.NONE;
             boolean opportunity = type != ResolvedActionType.CHECK
                     && state.getBettingHistory().getPreflopRaiseCount() == 1
-                    && BettingAmounts.canMakeFullWager(state, actor);
+                    && BettingAmounts.canWager(state, actor);
             return new StatsContext(level, opportunity, false, false);
         }
         boolean opening = false;
@@ -173,7 +173,7 @@ public final class BettingEngine {
             boolean isAggressor = history.getFinalPreflopAggressorId()
                     .filter(playerId::equals).isPresent();
             opening = isAggressor && state.getCurrentBet() == 0
-                    && BettingAmounts.canMakeFullWager(state, actor);
+                    && BettingAmounts.canWager(state, actor);
             long cBet = history.getFlopCBetAmount().orElse(0);
             facing = cBet > 0 && !isAggressor && state.getCurrentBet() == cBet
                     && actor.getRoundContribution() < state.getCurrentBet();

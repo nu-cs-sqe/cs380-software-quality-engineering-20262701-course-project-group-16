@@ -1,9 +1,9 @@
 # K01 full betting BVA
 
 Requests carry round targets. The engine owns chip deductions, minimum full
-amounts, stack limits, pending decisions and immutable rejection. Standard full
-bets/raises and passive responses are this checkpoint; short all-in exceptions
-and cumulative reopening are K02, and shared legal-limit presentation is K05.
+amounts, stack limits, pending decisions and immutable rejection. The original K01 checkpoint covered full
+bets/raises and passive responses. [K02](ShortAllInBetting.md) now extends this to
+short all-ins and cumulative reopening; shared legal-limit presentation remains K05.
 
 | ID | Methods | System state / inputs | Expected output | Test / status |
 | --- | --- | --- | --- | --- |
@@ -14,7 +14,7 @@ and cumulative reopening are K02, and shared legal-limit presentation is K05.
 | K01-H | apply; history/context getters | Four accepted preflop raises | Opening/three/four/later classifications and latest actual aggressor preserved | raiseClassificationAndLatestAggressorFollowAcceptedPreflopRaises; passing |
 | K01-I | apply | Wrong BET/RAISE kind, no rights, no active opponent | IllegalArgumentException; input remains usable | wrongWagerKindsRightsAndAbsentOpponentsRejectWithoutChangingState; passing |
 | K01-M | apply | Raise current60/own10 to960 vs961, stack950 | Add950/all-in vs rejection | raiseToMaximumUsesOnlyTheRemainingStackAndRejectsOneMore; passing |
-| K01-A | apply | Owes50, only20 left; request CALL vs target30 RAISE | Accepted all-in CALL20; undersized raise rejected pending K02 | aShortCallIsStillACallAndUndersizedAllInWagersWaitForK02; passing |
+| K01-A | apply | Owes50, only20 left; request CALL vs target30 RAISE | Accepted all-in CALL20; RAISE below the current target rejected | aShortCallIsStillACallAndARaiseMustExceedTheCurrentTarget; passing |
 | K01-S | apply | Open60, raise120, next targets179/180 | Full increment remains60; next minimum180 | anOpeningBetChangesTheFollowingMinimumRaise; passing |
 
 Expected chip values are literal or hand-derived; assertions do not use engine

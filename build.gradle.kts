@@ -70,6 +70,7 @@ val measuredClasses = listOf(
     "domain.model.BettingAmounts",
     "domain.model.BettingRound",
     "domain.model.BettingHistory",
+    "domain.model.BettingProgress",
     "application.SetupSession",
     "application.SetupView",
     "localization.Localizations"
@@ -150,6 +151,8 @@ pitest {
         "domain.model.PlayStatsCopyTest", "application.NextHandTest",
         "application.CompletedStatisticsIntegrationTest", "application.ShortBlindIntegrationTest",
         "domain.model.FullBettingTest", "application.FullBettingIntegrationTest",
+        "domain.model.ShortAllInBettingTest", "application.ShortAllInIntegrationTest",
+        "domain.model.ReopeningProgressTest", "domain.model.BettingProgressTest",
         "domain.model.BettingEngineTest", "domain.model.BettingEngineFoldCheckTest",
         "domain.model.BettingEngineAllInCallTest", "domain.model.PostflopActionsTest",
         "domain.model.BettingHistoryTest", "domain.model.StreetAdvancementTest",
