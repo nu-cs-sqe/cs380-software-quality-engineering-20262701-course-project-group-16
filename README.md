@@ -9,8 +9,10 @@ The intended full match ends when one player holds all the chips.
 and carries chips and player statistics into the next hand. Swing supports
 English and Chinese, explicit private-card handoffs and a read-only statistics
 tab. Bots use a temporary check/call policy. Bets/raises, postflop calls, equity
-bot decisions and saved profiles remain unfinished on this branch. Standalone
-Monte Carlo equity calculation is available in `bot`; action-policy wiring is pending.
+bot decisions remain unfinished on this branch. Standalone equity estimation
+and public-action opponent learning are available in `bot`; gameplay integration
+is pending. Local profiles and lifetime persistence were developed separately on
+`feature/player-profiles`.
 
 ## Contributors
 
@@ -102,8 +104,10 @@ scenarios and 1–10,000 trials, then call `MonteCarloEquityEstimator.estimate`.
 The result provides per-pot expected shares, eligible-pot equity and expected
 payout. It handles multiway ties and side-pot eligibility without receiving the
 real deck or opponents' cards. Uniform unknown hands are the initial model;
-learning, varied action selection and asynchronous session integration follow
-in E04–E06. See [equity design](docs/design/README.md#standalone-equity-e03).
+opponent learning is available separately in `bot.learning`, while varied action
+selection and asynchronous session integration follow in E05–E06. See
+[equity design](docs/design/README.md#standalone-equity-e03) and
+[opponent learning](docs/design/README.md#opponent-learning-e04).
 
 ## Continuous integration
 
@@ -115,7 +119,7 @@ and required status-check enforcement still need verification after push.
 
 Run `bash ./gradlew build` for tests/static checks/coverage and
 `bash ./gradlew pitest` for mutation testing. The team suite and shared static
-checks run across the project; coverage/PIT use twenty-two documented parent components,
+checks run across the project; coverage/PIT use twenty-nine documented parent components,
 including dealing, settlement, continuation, PlayStats, the shared session and equity. These are not
 full-game metrics.
 [Quality results](docs/quality.md)
@@ -139,7 +143,7 @@ exceptions. There is no invented metric threshold that hides findings.
 
 ### Code Coverage
 
-Coverage uses the documented 22-component scope, including InitialDeal and the
+Coverage uses the documented 29-component scope, including InitialDeal and the
 shared session/view, statistics collectors and settlement. The rubric targets 100%
 cyclomatic coverage, with View/Main/Enum exemptions. JaCoCo line, branch
 and covered-complexity counters are reported separately; these do not prove
@@ -150,7 +154,7 @@ while their tests and shared static checks still run.
 
 ### Mutation Testing
 
-PIT uses the DEFAULTS operator group on the documented 22-component scope. The target
+PIT uses the DEFAULTS operator group on the documented 29-component scope. The target
 is to kill every non-equivalent mutant. Actual raw scores and each surviving
 mutant's reasoning remain visible in [quality.md](docs/quality.md), including
 the unresolved acceptance of a contract-preserving constant hash. Survivor reasoning and acceptance limits are documented alongside the raw score.

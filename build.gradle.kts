@@ -73,7 +73,14 @@ val measuredClasses = listOf(
     "bot.EquityRequest",
     "bot.EquityEstimate",
     "bot.UniformDealSampler",
-    "bot.MonteCarloEquityEstimator"
+    "bot.MonteCarloEquityEstimator",
+    "domain.model.StatsContext",
+    "bot.learning.DecisionContext",
+    "bot.learning.TendencyEstimate",
+    "bot.learning.PublicDecision",
+    "bot.learning.ActionPrediction",
+    "bot.learning.OpponentBeliefs",
+    "bot.learning.OpponentModel"
 )
 val measuredClassFiles = measuredClasses.flatMap {
     val path = it.replace('.', '/')
@@ -155,7 +162,8 @@ pitest {
         "localization.LocalizationsTest",
         "bot.EquityPotTest", "bot.EquityRequestTest", "bot.UniformDealSamplerTest",
         "bot.MonteCarloEquityEstimatorTest", "bot.EquityViewIntegrationTest",
-        "bot.EquityIntegrationTest"
+        "bot.EquityIntegrationTest", "domain.model.StatsContextTest",
+        "bot.learning.*Test"
     ))
     threads.set(2)
     mutators.set(setOf("DEFAULTS"))

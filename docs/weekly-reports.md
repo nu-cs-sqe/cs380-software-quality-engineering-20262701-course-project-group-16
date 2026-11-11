@@ -234,8 +234,8 @@ still needs Kevin's K04 revision and implementation.
 | Status | Owner | Task and acceptance criteria | Evidence / branch / PR |
 | --- | --- | --- | --- |
 | Separate committed branch; review/merge pending | Estella | E01/E02: local profiles, lifetime persistence and desktop account integration | `feature/player-profiles`, latest local commit `e0d6015`; detailed checkpoints in issue #20. Those sources are separate from this E03 branch. |
-| Verified locally; awaiting commit/review/CI/merge | Estella | E03: legitimate-information Monte Carlo equity, multiway fractional ties, public side-pot eligibility, bounded/cancellable calculation | `feature/monte-carlo-equity`, based on main `c71e9d6`; 51 new cases, full suite 1,084 passing; [BVA](bva/MonteCarloEquityEstimator.md), [design](design/README.md#standalone-equity-e03), [quality](quality.md#e03-standalone-equity--november-10-2026). |
-| Planned | Estella | E04: smoothed public-decision opponent learning and contextual uncertainty | Keep beliefs separate from exact PlayStats; exclude forced/rejected/departure-generated actions. |
+| Committed/pushed; review/CI/merge pending | Estella | E03: legitimate-information Monte Carlo equity, multiway fractional ties, public side-pot eligibility, bounded/cancellable calculation | `feature/monte-carlo-equity`, commit `2ce09a0`, based on main `c71e9d6`; 51 new cases, full suite 1,084 passing; [BVA](bva/MonteCarloEquityEstimator.md), [design](design/README.md#standalone-equity-e03), [quality](quality.md#e03-standalone-equity--november-10-2026). |
+| Verified locally; awaiting commit/review/CI/merge | Estella | E04: smoothed public-decision opponent learning and contextual uncertainty | `feature/opponent-learning`, based on E03 `2ce09a0`; 49 new cases, 1,133 total tests pass, 138/138 learning and 20/20 StatsContext mutants killed; [BVA](bva/OpponentModel.md), [quality](quality.md#e04-opponent-learning--november-10-2026). |
 | Planned | Estella | E05: varied legal decisions using equity, odds, position, stacks and beliefs | Consume Kevin's authoritative legal-action limits and public pot scenarios. |
 | Planned | Estella | E06: off-EDT execution, cancellation and stale-decision rejection | Match/hand/state identity must be checked before engine submission. |
 | Track in shared issue | Kevin | K01–K06: full betting/reopening, statistics context, quit-as-fold, legal-action contracts and applicable quality scope | Status not independently verified by this E03 task. |
@@ -258,9 +258,33 @@ remains an engine/application contract. Scoped counters do not prove full-backen
 coverage or independent basis paths. Task checkboxes stay open until accepted
 review, CI and merge evidence is available.
 
-**Next steps:** Review/commit E03, run remote CI and obtain Kevin's review.
-Then implement E04 opponent learning, coordinate public pot/legal-action APIs,
-and complete E05/E06 with real-game integration and repeated controlled evaluation.
+**E04 progress evaluation (November 10):** The new match-scoped model learns
+conditional action probabilities and engine-flagged three-bet/c-bet tendencies.
+It returns immutable snapshots with counts, prior-smoothed probabilities,
+posterior uncertainty and evidence weight. Exact PlayStats and profile lifetime
+totals are independent. Only committed public accepted events should be delivered;
+own choices, forced posts and automatic departures cannot teach preferences.
+Sequence replay, foreign-match input and failed-update retries are covered.
+Automatic events need no fabricated legal-action context. Six new classes have
+zero missed scoped counters and kill 138/138 mutants; newly measured StatsContext
+kills 20/20. Shared PIT is 706/713 with seven unchanged baseline survivors.
+All 1,133 tests and static checks pass without new exclusions.
+
+Observed RED stages are recorded in BVA/quality; later integration/mutation
+regressions are distinguished from feature RED. Controlled held-out multiclass
+Brier error improves from 0.666666667 with learning disabled to 0.476199453 after
+training. Four permutations test order invariance, not independent poker skill.
+The model updates with later evidence and keeps unseen contexts at their prior.
+No games won, learned hidden-card ranges or live Swing adaptation are claimed.
+E03 sampling stays uniform; E05/E06 will consume beliefs and connect live events.
+No E04 commit/push, extra checkout or scratch report was created. E04 and shared
+integration/evaluation gates stay unchecked until their acceptance gates are met.
+
+**Next steps:** Review/commit E04 and finish the E03/E04 PR review and CI gates;
+this branch depends on E03 `2ce09a0`. Coordinate Kevin's public legal-action,
+position and pot-scenario contracts. Then implement E05 varied decisions and E06
+safe application/worker integration, followed by repeated controlled games and
+full-backend quality/process verification.
 
 ## Future weekly report template
 

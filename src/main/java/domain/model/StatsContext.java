@@ -46,19 +46,19 @@ public final class StatsContext {
         this.facedFlopCBetOpportunity = facedFlopCBetOpportunity;
     }
 
-    PreflopRaiseType getPreflopRaiseType() {
+    public PreflopRaiseType getPreflopRaiseType() {
         return preflopRaiseType;
     }
 
-    boolean hasThreeBetOpportunity() {
+    public boolean hasThreeBetOpportunity() {
         return threeBetOpportunity;
     }
 
-    boolean hasFlopCBetOpportunity() {
+    public boolean hasFlopCBetOpportunity() {
         return flopCBetOpportunity;
     }
 
-    boolean hasFacedFlopCBetOpportunity() {
+    public boolean hasFacedFlopCBetOpportunity() {
         return facedFlopCBetOpportunity;
     }
 }

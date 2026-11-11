@@ -47,6 +47,12 @@ privacy and immutability cases.
 | `EquityEstimator` | [EquityEstimator.md](EquityEstimator.md) |
 | `MonteCarloEquityEstimator` | [MonteCarloEquityEstimator.md](MonteCarloEquityEstimator.md) |
 | `EquityEstimate` | [EquityEstimate.md](EquityEstimate.md) |
+| `DecisionContext` | [DecisionContext.md](DecisionContext.md) |
+| `TendencyEstimate` | [TendencyEstimate.md](TendencyEstimate.md) |
+| `PublicDecision` | [PublicDecision.md](PublicDecision.md) |
+| `ActionPrediction` | [ActionPrediction.md](ActionPrediction.md) |
+| `OpponentBeliefs` | [OpponentBeliefs.md](OpponentBeliefs.md) |
+| `OpponentModel` | [OpponentModel.md](OpponentModel.md) |
 
 [Combined setup integration cases](setup-integration.md) cover the card/deck-to-state boundary.
 [Showdown integration](../design/showdown.md) covers the initialized-card-to-result boundary.

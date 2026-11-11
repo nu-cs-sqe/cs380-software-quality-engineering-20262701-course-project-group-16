@@ -8,6 +8,68 @@ no `ignoreFailures`, global suppression or baseline hiding existing warnings. Re
 CI uploads test, coverage, mutation and static-analysis reports even after a
 failed step.
 
+## E04 opponent learning — November 10, 2026
+
+Verified locally on `feature/opponent-learning`, based on the committed/pushed
+E03 checkpoint `2ce09a0`. Profile work remains on its separate branch. Gradle
+9.7.1 runs on JDK 25 with Java 11 compilation/tests. Final `build pitest` exits 0.
+
+| Check | Result |
+| --- | --- |
+| Full suite | **1,133 passing**, zero failures/errors/skips; **49 new E04 invocations** beyond E03's 1,084. |
+| Checkstyle / SpotBugs | Zero main/test violations or unexcluded findings; zero analysis errors/missing classes. No new suppression. |
+| Six new learning classes | **186 lines, 112 branches, 117 complexity counters, 920 instructions, 61 methods**, zero missed. |
+| Newly measured StatsContext | **21 lines, 26 branches, 18 complexity counters, 86 instructions, 5 methods**, zero missed. Only accessor visibility changes; prior constructor behavior is retained. |
+| Shared 29-parent scope | **1,222 lines, 679 branches, 633 complexity counters, 6,301 instructions, 292 methods, 30 reported classes**, zero missed. The extra class is the nested PlayStats counter enum. |
+| New learning PIT | **138/138 killed**; StatsContext **20/20 killed**. No new survivors, uncovered, timeout or error mutants. |
+| Shared PIT | **706/713 killed (99.02%)**; seven unchanged baseline survivors, zero uncovered/error/timeout mutants. PIT lines 1,218/1,218; 37 selected classes, 3,925 test executions across mutants. |
+
+The new measured classes are DecisionContext, TendencyEstimate, PublicDecision,
+ActionPrediction, OpponentBeliefs and OpponentModel; both new enums are exempt.
+StatsContext is now public read-only metadata consumed outside domain.model and
+included in both measurement tools with its existing tests. The shared scope
+still excludes other betting/state components. Covered complexity counters do
+not prove independent basis paths or whole-backend compliance. Baseline survivor
+reasoning and the instructor-acceptance question below remain unresolved.
+
+Local TDD stages observed 13 context/uncertainty RED cases, 9 event/prediction
+RED cases, 13 aggregation/coordinator RED cases, 2 legal-opportunity consistency
+RED cases and 3 context-free automatic-event RED cases, each followed by GREEN.
+One all-in-call fixture was corrected after review to remove an impossible
+three-bet opportunity. Eight real-component/evaluation invocations and one new
+mutation regression were added after the implementation. They are not claimed
+feature RED cases. No agent Git checkpoints, commits or pushes were created.
+
+The first mutation run exposed two gaps: the position getter had only been
+asserted true, and missing prediction context after learning could throw a
+NullPointerException if its boundary guard were removed. Empty-state validation
+alone masked the latter via the prior constructor. The new false-position
+assertion and learned-state invalid-query case kill both. Static test findings
+were fixed by consuming immutable results inside exception assertions and
+removing unused final counter increments; no exclusions were added.
+
+Controlled evaluation trains on 80 folds/10 calls/10 raises, then tests on a
+separate 70/20/10 composition. Learned multiclass Brier error is **0.476199453**,
+compared with **0.666666667** for the uniform, learning-disabled prior. Four seeded
+permutations verify order invariance of this exchangeable count model; they are
+not independent performance trials. The held-out actions never update the
+model. Further evidence changes a raise belief from 11/103 to 91/203 while an
+unseen street retains its zero-data prior. This is prediction/update evidence,
+not poker win rate, calibrated real-player accuracy or proven playing strength.
+
+The API excludes own choices, forced posts, rejected requests and departure
+folds. Match-wide sequence checks prevent replay without retaining an unbounded
+event ledger; failures leave both belief snapshots and the sequence unchanged.
+Real engine integration verifies accepted CALL versus rejected CHECK and keeps
+exact completed-hand PlayStats separate from immediate learning. No hidden
+cards/deck or account credentials enter the model. See [design](design/README.md#opponent-learning-e04)
+and [BVA](bva/OpponentModel.md).
+
+E04 is locally verified, awaiting user commit, peer review, remote CI and merge.
+E05 still supplies the varied legal policy; E06 wires committed events and
+worker/state lifecycles. Sampling remains uniform until a validated hand-range
+likelihood is supplied. I05/I06/M01 and whole-backend quality gates remain open.
+
 ## E03 standalone equity — November 10, 2026
 
 Verified locally on `feature/monte-carlo-equity`, based on merged main `c71e9d6`.

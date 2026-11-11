@@ -129,6 +129,86 @@ That initial cap limits work, not wall-clock latency. Cancellation or interrupti
 is checked between trials and throws without returning a partial result; retries
 start fresh totals. RNG-backed estimator instances belong to one worker. E06 must
 run them off Swing's event thread, attach match/hand/state identity and discard
-stale results before submitting actions. E04 adds smoothed opponent beliefs/range
-sampling; E05 chooses varied legal actions using the shared engine contract.
+stale results before submitting actions. E04 adds smoothed opponent beliefs; E05 chooses varied legal actions using
+the shared engine contract.
 None of those later integrations is completed by this calculator.
+
+
+## Opponent learning (E04)
+
+Each bot owns a match-scoped `OpponentModel`, registered with its own participant
+ID and up to five opponent IDs. On a serialized owner thread, the application
+passes **committed** `AcceptedAction` events wrapped in `PublicDecision`, with
+match identity and a positive sequence increasing across all hands. Events may
+skip numbers; they must arrive in engine order. No ActionRequest or rejected
+StatsAction is accepted by this API. Learning happens only after application
+publication succeeds, so a failed engine/statistics transaction cannot train it.
+
+A voluntary decision includes `DecisionContext`: public street, actual available
+choices and whether the player acts in position. The engine/application supplies
+that pre-action snapshot; the model does not reconstruct turn or betting rules.
+Raise eligibility and three-bet classification remain separate. A three-bet flag
+requires a legal RAISE; a c-bet opportunity requires a legal BET. Short/all-in
+choices keep their resolved CALL/BET/RAISE meaning. Metadata does not include
+opponents' hole cards, the physical deck, hidden equity or profile passwords.
+
+Forced posts and departure folds have no strategic preference meaning and may
+omit decision context entirely. The explicit origin distinguishes a voluntary
+fold from quit-as-fold, including a non-current departure with no legal turn
+choices. Already-all-in departure behavior still belongs to Kevin's K04 contract;
+this model neither folds an all-in player nor invents a decision. Own actions,
+forced posts and automatic departures advance the event sequence but do not
+change beliefs. Replayed/stale sequences are ignored. A wrong match or unknown
+participant is rejected before publication. A failed updater publishes neither
+new beliefs nor the sequence, so the same event can be retried once.
+
+`OpponentBeliefs` contains immutable predictions and tendency estimates, with
+mutable registries confined to the model owner. Snapshot readers never mutate
+counters. Contexts match by street, legal-choice set and position, keeping a
+bounded collection of at most 248 contexts per opponent (4 streets × 2 position
+states × 31 nonempty subsets of five choices). Queries for unseen contexts create
+a prior result without storing new evidence. There is no per-event history or
+unfinished-match persistence; creating a new match creates a new model. Profile
+lifetime statistics and exact PlayStats reporting remain independent.
+
+For K available actions, `ActionPrediction` uses a Dirichlet prior with one
+pseudo-count per choice. After N decisions, action a has posterior predictive
+probability (count[a]+1)/(N+K). It reports raw counts, posterior marginal standard
+deviations sqrt(p[a]×(1−p[a])/(N+K+1)) and evidence weight N/(N+K). Illegal choices
+have no entry. With only one available choice, prediction is deterministically
+one with zero uncertainty, independent of strategic skill.
+
+`TendencyEstimate` tracks decision-level three-bets, flop c-bets and folds to
+actual flop c-bets. It consumes explicit engine opportunity flags, including
+calls/folds/checks that decline an eligible action. With S successes in N
+opportunities, the Beta(1,1) posterior mean is (S+1)/(N+2), standard deviation
+sqrt(p×(1−p)/(N+3)), and evidence weight N/(N+2). Four-bets are not three-bets;
+ordinary flop bets/folds do not create c-bet opportunities. These decision-level
+beliefs are not the completed-hand percentage definitions in PlayStats.
+
+Zero observations mean a prior, **not a measured 50% rate**. Evidence weight is
+data weight relative to the prior, not a confidence interval or a claim that the
+model is correct. Uncertainty assumes exchangeable observations within each
+coarse context. Sparse contexts, selection effects and changing opponents limit
+that assumption. Counts are cumulative; new evidence changes beliefs gradually,
+without forgetting older play. A future recency model needs its own validation.
+
+The small contextual probability model is our project design. Research on
+[Bayesian poker opponent modeling](https://poker.cs.ualberta.ca/publications/UAI05.pdf)
+motivates separating uncertain opponent strategy from game dynamics; this is
+not a reproduction of that paper's full model or a GTO claim. The prior formulas
+follow [Beta-binomial updating](https://stat210a.berkeley.edu/fall-2025/reader/bayes-estimation.html)
+and [Dirichlet distributions](https://mc-stan.org/docs/2_31/functions-reference/dirichlet-distribution.html).
+An action-frequency model does not identify hidden-card likelihoods. E03's hand
+sampling remains uniform; weighted hand-range inference requires a separately
+specified and validated likelihood model.
+
+Unit tests isolate context matching, posterior arithmetic and coordinator
+failure/retry behavior. Real-component integrations cover rejected versus
+accepted engine actions, observer/opponent isolation, match reset and departure
+exclusion. Controlled held-out evaluation compares learned and disabled-learning
+multiclass Brier error (sum of squared action-probability errors; lower is better).
+Four permutations of fixed train/held-out compositions test order invariance;
+they are not four independent playing-strength measurements. E05/E06 still need
+to use these snapshots in varied legal decisions, wire committed engine events,
+run simulations off Swing's event thread and reject stale calculated actions.
