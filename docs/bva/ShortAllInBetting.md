@@ -22,8 +22,8 @@ players who have not acted retain rights. A response CALL stays CALL when all-in
 Tests exercise real immutable states and engine operations. Expectations use
 literal chip totals and independently stated action sequences. Existing K01
 full wagers, forced blinds, short/exact CALLs and round/street tests remain
-regression protection. Advanced statistics coverage is K03, UI numeric limits
-are K05, and broader state measurements remain K06.
+regression protection. See the [K03 statistics cases](BettingHistory.md#k03-exact-raise-counts-and-all-in-observations).
+UI numeric limits are K05, and broader state measurements remain K06.
 
 ## Application and immutable-state checks
 

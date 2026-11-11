@@ -3,6 +3,7 @@ package application;
 import domain.model.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.OptionalDouble;
 import java.util.Random;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
@@ -32,6 +33,11 @@ class ShortAllInIntegrationTest {
         assertTrue(session.getResult().isPresent());
         assertEquals(4, session.getResult().orElseThrow().getWinnerIds().size());
         session.settleHand();
+        assertEquals(100, statistics(session, 4, "threeBet").orElseThrow());
+        assertTrue(statistics(session, 3, "threeBet").isEmpty());
+        assertTrue(statistics(session, 5, "threeBet").isEmpty());
+        assertEquals(0, statistics(session, 3, "cBet").orElseThrow());
+        assertTrue(statistics(session, 0, "cBet").isEmpty());
         assertEquals(67, view(session).getPlayers().get(0).getChipStack());
         assertEquals(58, view(session).getPlayers().get(4).getChipStack());
         assertEquals(1008, view(session).getPlayers().get(3).getChipStack());
@@ -64,6 +70,41 @@ class ShortAllInIntegrationTest {
         assertEquals(GamePhase.COMPLETION, view(session).getPhase());
         assertEquals(6000, total(session));
         assertTrue(session.getStatistics().values().stream().allMatch(s -> s.getHandsPlayed() == 1));
+    }
+
+    @Test
+    void shortContinuationBetCountsOnlyDirectResponsesAtSettlement() {
+        SetupSession session = started(3862, 1000, 1000, 45, 44, 49);
+        act(session, ActionType.RAISE, 40);
+        for (int i = 0; i < 5; i++) act(session, ActionType.CALL, 0);
+        assertEquals(GamePhase.FLOP, view(session).getPhase());
+        act(session, ActionType.CHECK, 0); // seat1
+        act(session, ActionType.CHECK, 0); // seat2
+        assertTrue(act(session, ActionType.BET, 5).becameAllIn()); // seat3 c-bets
+        AcceptedAction call = act(session, ActionType.CALL, 0); // seat4 has only4
+        assertEquals(ResolvedActionType.CALL, call.getType());
+        assertEquals(4, call.getChipsAdded());
+        assertTrue(call.becameAllIn());
+        assertTrue(act(session, ActionType.RAISE, 9).becameAllIn()); // seat5 raises the c-bet
+        act(session, ActionType.FOLD, 0); // seat0 faces the raise
+        act(session, ActionType.FOLD, 0); // seat1 faces the raise
+        act(session, ActionType.CALL, 0); // seat2 closes the round
+        assertEquals(GamePhase.SHOWDOWN, view(session).getPhase());
+        assertEquals(267, view(session).getPot());
+        assertTrue(session.getStatistics().values().stream().allMatch(s -> s.getHandsPlayed() == 0));
+        session.settleHand();
+        assertEquals(100, statistics(session, 3, "cBet").orElseThrow());
+        assertEquals(0, statistics(session, 4, "foldCBet").orElseThrow());
+        assertEquals(0, statistics(session, 5, "foldCBet").orElseThrow());
+        assertTrue(statistics(session, 0, "foldCBet").isEmpty());
+        assertTrue(statistics(session, 1, "foldCBet").isEmpty());
+        assertTrue(statistics(session, 2, "foldCBet").isEmpty());
+        assertEquals(6000, total(session));
+    }
+
+    private static OptionalDouble statistics(SetupSession session, int seat, String metric) {
+        String id = view(session).getPlayers().get(seat).getId();
+        return session.getStatistics().get(id).getRates().get(StatisticsView.METRICS.indexOf(metric));
     }
 
     private static SetupSession started(long... stacks) {

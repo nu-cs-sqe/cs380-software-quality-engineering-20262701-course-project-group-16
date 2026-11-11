@@ -163,10 +163,18 @@ insufficient backing commitments are rejected. Completed hands may retain
 historical values after payouts/elimination. Callers constructing later snapshots
 must pass the same provenance explicitly; engine operations already do so.
 
-An accepted full preflop raise increments the recorded raise count and replaces
-the final preflop aggressor. The legacy two-argument history constructor seeds
-one raise when an aggressor is present; engine-produced snapshots retain the exact
-count. Accepted raises carry opening/three-bet/four-bet/later-raise context.
+Every accepted preflop raise, including a short all-in raise, increments the
+recorded raise count and replaces the final preflop aggressor. The legacy
+two-argument constructor seeds one raise when an aggressor is present. Use the
+three-argument constructor to supply the exact count when constructing a
+snapshot. Zero requires no aggressor; a positive count requires one. GameState
+rejects counts above total match chips minus the big blind, since every raise
+increases the target by at least one chip.
+
+The prior count determines whether the next raise is an opening raise,
+three-bet, four-bet, or later raise. Reopening determines whether the actor
+may raise again. A three-bet opportunity requires one prior raise and a legal
+raise option, including a short all-in raise.
 
 For FLOP actions, an opening c-bet opportunity requires that actor to be the
 recorded aggressor, unopened betting, betting rights, enough chips to increase
@@ -177,7 +185,7 @@ c-bet. Ordinary opening bets and equal-sized turn/river bets create no flop
 opportunity. These facts populate accepted `StatsContext`; action requests do
 not contain caller-supplied statistics flags. An accepted flop BET by that
 aggressor records the actual c-bet target. The engine uses recorded actions,
-not contribution sizes alone. Further all-in/reopening statistics cases are K03.
+not contribution sizes alone. See the [K03 boundary cases](../bva/BettingHistory.md#k03-exact-raise-counts-and-all-in-observations).
 
 There is no generic `ALL_IN` action type. Resolve it to `CALL`, `BET` or `RAISE`.
 Forced blinds use `FORCED_POST`, including a blind that exhausts a stack. They are never

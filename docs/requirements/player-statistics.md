@@ -44,7 +44,9 @@ Results contain no display strings, rounding, NaN, or Infinity. Round in the UI.
 - Three-bet opportunities are eligible decision hands, including declined calls
   or folds. Multiple eligible observations within one hand form one denominator
   hand. The engine classifies opening raises, three-bets, four-bets, and later
-  raises explicitly; bet size does not determine that classification.
+  raises from accepted preflop raises, including short all-in raises. Reopening
+  determines whether raising is legal; it does not change that classification.
+  A player who can only call all-in has no three-bet opportunity.
 - A four-bet is a preflop raise but not a three-bet. If an earlier decision in
   that hand declined an eligible three-bet opportunity, that opportunity remains.
 
@@ -59,7 +61,9 @@ Results contain no display strings, rounding, NaN, or Infinity. Round in the UI.
   player's opening flop bet is not an opportunity to open with a c-bet.
 - Fold-to-c-bet opportunities require an actual flop c-bet and a legal response
   decision. An ordinary flop fold is not sufficient. Calls/raises are declined
-  fold opportunities. Each numerator and opportunity denominator counts hands.
+  fold opportunities. A short all-in opening c-bet counts, but a player who
+  first responds after a subsequent raise is facing that raise. Each numerator
+  and opportunity denominator counts hands.
 - These eligibility facts come from the engine. `PlayStats` does not reconstruct
   the betting tree, legal raise sizes, or the identity of opponents/aggressors.
 
@@ -159,5 +163,6 @@ not complete statistics. See [completed statistics BVA](../bva/CompletedStatisti
 Next hand retains IDs and completed collectors; eliminated seats are not dealt
 in and do not gain hands played. Start Game resets the whole match. There is no
 profile saving or match resumption. VPIP/PFR/WTSD/W$SD reflect actual supported
-play; metrics needing bets/raises or c-bet opportunities remain unavailable or
-zero as their documented denominators require. No opportunities are invented.
+play. Bet/raise rates reflect the session's accepted actions; the current Swing
+controls only expose fold/check/call. Rates without a qualifying denominator
+remain unavailable.

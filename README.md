@@ -11,8 +11,7 @@ with the same chips/statistics. Requests specify the round target; the engine
 calculates deductions. Short all-ins and player-specific cumulative reopening
 are supported by the engine. Swing still exposes fold/check/call in English and
 Chinese, private-card handoffs and read-only statistics. Bet/raise controls,
-quit-as-fold, remaining statistics contexts, equity bots and saved profiles remain
-unfinished. Bots use a temporary check/call policy.
+quit-as-fold, equity bots and saved profiles remain unfinished. Bots use a temporary check/call policy.
 
 ## Contributors
 

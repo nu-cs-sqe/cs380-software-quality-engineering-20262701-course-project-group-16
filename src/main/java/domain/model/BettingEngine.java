@@ -157,27 +157,34 @@ public final class BettingEngine {
     private static StatsContext contextFor(GameState state, PlayerState actor,
             ResolvedActionType type) {
         if (state.getPhase() == GamePhase.PREFLOP) {
-            PreflopRaiseType level = type == ResolvedActionType.RAISE
-                    ? nextRaiseType(state.getBettingHistory().getPreflopRaiseCount())
-                    : PreflopRaiseType.NONE;
-            boolean opportunity = type != ResolvedActionType.CHECK
-                    && state.getBettingHistory().getPreflopRaiseCount() == 1
-                    && BettingAmounts.canWager(state, actor);
-            return new StatsContext(level, opportunity, false, false);
+            return preflopContext(state, actor, type);
         }
-        boolean opening = false;
-        boolean facing = false;
         if (state.getPhase() == GamePhase.FLOP) {
-            String playerId = actor.getPlayer().getId();
-            BettingHistory history = state.getBettingHistory();
-            boolean isAggressor = history.getFinalPreflopAggressorId()
-                    .filter(playerId::equals).isPresent();
-            opening = isAggressor && state.getCurrentBet() == 0
-                    && BettingAmounts.canWager(state, actor);
-            long cBet = history.getFlopCBetAmount().orElse(0);
-            facing = cBet > 0 && !isAggressor && state.getCurrentBet() == cBet
-                    && actor.getRoundContribution() < state.getCurrentBet();
+            return flopContext(state, actor);
         }
+        return new StatsContext(PreflopRaiseType.NONE, false, false, false);
+    }
+
+    private static StatsContext preflopContext(GameState state, PlayerState actor,
+            ResolvedActionType type) {
+        long priorRaises = state.getBettingHistory().getPreflopRaiseCount();
+        PreflopRaiseType level = type == ResolvedActionType.RAISE
+                ? nextRaiseType(priorRaises) : PreflopRaiseType.NONE;
+        boolean opportunity = type != ResolvedActionType.CHECK && priorRaises == 1
+                && BettingAmounts.canWager(state, actor);
+        return new StatsContext(level, opportunity, false, false);
+    }
+
+    private static StatsContext flopContext(GameState state, PlayerState actor) {
+        String playerId = actor.getPlayer().getId();
+        BettingHistory history = state.getBettingHistory();
+        boolean isAggressor = history.getFinalPreflopAggressorId()
+                .filter(playerId::equals).isPresent();
+        boolean opening = isAggressor && state.getCurrentBet() == 0
+                && BettingAmounts.canWager(state, actor);
+        long cBet = history.getFlopCBetAmount().orElse(0);
+        boolean facing = cBet > 0 && !isAggressor && state.getCurrentBet() == cBet
+                && actor.getRoundContribution() < state.getCurrentBet();
         return new StatsContext(PreflopRaiseType.NONE, false, opening, facing);
     }
 

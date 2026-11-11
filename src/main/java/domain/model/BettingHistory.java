@@ -29,18 +29,31 @@ public final class BettingHistory {
         this(finalPreflopAggressorId, flopCBetAmount, finalPreflopAggressorId == null ? 0 : 1);
     }
 
-    private BettingHistory(String finalPreflopAggressorId, long flopCBetAmount, long raises) {
+    /**
+     * Describes an exact history when constructing a snapshot of an in-progress or paid hand.
+     * @param finalPreflopAggressorId null only if no preflop raise was accepted
+     * @param flopCBetAmount original flop c-bet target, or zero if none occurred
+     * @param preflopRaiseCount accepted preflop raises, including short all-in raises
+     * @throws IllegalArgumentException for invalid or inconsistent history
+     */
+    public BettingHistory(String finalPreflopAggressorId, long flopCBetAmount,
+            long preflopRaiseCount) {
         if ((finalPreflopAggressorId != null && finalPreflopAggressorId.isBlank())
                 || flopCBetAmount < 0 || (flopCBetAmount > 0 && finalPreflopAggressorId == null)) {
             throw new IllegalArgumentException(
                     "A c-bet needs an aggressor; IDs and amounts must be valid.");
         }
+        if (preflopRaiseCount < 0
+                || (preflopRaiseCount == 0) != (finalPreflopAggressorId == null)) {
+            throw new IllegalArgumentException("A positive raise count requires an aggressor.");
+        }
         this.finalPreflopAggressorId = finalPreflopAggressorId;
         this.flopCBetAmount = flopCBetAmount;
-        this.preflopRaiseCount = raises;
+        this.preflopRaiseCount = preflopRaiseCount;
     }
 
-    long getPreflopRaiseCount() { return preflopRaiseCount; }
+    /** Returns the number of accepted preflop raises, independent of reopening rights. */
+    public long getPreflopRaiseCount() { return preflopRaiseCount; }
 
     BettingHistory after(AcceptedAction action) {
         if (action.getStreet() == BettingStreet.PREFLOP
