@@ -235,7 +235,7 @@ Carry forward native desktop checks and review workflow verification.
 | --- | --- | --- | --- |
 | Done, engine/session | Kevin | K01: full BET/RAISE, postflop CALL and raised-preflop responses; round targets, engine-owned deductions, turn order and unchanged rejected snapshots. | `feature/week7-betting`, code `fda5bdf`, based on merged main `c71e9d6`; [BVA](bva/FullBetting.md); FullBettingTest and two real-session integration cases. |
 | Done, engine/session | Kevin | K02: short all-in wagers, full/cumulative reopening and individual raise rights; retain BB option/short-blind behavior. | `feature/week7-betting`, code `978a826`; [K02 BVA](bva/ShortAllInBetting.md). Last-decision history stays immutable and resets on new streets/hands. |
-| Planned | Kevin | K03: complete authoritative aggression and opportunity context for all-in/reopening cases. | K01 records accepted full raises, latest preflop aggressor and actual flop c-bets; broader eligibility remains open. |
+| Done, engine/session | Kevin | K03: preserve exact aggression and opportunity context across short all-ins, reopened decisions and snapshots. | Code `a7c0f14`; [K03 cases](bva/BettingHistory.md#k03-exact-raise-counts-and-all-in-observations). |
 | Planned | Kevin | K04: quit-as-fold, later-hand participation and turn handling without blocking play. | Revise the existing fixed-participation rule together with implementation/tests. |
 | Planned | Kevin | K05: engine-owned legal actions, calling costs and wager target limits shared by humans/bots. | Swing and its current queries still expose fold/check/call only. |
 | Started | Kevin | K06: extend coverage/mutation scope to betting/state and resolve actionable gaps. | K01 adds BettingEngine/Amounts/Round/History; K02 adds BettingProgress. Remaining state classes still need measurement. |
@@ -265,9 +265,16 @@ passed afterward. Real-session tests verify cumulative reopening through
 side-pot settlement and short all-ins through automatic board runout.
 See [quality results](quality.md) for scope and survivor reasoning.
 
-**Next steps:** Kevin continues K03 statistics context before exposing numeric wager limits in K05.
-Complete K03 context cases and K04 departure rules separately; coordinate UI/bot
-integration with Estella. Preserve small methods, chip conservation and privacy.
+**K03 verification (Nov 12):** Local `build pitest` passes **1,138 tests**,
+with clean Checkstyle/SpotBugs and no missed JaCoCo counters in the same
+22-component scope. PIT kills **629/643 (97.82%)** with the same 14 reviewed
+survivors. Legal replay verifies different raise labels at the same price;
+settlement verifies short c-bets, capped calls and responses after a raise.
+See [quality results](quality.md). Remote CI and partner review remain pending.
+
+**Next steps:** Kevin continues with K04 departure rules, then K05 wager limits.
+Coordinate UI/bot integration with Estella. Preserve small methods, chip
+conservation and privacy.
 
 ## Future weekly report template
 

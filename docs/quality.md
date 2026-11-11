@@ -8,6 +8,30 @@ no `ignoreFailures`, global suppression or baseline hiding existing warnings. Re
 CI uploads test, coverage, mutation and static-analysis reports even after a
 failed step.
 
+## Betting statistics context — November 12, 2026
+
+Branch `feature/week7-betting`, code `a7c0f14`. Local `build pitest` passed
+with Gradle 9.7.1 on JDK 17 and Java 11 compilation/tests.
+
+| Check | Result |
+| --- | --- |
+| Team suite | **1,138 passing**, zero failures/errors/skips; 11 cases added. |
+| Checkstyle / SpotBugs | Zero main/test findings; no new exclusions. |
+| 22 configured parent components | **1,080 lines, 646 branches, 550 complexity counters, 5,735 instructions, 223 methods and 23 reported classes**, zero missed counters. |
+| PIT | **629/643 killed (97.82%)**, 14 survivors; zero uncovered, timeout or error mutants. Selected-test line coverage 1,076/1,078; 36 test classes and 6,499 executions across mutants. |
+
+The scope is unchanged. GameState's new count bound is exercised by the full
+suite; GameState remains outside the measured scope pending K06. The 14
+survivors match the prior checkpoint, including the c-bet boundary now in
+`BettingEngine.flopContext`. No new survivor or exclusion was introduced.
+
+Four inconsistent-count cases failed before constructor validation. Review
+identified the overflow risk from an impossible count; two more tests failed
+before the snapshot bound was added. The legal replay cases reach the same
+wager with different raise counts, including short all-ins. Settlement tests
+confirm that the all-in caller remains CALL and that direct c-bet responses
+alone receive a fold-to-c-bet denominator. See [K03 cases](bva/BettingHistory.md#k03-exact-raise-counts-and-all-in-observations).
+
 ## Short all-ins and reopening — November 11, 2026
 
 Branch `feature/week7-betting`, code `978a826`, after K01 report commit
