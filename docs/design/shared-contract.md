@@ -28,9 +28,10 @@ indices. Match participant IDs remain stable across hands; persistent profile ID
 be a separate concern. Every new match gets new participant IDs and a distinct first-hand
 ID. The future engine must assign a new unique hand ID for every subsequent hand.
 
-All six seat records stay in state after elimination. An eliminated player has no chips,
-cards or commitments. A player who has committed all their chips remains `ALL_IN` until
-settlement; they are not eliminated while their hand is live.
+All six seat records stay in state after elimination or departure. An eliminated
+player has no chips, cards or commitments. A departed seat keeps its stack but
+receives no cards or commitments in future hands. An all-in player, including
+one who leaves, remains `ALL_IN` and eligible until settlement.
 
 ## Setup and position selection
 
@@ -45,9 +46,9 @@ At match creation all six seats are occupied; the implementation makes one
 frequency assertions or uncontrolled randomness are needed in tests.
 
 The moving-button policy selects the next remaining seat clockwise after each hand.
-`SeatOrder.nextDealerAfter(previousSeat)` also accepts a dealer who was just eliminated.
-Use `positionsFor(newDealer)` only when at least two players remain. The engine ends the
-match when one player holds all chips rather than starting another hand.
+`SeatOrder.nextDealerAfter(previousSeat)` accepts an eliminated or departed
+previous dealer. Positions skip undealt seats. A paid match starts another
+hand only when at least two funded nondeparted seats remain.
 
 | Remaining players | Small blind | Big blind | First preflop actor | First postflop actor |
 | --- | --- | --- | --- | --- |
@@ -186,6 +187,13 @@ opportunity. These facts populate accepted `StatsContext`; action requests do
 not contain caller-supplied statistics flags. An accepted flop BET by that
 aggressor records the actual c-bet target. The engine uses recorded actions,
 not contribution sizes alone. See the [K03 boundary cases](../bva/BettingHistory.md#k03-exact-raise-counts-and-all-in-observations).
+
+`BettingEngine.getLegalActions(state)` publishes read-only current-actor
+options: legal action types, capped call cost and optional BET/RAISE limits.
+The wager's minimum full target is nominal (empty if it overflows a long),
+maximum is the actor's round contribution plus stack, and the short-all-in
+target is present only when the exact stack is the sole legal increase.
+Queries and submissions share wager validation. See [legal options BVA](../bva/LegalActions.md).
 
 There is no generic `ALL_IN` action type. Resolve it to `CALL`, `BET` or `RAISE`.
 Forced blinds use `FORCED_POST`, including a blind that exhausts a stack. They are never

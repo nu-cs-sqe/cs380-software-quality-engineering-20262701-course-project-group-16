@@ -122,6 +122,19 @@ public final class BettingEngine {
         return new BettingResult(after, accepted);
     }
 
+    /** Queries legal actions for the current actor without constructing a next state. */
+    public LegalActions getLegalActions(GameState state) {
+        if (state == null) {
+            throw new IllegalArgumentException("A state is required to query actions.");
+        }
+        if (!isBettingStreet(state.getPhase()) || state.getCurrentActorSeat().isEmpty()) {
+            return LegalActions.none();
+        }
+        PlayerState actor = state.getPlayerStates().get(state.getCurrentActorSeat().orElseThrow());
+        return LegalActions.forDecision(BettingAmounts.callCost(state, actor),
+                BettingAmounts.wager(state, actor));
+    }
+
     private static void requireCurrentActor(GameState before, ActionRequest request) {
         if (before == null || request == null) {
             throw new IllegalArgumentException("A state and action request are required.");
@@ -132,14 +145,20 @@ public final class BettingEngine {
     }
 
     private static void requireBettingStreet(GameState before) {
-        switch (before.getPhase()) {
+        if (!isBettingStreet(before.getPhase())) {
+            throw new UnsupportedOperationException("Player actions require a betting street.");
+        }
+    }
+
+    private static boolean isBettingStreet(GamePhase phase) {
+        switch (phase) {
             case PREFLOP:
             case FLOP:
             case TURN:
             case RIVER:
-                return;
+                return true;
             default:
-                throw new UnsupportedOperationException("Player actions require a betting street.");
+                return false;
         }
     }
 

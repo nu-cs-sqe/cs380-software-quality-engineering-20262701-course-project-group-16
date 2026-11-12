@@ -3,7 +3,7 @@
 Requests carry round targets. The engine owns chip deductions, minimum full
 amounts, stack limits, pending decisions and immutable rejection. The original K01 checkpoint covered full
 bets/raises and passive responses. [K02](ShortAllInBetting.md) now extends this to
-short all-ins and cumulative reopening; shared legal-limit presentation remains K05.
+short all-ins and cumulative reopening; see [K05](LegalActions.md) for shared legal-limit presentation.
 
 | ID | Methods | System state / inputs | Expected output | Test / status |
 | --- | --- | --- | --- | --- |

@@ -22,10 +22,14 @@ final class NextHand {
     NextHand(Random random) { dealing = new InitialDeal(random); }
 
     GameState start(GameState previous) {
+        return start(previous, Set.of());
+    }
+
+    GameState start(GameState previous, Set<String> departed) {
         if (previous.getPhase() != GamePhase.COMPLETION) {
             throw new IllegalStateException("Settle the previous hand first.");
         }
-        List<PlayerState> players = emptyHands(previous);
+        List<PlayerState> players = emptyHands(previous, departed);
         SeatOrder seats = new SeatOrder(players);
         int dealer = seats.nextDealerAfter(previous.getDealerSeat()).orElseThrow();
         HandPositions positions = seats.positionsFor(dealer);
@@ -34,10 +38,12 @@ final class NextHand {
         return dealing.deal(table(previous, players, positions));
     }
 
-    private static List<PlayerState> emptyHands(GameState previous) {
+    private static List<PlayerState> emptyHands(GameState previous, Set<String> departed) {
         List<PlayerState> players = new ArrayList<>();
         for (PlayerState player : previous.getPlayerStates()) {
-            players.add(new PlayerState(player.getPlayer(), player.getStatus(), List.of(), 0, 0));
+            PlayerStatus status = departed.contains(player.getPlayer().getId())
+                    ? PlayerStatus.DEPARTED : player.getStatus();
+            players.add(new PlayerState(player.getPlayer(), status, List.of(), 0, 0));
         }
         return players;
     }

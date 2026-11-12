@@ -71,6 +71,18 @@ val measuredClasses = listOf(
     "domain.model.BettingRound",
     "domain.model.BettingHistory",
     "domain.model.BettingProgress",
+    "domain.model.GameConfig",
+    "domain.model.GameState",
+    "domain.model.Player",
+    "domain.model.PlayerState",
+    "domain.model.HandPositions",
+    "domain.model.SeatOrder",
+    "domain.model.ActionRequest",
+    "domain.model.AcceptedAction",
+    "domain.model.BettingResult",
+    "domain.model.LegalActions",
+    "domain.model.StatsContext",
+    "domain.model.StatsAction",
     "application.SetupSession",
     "application.SetupView",
     "localization.Localizations"
@@ -140,25 +152,7 @@ pitest {
     targetClasses.set(measuredClasses.flatMap { listOf(it, "$it\$*") }.toSet())
     excludedClasses.set(setOf("domain.model.ShowdownResult\$Status"))
     targetTests.set(setOf(
-        "domain.model.CardTest", "domain.model.DeckTest", "domain.model.DeckSetupTest",
-        "domain.model.PokerHandEvaluatorTest", "domain.model.PokerHandRankingTest",
-        "domain.model.ShowdownResolverTest",
-        "domain.model.ShowdownResultTest", "application.GameInitializerTest",
-        "integration.GameInitializerIntegrationTest",
-        "integration.SetupSessionIntegrationTest", "application.SessionBettingTest",
-        "application.HandStatisticsTest", "application.SessionStatisticsIntegrationTest",
-        "domain.model.PotSettlementTest", "domain.model.PlayStatsTest",
-        "domain.model.PlayStatsCopyTest", "application.NextHandTest",
-        "application.CompletedStatisticsIntegrationTest", "application.ShortBlindIntegrationTest",
-        "domain.model.FullBettingTest", "application.FullBettingIntegrationTest",
-        "domain.model.ShortAllInBettingTest", "application.ShortAllInIntegrationTest",
-        "domain.model.ReopeningProgressTest", "domain.model.BettingProgressTest",
-        "domain.model.BettingEngineTest", "domain.model.BettingEngineFoldCheckTest",
-        "domain.model.BettingEngineAllInCallTest", "domain.model.PostflopActionsTest",
-        "domain.model.BettingHistoryTest", "domain.model.StreetAdvancementTest",
-        "integration.StreetAdvancementIntegrationTest", "integration.CheckThroughHandIntegrationTest",
-        "application.SetupViewTest", "integration.SetupIntegrationTest",
-        "integration.ShowdownIntegrationTest", "integration.PlayedHandIntegrationTest",
+        "domain.model.*Test", "application.*Test", "integration.*Test",
         "localization.LocalizationsTest"
     ))
     threads.set(2)

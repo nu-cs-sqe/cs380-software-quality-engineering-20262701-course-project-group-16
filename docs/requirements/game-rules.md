@@ -12,16 +12,23 @@ All chips are virtual and have no cash value.
 - Each player starts a new match with 1,000 chips: 6,000 chips total. Blinds are
   fixed at 10/20, with no ante, blind increases or rebuys. These agreed defaults
   replace the earlier 5/10 proposal. Tests may inject other valid settings.
-- A hand is one deal and its betting rounds. A match is a series of hands with
-  the same players. Players cannot individually leave, join or be replaced
-  during a match. Folding ends participation in that hand, not the match.
+- A hand is one deal and its betting rounds. Seats and chip ownership stay
+  fixed during a match. Humans can leave; new players cannot join or replace
+  them. Ordinary folding ends participation in the current hand only.
+- Leaving folds the current human actor immediately. Another active human folds
+  when their turn arrives; if the hand ends first, no extra action is recorded.
+  An already-all-in human keeps their current-hand eligibility and payouts.
+  Departed seats keep their chips and completed statistics, but receive no
+  further cards, blinds or turns.
 - The whole game may be stopped at any time by closing the window. There is no
   login/logout or saved-match feature. Starting again abandons the previous
   match and starts everyone at the initial stack; it does not resume that match.
 - The match carries stacks between settled hands, eliminates
-  zero-chip players from further deals, and ends when one player holds all
-  6,000 chips. There is no fixed hand count. Settle hand pays the current hand;
-  Next hand rotates the dealer and deals to surviving fixed seats.
+  zero-chip players from further deals, and ends once a paid hand has fewer
+  than two funded seats that have not left. A sole remaining funded player wins;
+  if none remain, the match ends without a winner. Without departures, the
+  winner holds all 6,000 chips. Settle hand pays the current hand; Next hand
+  rotates the dealer and deals to eligible fixed seats.
 
 ## Deal and betting order
 
@@ -57,8 +64,8 @@ own last decision reach that increment; players who have not acted keep rights.
 Calling an intermediate increase resets that caller's level. Checking before a
 short opening does not reopen rights until a full cumulative bet is faced.
 These follow [Poker TDA rules 45/49](https://www.pokertda.com/view-poker-tda-rules/).
-Swing still exposes fold/check/call only; numeric limits and bet/raise controls
-are planned.
+Swing shows the engine's capped call cost and legal bet or raise targets.
+Enter the round's total contribution target to bet or raise.
 Out-of-turn or invalid actions preserve chips, cards, actor and accepted-action history.
 
 ## Hand result and chips

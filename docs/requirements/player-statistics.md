@@ -163,6 +163,6 @@ not complete statistics. See [completed statistics BVA](../bva/CompletedStatisti
 Next hand retains IDs and completed collectors; eliminated seats are not dealt
 in and do not gain hands played. Start Game resets the whole match. There is no
 profile saving or match resumption. VPIP/PFR/WTSD/W$SD reflect actual supported
-play. Bet/raise rates reflect the session's accepted actions; the current Swing
-controls only expose fold/check/call. Rates without a qualifying denominator
-remain unavailable.
+play. Bet/raise rates reflect accepted actions. Leaving records at most one
+ordinary fold for the current hand and no observations for undealt future
+hands. Rates without a qualifying denominator remain unavailable.

@@ -1,52 +1,64 @@
 package domain.model;
 
+import java.util.Optional;
+
 /** Validates round targets and computes deductions without changing any player. */
 final class BettingAmounts {
     private BettingAmounts() { }
 
     static long chipsAdded(GameState state, PlayerState actor, ActionRequest request) {
-        long owed = state.getCurrentBet() - actor.getRoundContribution();
+        long call = callCost(state, actor);
         switch (request.getType()) {
             case FOLD:
                 return 0;
             case CHECK:
-                if (owed != 0) {
+                if (call != 0) {
                     throw new IllegalArgumentException("Call or fold when chips are owed.");
                 }
                 return 0;
             case CALL:
-                if (owed == 0) {
+                if (call == 0) {
                     throw new IllegalArgumentException("Nothing is owed; check instead.");
                 }
-                return Math.min(owed, actor.getPlayer().getChipStack());
+                return call;
             default:
                 return wagerDelta(state, actor, request);
         }
     }
 
+    static long callCost(GameState state, PlayerState actor) {
+        return Math.min(state.getCurrentBet() - actor.getRoundContribution(),
+                actor.getPlayer().getChipStack());
+    }
+
     private static long wagerDelta(GameState state, PlayerState actor, ActionRequest request) {
-        boolean opening = state.getCurrentBet() == 0;
-        if ((request.getType() == ActionType.BET) != opening
-                || (opening && state.getPhase() == GamePhase.PREFLOP)) {
-            throw new IllegalArgumentException("Bet into an unopened round; otherwise raise.");
-        }
         long target = request.getTargetAmount().orElseThrow();
-        long maximum = actor.getRoundContribution() + actor.getPlayer().getChipStack();
-        if (!hasWagerRights(state, actor) || target > maximum || target <= state.getCurrentBet()) {
-            throw new IllegalArgumentException(
-                    "The wager exceeds this player's available limits.");
-        }
-        long minimumIncrement = opening ? state.getConfig().getBigBlind()
-                : state.getLastFullRaiseSize();
-        if (target - state.getCurrentBet() < minimumIncrement && target != maximum) {
-            throw new IllegalArgumentException("The wager is below the full bet or raise minimum.");
+        LegalActions.Wager limits = wager(state, actor).orElseThrow(() ->
+                new IllegalArgumentException("This player cannot increase the wager."));
+        if (request.getType() != limits.getType() || !limits.allows(target)) {
+            throw new IllegalArgumentException("Choose a legal wager type and target.");
         }
         return target - actor.getRoundContribution();
     }
 
+    static Optional<LegalActions.Wager> wager(GameState state, PlayerState actor) {
+        if (!canWager(state, actor)) {
+            return Optional.empty();
+        }
+        long current = state.getCurrentBet();
+        boolean opening = current == 0;
+        return Optional.of(new LegalActions.Wager(opening ? ActionType.BET : ActionType.RAISE,
+                current, opening ? state.getConfig().getBigBlind() : state.getLastFullRaiseSize(),
+                maximumTarget(actor)));
+    }
+
     static boolean canWager(GameState state, PlayerState actor) {
-        long maximum = actor.getRoundContribution() + actor.getPlayer().getChipStack();
-        return hasWagerRights(state, actor) && maximum > state.getCurrentBet();
+        return !(state.getCurrentBet() == 0 && state.getPhase() == GamePhase.PREFLOP)
+                && hasWagerRights(state, actor) && maximumTarget(actor) > state.getCurrentBet();
+    }
+
+    private static long maximumTarget(PlayerState actor) {
+        return actor.getRoundContribution() + actor.getPlayer().getChipStack();
     }
 
     private static boolean hasWagerRights(GameState state, PlayerState actor) {

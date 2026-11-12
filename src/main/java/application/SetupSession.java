@@ -1,6 +1,7 @@
 package application;
 
 import domain.model.GameState;
+import domain.model.LegalActions;
 import domain.model.GamePhase;
 import domain.model.Player;
 import domain.model.PlayerState;
@@ -16,7 +17,7 @@ import domain.model.Settlement;
 import domain.model.PotSettlement;
 import java.util.List;
 import java.util.ArrayList;
-import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.Optional;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -39,6 +40,7 @@ public final class SetupSession {
     private Optional<MatchStatistics> totals = Optional.empty();
     private final PotSettlement payoutService = new PotSettlement();
     private final NextHand continuation = new NextHand(new Random());
+    private final Set<String> departed = new HashSet<>();
     private int viewerSeat;
     private boolean cardsRevealed;
 
@@ -81,7 +83,14 @@ public final class SetupSession {
      */
     public AcceptedAction submitAction(ActionRequest request) {
         hideCards();
-        BettingResult accepted = engine.apply(requireOpenHand(), request);
+        GameState hand = requireOpenHand();
+        if (request == null) {
+            throw new IllegalArgumentException("An action request is required.");
+        }
+        if (hasDeparted(request.getPlayerId()) && request.getType() != ActionType.FOLD) {
+            throw new IllegalArgumentException("A departed player can only fold.");
+        }
+        BettingResult accepted = engine.apply(hand, request);
         GameState candidate = advanceClosedRounds(accepted.getState());
         Optional<ShowdownResult> comparison = compareIfFinished(candidate);
         AcceptedAction action = accepted.getAcceptedAction();
@@ -107,7 +116,7 @@ public final class SetupSession {
     }
 
     /**
-     * Runs a temporary legal CHECK/CALL bot policy until a human decision or result.
+     * Runs queued departure folds and temporary CHECK/CALL bots until a human turn or result.
      * Uses no opponent cards/equity. Each returned action was committed once.
      * @throws IllegalStateException if no match exists
      */
@@ -117,11 +126,11 @@ public final class SetupSession {
         while (match.getCurrentActorSeat().isPresent()) {
             Player actor = match.getPlayers()
                     .get(match.getCurrentActorSeat().orElseThrow());
-            if (actor.getType() == PlayerType.HUMAN) {
+            boolean quitting = hasDeparted(actor.getId());
+            if (actor.getType() == PlayerType.HUMAN && !quitting) {
                 break;
             }
-            ActionType type = getAvailableActions().contains(ActionType.CHECK)
-                    ? ActionType.CHECK : ActionType.CALL;
+            ActionType type = quitting ? ActionType.FOLD : passiveBotAction();
             played.add(submitAction(new ActionRequest(actor.getId(), type)));
             match = requireMatch();
         }
@@ -129,27 +138,47 @@ public final class SetupSession {
         return List.copyOf(played);
     }
 
-    /**
-     * Immutable supported actions, or empty before start/after a result.
-     * The pure engine validates discarded snapshots; queries commit no observations.
-     */
-    public Set<ActionType> getAvailableActions() {
-        if (state.isEmpty() || result.isPresent()) {
-            return Set.of();
+    private ActionType passiveBotAction() {
+        return getLegalActions().getActions().contains(ActionType.CHECK)
+                ? ActionType.CHECK : ActionType.CALL;
+    }
+
+    /** Immutable engine options, or empty if no manual or bot decision is available. */
+    public LegalActions getLegalActions() {
+        if (state.isEmpty()) {
+            return LegalActions.none();
         }
         GameState match = state.orElseThrow();
-        Set<ActionType> available = EnumSet.noneOf(ActionType.class);
-        for (ActionType type : List.of(ActionType.FOLD, ActionType.CHECK, ActionType.CALL)) {
-            try {
-                engine.apply(match,
-                        new ActionRequest(match.getCurrentActorId().orElseThrow(), type));
-                available.add(type);
-            } catch (IllegalArgumentException | UnsupportedOperationException unavailable) {
-                // Legality belongs to the engine; the discarded result is never committed.
-            }
-        }
-        return Set.copyOf(available);
+        return match.getCurrentActorId().filter(this::hasDeparted).isPresent()
+                ? LegalActions.none() : engine.getLegalActions(match);
     }
+
+    public Set<ActionType> getAvailableActions() {
+        return getLegalActions().getActions();
+    }
+
+    /**
+     * Retires a human seat from later hands. A current actor folds immediately; another
+     * active seat folds at its next turn. All-in eligibility survives until settlement.
+     * @throws IllegalArgumentException if the human is unknown or already departed
+     * @throws IllegalStateException if no match exists
+     */
+    public void quit(String playerId) {
+        hideCards();
+        GameState match = requireMatch();
+        if (hasDeparted(playerId) || match.getPlayers().stream()
+                .noneMatch(player -> player.getId().equals(playerId)
+                        && player.getType() == PlayerType.HUMAN)) {
+            throw new IllegalArgumentException("Choose a human player who has not left.");
+        }
+        if (match.getCurrentActorId().filter(playerId::equals).isPresent()) {
+            submitAction(new ActionRequest(playerId, ActionType.FOLD));
+        }
+        departed.add(playerId);
+        selectActingHuman();
+    }
+
+    public boolean hasDeparted(String playerId) { return departed.contains(playerId); }
 
     /** Comparison snapshot; getSettlement reports whether payment has since completed. */
     public Optional<ShowdownResult> getResult() { return result; }
@@ -167,6 +196,7 @@ public final class SetupSession {
         Consumer<AcceptedAction> recorder =
                 Objects.requireNonNull(statisticsFactory.apply(started));
         MatchStatistics fresh = MatchStatistics.start(started);
+        departed.clear();
         publishStart(started, recorder);
         totals = Optional.of(fresh);
     }
@@ -190,7 +220,7 @@ public final class SetupSession {
         GameState match = requireMatch();
         Player viewer = match.getPlayers().stream()
                 .filter(player -> player.getId().equals(playerId)
-                        && player.getType() == PlayerType.HUMAN)
+                        && canView(player))
                 .findFirst().orElseThrow(() ->
                         new IllegalArgumentException("Select a human in this match."));
         viewerSeat = viewer.getSeat();
@@ -198,7 +228,9 @@ public final class SetupSession {
 
     /** @throws IllegalStateException if no match exists */
     public void revealCards() {
-        requireMatch();
+        if (!canView(requireMatch().getPlayers().get(viewerSeat))) {
+            throw new IllegalStateException("Select a remaining human player.");
+        }
         cardsRevealed = true;
     }
 
@@ -226,13 +258,24 @@ public final class SetupSession {
 
     private void selectActingHuman() {
         GameState match = requireMatch();
-        if (match.getCurrentActorSeat().isPresent()) {
-            int actor = match.getCurrentActorSeat().orElseThrow();
-            if (match.getPlayers().get(actor).getType() == PlayerType.HUMAN
-                    && viewerSeat != actor) {
-                hideCards();
-                viewerSeat = actor;
-            }
+        List<Player> players = match.getPlayers();
+        int actor = match.getCurrentActorSeat().orElse(-1);
+        if (actor >= 0 && canView(players.get(actor))) {
+            changeViewer(actor);
+        } else if (!canView(players.get(viewerSeat))) {
+            players.stream().filter(this::canView).findFirst()
+                    .ifPresent(player -> changeViewer(player.getSeat()));
+        }
+    }
+
+    private boolean canView(Player player) {
+        return player.getType() == PlayerType.HUMAN && !hasDeparted(player.getId());
+    }
+
+    private void changeViewer(int seat) {
+        if (seat != viewerSeat) {
+            hideCards();
+            viewerSeat = seat;
         }
     }
 
@@ -259,7 +302,10 @@ public final class SetupSession {
     /** Continues a settled match with stable identities, carried stacks and fresh private cards. */
     public void nextHand() {
         hideCards();
-        GameState started = advanceClosedRounds(continuation.start(requireMatch()));
+        if (!canStartNextHand()) {
+            throw new IllegalStateException("A paid hand and two remaining players are required.");
+        }
+        GameState started = advanceClosedRounds(continuation.start(requireMatch(), departed));
         Optional<ShowdownResult> comparison = compareIfFinished(started);
         Consumer<AcceptedAction> recorder =
                 Objects.requireNonNull(statisticsFactory.apply(started));
@@ -275,15 +321,24 @@ public final class SetupSession {
         return totals.map(MatchStatistics::snapshot).orElseGet(Map::of);
     }
 
-    /** A paid match with one positive stack has a total winner and cannot deal again. */
+    /** A new hand requires payment and at least two funded seats that have not left. */
+    public boolean canStartNextHand() {
+        return settlement.isPresent() && fundedPlayers().size() > 1;
+    }
+
+    /** A paid match with one remaining funded seat has a winner. */
     public Optional<Player> getMatchWinner() {
         if (settlement.isEmpty()) {
             return Optional.empty();
         }
-        List<Player> remaining = requireMatch().getPlayers().stream()
-                .filter(player -> player.getChipStack() > 0)
-                .collect(java.util.stream.Collectors.toList());
+        List<Player> remaining = fundedPlayers();
         return remaining.size() == 1 ? Optional.of(remaining.get(0)) : Optional.empty();
+    }
+
+    private List<Player> fundedPlayers() {
+        return requireMatch().getPlayers().stream()
+                .filter(player -> player.getChipStack() > 0 && !hasDeparted(player.getId()))
+                .collect(java.util.stream.Collectors.toList());
     }
 
     private GameState requireMatch() {
