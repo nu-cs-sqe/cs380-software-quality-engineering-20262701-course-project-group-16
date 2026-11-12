@@ -7,6 +7,15 @@ The instructor will perform code review with respect to software design, error h
 The following chapters of the textbook are considered: Chapter 1, 2, 3, 4, 5, 6, 7, 9, and 10. The corresponding lectures are considered, too.
 
 
+## Week 7 Code Review
+
+1. BettingEngine#advanceStreet too big: should be broken into several smaller methods. Same for requireClosedRound method --- each if should be in a private method.
+2. Magic numbers in HandPositions: what does 6 mean? See the definition and fix here: https://checkstyle.sourceforge.io/checks/coding/magicnumber.html. Later you can setup Checkstyle config to check these automatically. 
+3. The comment about null checks I gave from last time was not addressed. Still many classes contain null checks.
+4. Format: StatisticsPanel class line 85, uncessary empty line, should be deleted. You should setup Checkstyle to automatically check for this kind of issues.
+
+I will give the same comment as I gave last time: please make sure you do a thorough code review of the code generated.    
+
 ## Week 6 Code Review
 I have read every line of production code currently in the main branch. A couple of comments:
 1. GameInitializer#start method is too big. Every for loop probably can be put into a private method with a meaningful method name indicating what the computation is for. Check other classes and methods to see whether such refactoring can be applied, too. For instance, the if statement in GameConfig constructor should be its own private method too, as Uncle Bob has a very similar example in the textbook.
