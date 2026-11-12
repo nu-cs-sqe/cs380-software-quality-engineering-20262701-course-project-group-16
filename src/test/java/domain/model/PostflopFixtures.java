@@ -45,6 +45,7 @@ final class PostflopFixtures {
                 state.getBigBlindSeat(), state.getCurrentActorId(), state.getCommunityCards(),
                 state.getRemainingDeck(), state.getCurrentBet(), state.getLastFullRaiseSize(),
                 state.getBettingProgress().getPlayersToAct(), state.getBettingProgress().getPlayersAllowedToRaise(),
+                state.getBettingProgress().getLastDecisionTargets(),
                 state.getBettingHistory().getFinalPreflopAggressorId(), state.getBettingHistory().getFlopCBetAmount()));
         for (PlayerState player : state.getPlayerStates()) {
             values.add(List.of(player.getPlayer().getId(), player.getPlayer().getSeat(),

@@ -182,6 +182,90 @@ class PlayedGamePanelTest {
         });
     }
 
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1})
+    void wagerUsesEngineRangeAndRejectsBadInputWithoutLeavingCardsRevealed(int language)
+            throws InterruptedException, InvocationTargetException {
+        onEdt(() -> {
+            SetupSession session = session(new GameConfig());
+            GamePanel panel = panel(session, language);
+            start(panel, 6);
+            JButton wager = find(panel, "wager", JButton.class);
+            JTextField target = find(panel, "wagerTarget", JTextField.class);
+            assertEquals(language == 0 ? "Raise" : "加注", wager.getText());
+            assertTrue(wager.isEnabled());
+            assertTrue(find(panel, "wagerHint", JLabel.class).getText().contains("40"));
+            find(panel, "reveal", JButton.class).doClick();
+            target.setText("invalid");
+            wager.doClick();
+            assertTrue(session.getAcceptedActions().isEmpty());
+            assertEquals("--", find(panel, "hole0", JLabel.class).getText());
+            target.setText("39");
+            wager.doClick();
+            assertTrue(session.getAcceptedActions().isEmpty());
+            target.setText("40");
+            wager.doClick();
+            assertEquals(40, view(session).getCurrentBet());
+            assertEquals(40, view(session).getRoundContribution(3));
+            assertEquals(4, view(session).getViewerSeat());
+            assertEquals("", target.getText());
+            panel.setSize(1100, 740);
+            layoutTree(panel);
+            assertTrue(wager.getWidth() > 0 && wager.getHeight() > 0);
+            assertTrue(target.getWidth() > 0 && target.getHeight() > 0);
+        });
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1})
+    void leaveFoldsTheCurrentHumanAndRemovesTheirPrivateViewer(int language)
+            throws InterruptedException, InvocationTargetException {
+        onEdt(() -> {
+            SetupSession session = session(new GameConfig());
+            GamePanel panel = panel(session, language);
+            start(panel, 6);
+            String leaving = view(session).getPlayers().get(3).getId();
+            JTextField target = find(panel, "wagerTarget", JTextField.class);
+            target.setText("80");
+            find(panel, "reveal", JButton.class).doClick();
+            find(panel, "quit", JButton.class).doClick();
+            assertTrue(session.hasDeparted(leaving));
+            assertEquals("", target.getText());
+            assertEquals(leaving, session.getAcceptedActions().get(0).getPlayerId());
+            assertEquals(4, view(session).getViewerSeat());
+            assertEquals(5, find(panel, "viewers", JComboBox.class).getItemCount());
+            assertEquals("--", find(panel, "hole0", JLabel.class).getText());
+            for (int i = 0; i < 4; i++) find(panel, "fold", JButton.class).doClick();
+            find(panel, "settle", JButton.class).doClick();
+            assertEquals(language == 0 ? "Departed" : "已离开",
+                    find(panel, "seatStatus3", JLabel.class).getText());
+            find(panel, "nextHand", JButton.class).doClick();
+            assertEquals(language == 0 ? "Departed" : "已离开",
+                    find(panel, "seatStatus3", JLabel.class).getText());
+            assertEquals("--", find(panel, "seatCards3", JLabel.class).getText());
+        });
+    }
+
+    @Test
+    void shortAllInHintOffersTheExactTargetAndNoIntermediateRaise()
+            throws InterruptedException, InvocationTargetException {
+        onEdt(() -> {
+            SetupSession session = session(new GameConfig(21, 10, 20));
+            GamePanel panel = panel(session, 0);
+            start(panel, 6);
+            JButton wager = find(panel, "wager", JButton.class);
+            JTextField target = find(panel, "wagerTarget", JTextField.class);
+            assertTrue(find(panel, "wagerHint", JLabel.class).getText().contains("All-in target: 21"));
+            target.setText("22");
+            wager.doClick();
+            assertTrue(session.getAcceptedActions().isEmpty());
+            target.setText("21");
+            wager.doClick();
+            assertTrue(session.getAcceptedActions().get(0).becameAllIn());
+            assertEquals(21, view(session).getCurrentBet());
+        });
+    }
+
     private static void layoutTree(Container parent) {
         parent.invalidate();
         parent.doLayout();

@@ -78,11 +78,10 @@ class SessionBettingTest {
                 : kind.equals("unknown") ? new ActionRequest("missing", ActionType.CALL)
                 : kind.equals("outOfTurn") ? new ActionRequest(before.getPlayers().get(4).getId(), ActionType.CALL)
                 : kind.equals("bet") ? new ActionRequest(actor, ActionType.BET, 40)
-                : kind.equals("raise") ? new ActionRequest(actor, ActionType.RAISE, 40)
+                : kind.equals("raise") ? new ActionRequest(actor, ActionType.RAISE, 39)
                 : new ActionRequest(actor, ActionType.CHECK);
         session.revealCards();
-        Class<? extends RuntimeException> failure = kind.equals("bet") || kind.equals("raise")
-                ? UnsupportedOperationException.class : IllegalArgumentException.class;
+        Class<? extends RuntimeException> failure = IllegalArgumentException.class;
         assertThrows(failure, () -> session.submitAction(request));
         assertEquals(snapshot(before), snapshot(view(session)));
         assertTrue(view(session).getHoleCards().isEmpty());
@@ -94,14 +93,28 @@ class SessionBettingTest {
     void availableActionsUseEngineValidationWithoutCommittingActions() {
         SetupSession session = started(new GameConfig(), 6);
         SetupView before = view(session);
-        assertEquals(Set.of(ActionType.FOLD, ActionType.CALL), session.getAvailableActions());
+        assertEquals(Set.of(ActionType.FOLD, ActionType.CALL, ActionType.RAISE), session.getAvailableActions());
         assertThrows(UnsupportedOperationException.class, () -> session.getAvailableActions().clear());
         assertEquals(snapshot(before), snapshot(view(session)));
         assertTrue(session.getAcceptedActions().isEmpty());
         for (int i = 0; i < 5; i++) act(session, ActionType.CALL);
         assertEquals(2, view(session).getCurrentActorSeat());
-        assertEquals(Set.of(ActionType.FOLD, ActionType.CHECK), session.getAvailableActions());
+        assertEquals(Set.of(ActionType.FOLD, ActionType.CHECK, ActionType.RAISE), session.getAvailableActions());
         assertEquals(5, session.getAcceptedActions().size());
+    }
+
+    @Test
+    void ordinaryClockwiseHandoffWrapsToSeatZeroAndConcealsCards() {
+        SetupSession session = started(new GameConfig(), 6);
+        act(session, ActionType.CALL);
+        act(session, ActionType.CALL);
+        assertEquals(5, view(session).getViewerSeat());
+        session.revealCards();
+        assertEquals(2, view(session).getHoleCards().size());
+        act(session, ActionType.CALL);
+        assertEquals(0, view(session).getCurrentActorSeat());
+        assertEquals(0, view(session).getViewerSeat());
+        assertTrue(view(session).getHoleCards().isEmpty());
     }
 
     @Test
@@ -124,7 +137,7 @@ class SessionBettingTest {
             assertEquals(0, flop.getRoundContribution(seat));
             assertEquals(20, flop.getHandContribution(seat));
         }
-        assertEquals(Set.of(ActionType.FOLD, ActionType.CHECK), session.getAvailableActions());
+        assertEquals(Set.of(ActionType.FOLD, ActionType.CHECK, ActionType.BET), session.getAvailableActions());
         assertTrue(session.getResult().isEmpty());
         assertThrows(UnsupportedOperationException.class, () -> flop.getCommunityCards().clear());
         assertThrows(UnsupportedOperationException.class, () -> flop.getStatuses().clear());

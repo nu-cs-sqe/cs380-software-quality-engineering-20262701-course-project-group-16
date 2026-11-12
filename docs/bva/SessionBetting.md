@@ -1,5 +1,9 @@
 # SetupSession betting/progression BVA
 
+K01 full-wager application cases are in [FullBetting.md](FullBetting.md).
+The original six rejection cases now use illegal amounts/action kinds, rather
+than expecting all BET/RAISE requests to be unsupported.
+
 Extends [SetupSession.md](SetupSession.md). One session owns one authoritative
 GameState. It accepts requests through the real BettingEngine, advances closed
 rounds, and uses the real ShowdownResolver. Results await settlement; chips are
@@ -18,8 +22,8 @@ separate failing-before-implementation cycles.
 | SS-B02 | getAvailableActions; getAcceptedActions; getResult; playBotTurns | No match | Empty query results; bot execution rejects with IllegalStateException | emptySessionHasNoActionsHistoryOrResult; passing |
 | SS-B03-FOLD/CHECK/CALL | submitAction | No match; each action | IllegalStateException, no match created | cannotActWithoutAMatch; passing |
 | SS-B04 | submitAction; getAcceptedActions; getView | Initial seat 3 calls20 | Deduct20 once; pot 50; next actor/viewer 4; cards hidden; one accepted observation; old snapshot unchanged | callUpdatesOneStateAndAppendsExactlyOneObservation; passing |
-| SS-B05-null/unknown/outOfTurn/checkOwing/bet/raise | submitAction | Null request, missing player, wrong actor, checking while owing, unsupported bet/raise | Appropriate rejection, same hand/contributions/actor/history/result; conceal private cards | rejectionDoesNotChangeStateOrHistory; passing |
-| SS-B06 | getAvailableActions; getAcceptedActions | Initial decision and big blind's final preflop option | FOLD/CALL vs FOLD/CHECK; immutable set; no committed action from queries | availableActionsUseEngineValidationWithoutCommittingActions; passing |
+| SS-B05-null/unknown/outOfTurn/checkOwing/bet/raise | submitAction | Null request, missing player, wrong actor, checking while owing, preflop BET or below-minimum RAISE to39 | Appropriate rejection, same hand/contributions/actor/history/result; conceal private cards | rejectionDoesNotChangeStateOrHistory; passing |
+| SS-B06 | getAvailableActions; getAcceptedActions | Initial decision and big blind's final preflop option | FOLD/CALL/RAISE vs FOLD/CHECK/RAISE; immutable set; no committed action from queries | availableActionsUseEngineValidationWithoutCommittingActions; passing |
 | SS-B07 | submitAction; getView | Five calls followed by BB CHECK; pending count1→0 | Retain BB option until CHECK; burn/deal flop; actor 1; round contributions0; hand contributions20; pot 120 | lastPreflopDecisionAdvancesToFlopAndPreservesCommitments; passing |
 | SS-B08 | submitAction; getResult; getAvailableActions; playBotTurns | Five folds leave one participant | Uncontested BB result awaiting settlement; no drawing/payout; no actor/actions | lastFoldResolvesUncontestedWithoutDrawingOrPaying; passing |
 | SS-B09 | submitAction; getResult; getAcceptedActions | Six20-chip stacks; BB forced all-in; other five call all-in | Automatic runout to five board cards; exactly five CALL observations; pot 120/stacks 0; no fake CHECKs | allInCallsRunTheBoardWithoutInventingCheckActions; passing |
@@ -35,8 +39,8 @@ separate failing-before-implementation cycles.
 
 The accepted-action log is private and exposed as immutable snapshots. It is an
 event source for pending statistics delivery, not completed-hand aggregation.
-Legal-action queries use the pure engine on discarded snapshots; only successful
-session submissions enter the log. Rejected actions hide the UI hand but do not
+Legal-action queries read the current engine state without applying actions.
+Only successful session submissions enter the log. Rejected actions hide the UI hand but do not
 change the authoritative game state. Comparison leaves totals pending; explicit settleHand now pays pots and
 aggregates completed statistics. See [completion cases](CompletedStatistics.md).
 
@@ -44,11 +48,10 @@ aggregates completed statistics. See [completion cases](CompletedStatistics.md).
 cases: accepted actions reach pending PlayStats once after successful comparison;
 queries/rejections do not record, and failed comparison/recording can be retried.
 
-SessionBettingTest has 30 cases and PlayedHandIntegrationTest has 2. The fault
+PlayedHandIntegrationTest has two cases. The fault
 case injects one failing evaluator call solely to check transaction recovery;
 the played winner/tie integration cases use the real evaluator throughout.
-Mutation review added an explicit20-chip preflop view assertion and the
-zero-action human-handoff privacy case. No completed-hand statistics are
-claimed. The session has an actor whenever a hand has no result; it advances
-closed rounds before publishing a state, so no extra actor-empty query guard
-is needed.
+Session privacy cases cover a zero-action handoff and an ordinary turn wrapping
+from seat 5 to seat 0 with the previous hand revealed. The next viewer's cards
+stay hidden until that player reveals them. The session advances closed rounds
+before publishing a new state.

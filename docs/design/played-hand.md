@@ -27,7 +27,7 @@ sequenceDiagram
     Session-->>UI: commit state/result/action once
     UI->>Session: playBotTurns()
     Session-->>UI: stop at human decision or result
-    UI->>Session: getView(), getResult(), getAvailableActions()
+    UI->>Session: getView(), getResult(), getLegalActions()
 ```
 
 ## Session contract
@@ -36,8 +36,10 @@ sequenceDiagram
 | --- | --- |
 | `start(humanCount)` | Initialize a separate hand, hide cards, prepare fresh pending collectors, clear history/result only after a successful start. It returns at the initial decision; the UI then calls playBotTurns. |
 | `submitAction(request)` | Delegate legality/deductions to BettingEngine. Advance closed rounds, resolve a terminal comparison, then record the pending observation, publish the candidate state and append exactly one accepted action. Any validation/comparison/recording failure preserves the old state/result/log; private cards are hidden. |
-| `playBotTurns()` | Temporary legal CHECK if available, otherwise CALL; stop before a human decision or after a result. Return an immutable list of newly committed bot actions. Does not inspect hole cards. |
-| `getAvailableActions()` | Ask the pure engine about FOLD/CHECK/CALL using disposable snapshots; expose only supported legal actions. Queries never update the session/log/statistics. Empty before start or after a result. |
+| `playBotTurns()` | Fold departed actors in turn; bots CHECK if legal, otherwise CALL. Stop before a remaining human decision or after a result. Return immutable committed actions; inspect no cards. |
+| `getLegalActions()` / `getAvailableActions()` | Immutable engine options for the next decision, including capped call cost and a BET/RAISE range or exact short all-in. Empty before start, after a result, or when a queued departure owns the turn. Queries make no observations. |
+| `quit(playerId)` | Retire a human seat. Fold an active current actor through the normal submission; otherwise process any required fold at their next turn in the automatic pump. All-in eligibility and chip ownership stay intact. |
+| `canStartNextHand()` | True after payment if at least two funded seats remain. |
 | `getResult()` | Optional immutable ShowdownResult. It remains the comparison snapshot; getSettlement reports subsequent payment. |
 | `getAcceptedActions()` | Immutable current-hand event snapshot, including human/bot actions and existing statistics context. No forced blind posts or invented runout actions; failed requests do not append. |
 
@@ -64,7 +66,8 @@ the selected viewer, with an explicit reveal still required. Starting the UI
 executes initial bot turns and selects the next human. Selecting another human
 disables action controls until the actor is selected again. Focus loss and locale
 changes retain the existing concealment behavior. Selection is shared-computer
-handoff, not authentication.
+handoff, not authentication. Leaving hides cards and removes the seat from
+the viewer chooser. The stable player ID still appears in paid statistics.
 
 The screen displays public cards, phase, player status, chips, legal actions and
 translated winner/tie/uncontested messages. It retains the selected language at
@@ -79,9 +82,13 @@ check produces a real evaluator result awaiting settlement after 21 actions.
 Tests use legal deterministic shuffle choices to produce both a shared-board
 flush tie and a sole seat 5 six-high straight, without replacing game components.
 
-Supported engine actions remain unraised preflop FOLD/CHECK/CALL and postflop
-CHECK/FOLD. Bets/raises, raised-round responses, postflop CALL, equity bots and saved profiles remain later work. The
-action log and pending PlayStats receive the same accepted actions. Settlement
+The engine/session now accept full BET/RAISE and legal FOLD/CHECK/CALL on every
+street. For example, a round contribution of 10 and raise target of 100 adds 90
+chips. Full wagers reset other ACTIVE players' decisions and raise rights.
+Short all-ins and individual cumulative reopening are supported. Swing and the
+bot policy consume the same read-only engine options. Swing uses the nominal
+full minimum and maximum, or the exact short all-in target when only that is
+legal. Equity bots and saved profiles are outside this branch. The action log and pending PlayStats receive the same accepted actions. Settlement
 then consumes the ledger once to publish completed match totals.
 
 See [session BVA](../bva/SessionBetting.md) and
@@ -102,7 +109,7 @@ font correctness; those still require the team's desktop walkthrough.
    or duplicate settlement changes none of them. StatisticsView snapshots contain
    completed numbers only; UI cannot mutate a collector or inspect private cards.
 4. `nextHand()` keeps identities/stacks/totals, moves the button, posts capped
-   blinds, deals only surviving seats and handles automatic all-in runout.
+   blinds, deals only funded nondeparted seats and handles automatic all-in runout.
    With a short BB, multiple active players still owe the nominal big blind;
    the lone opposing active player only matches the actual all-in commitment.
    A matched lone active player gets no extra fold/check decision. A finished
@@ -112,4 +119,4 @@ The existing comparison object remains historical and AWAITING_SETTLEMENT by
 contract; use getSettlement for actual paid status. GamePanel shows paid/match
 winner status and exposes separate settlement/continuation controls. Its tabs
 hide private cards. Statistics persist only for this open match; disk profiles
-and full bet/raise behavior are outside this checkpoint.
+remain later checkpoints; short all-in wagers and reopening now run through this session.
