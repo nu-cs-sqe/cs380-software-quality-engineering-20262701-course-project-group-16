@@ -8,6 +8,38 @@ no `ignoreFailures`, global suppression or baseline hiding existing warnings. Re
 CI uploads test, coverage, mutation and static-analysis reports even after a
 failed step.
 
+## Week 7 departure, legal actions and state measurement (November 13, 2026)
+
+Branch `feature/week7-betting`, code `b9ae32b`. Local `build pitest` passed
+with Gradle 9.7.1 on JDK 17 and Java 11 compilation/tests.
+
+| Check | Result |
+| --- | --- |
+| Team suite | **1,169 passing**, zero failures, errors or skips. |
+| Checkstyle / SpotBugs | Zero main/test findings and no new exclusions. |
+| JaCoCo, 34 configured parent components | **1,531/1,532 lines, 1,103/1,104 branches, 922/923 complexity counters, 7,922/7,927 instructions, 365/365 methods and 36/36 classes.** |
+| PIT | **1,037/1,051 killed (98.67%)**, 14 reviewed survivors, zero uncovered, timeout or error mutants. |
+
+The new scope adds core state, betting input/output and statistics context
+classes. The sole missed JaCoCo branch is the unknown-phase fallback in
+`GameState.validateCards`. Every `GamePhase` constant has a case, and
+construction rejects a missing phase before validation.
+
+Boundary and real-session tests cover departure during and outside a player's
+turn, all-in eligibility through payout, exclusion from later hands, and
+private-card handoffs. They also check exact-stack calls, full and short wager
+targets, and the inclusive raise-count limit for constructed snapshots.
+Headless Swing tests exercise the controls in both languages.
+
+| Remaining survivor | Count | Reason |
+| --- | --- | --- |
+| Evaluator and hash-code baseline | 7 | Six evaluator mutations preserve ranking. The constant hash preserves Java's contract but changes hash values. Course acceptance remains pending. See [mutation survivor review](#mutation-survivor-review). |
+| `BettingEngine` | 3 | A zero c-bet cannot have an outstanding call in the matching context. The acting seat has left the pending set before the search wraps. A zero chip delta cannot exhaust an active player's positive stack. |
+| `BettingRound.closeMatchedLoneActor` | 1 | Including the actor in the maximum keeps the same comparison against other contributions. |
+| `BettingAmounts.chipsAdded` | 1 | Accepted-action validation still rejects a zero-chip CALL before any state is published. |
+| `GameState.hasShortBlindTarget` | 1 | The caller checks that the posted maximum differs from the target, which this helper requires to equal the big blind. |
+| `GameConfig.validateSettings` | 1 | A zero starting stack still violates the required positive big blind and its stack limit. |
+
 ## Betting statistics context — November 12, 2026
 
 Branch `feature/week7-betting`, code `a7c0f14`. Local `build pitest` passed
@@ -303,37 +335,34 @@ change. Shared Checkstyle violations are fixed in source instead of baselined.
 
 ## Scope and interpretation
 
-SetupSession and SetupView include shared played-hand integration. The
-current configured scope has 22 parent components, including betting, dealing, settlement,
-completed statistics, continuation and the shared session/view.
-Earlier nine-class results below are historical, not current full-game
-coverage. PIT retains the renamed integration tests and the new session
-and played-hand tests.
+The current scope has 34 parent components, including betting, state, dealing,
+settlement, completed statistics, continuation and the shared session/view.
+Earlier measurements below are historical and retain their original scopes.
 
-JaCoCo and PIT include `Card`, `Deck`, `PokerHandEvaluator`,
-`ShowdownResolver`, `ShowdownResult`, `GameInitializer`, `InitialDeal`,
-`HandStatistics`, `MatchStatistics`, `NextHand`, `StatisticsView`, `PotSettlement`,
-`Settlement`, `PlayStats`, `BettingEngine`, `BettingAmounts`, `BettingRound`,
-`BettingHistory`, `BettingProgress`, `SetupSession`, `SetupView` and `Localizations`,
-including their nested classes. `SetupView` remains in the scope
-even though a display DTO could qualify for a view exemption: its private-card
-filtering is useful behavior to measure. Tests exercise these components
-through their public contracts; the complete JUnit suite also runs in the build.
-PIT selects full/short betting, reopening-state, raised-hand, capped-call and street-advancement tests,
-plus focused domain/application tests, deck-setup,
-setup/showdown integration and localization-loader tests. PIT counts repeated
-test executions across mutants separately from the JUnit suite count. It uses the standard `DEFAULTS` operator group, two
-workers, HTML/XML output and deterministic report paths. A mutant may hang a
-loop; timeout permits twice its baseline test duration plus two seconds.
+JaCoCo and PIT include `Card`, `Deck`, `PokerHandEvaluator`, `ShowdownResolver`,
+`ShowdownResult`, `GameInitializer`, `InitialDeal`, `HandStatistics`,
+`MatchStatistics`, `NextHand`, `StatisticsView`, `PotSettlement`, `Settlement`,
+`PlayStats`, `BettingEngine`, `BettingAmounts`, `BettingRound`, `BettingHistory`,
+`BettingProgress`, `SetupSession`, `SetupView`, `Localizations`, `GameConfig`,
+`GameState`, `Player`, `PlayerState`, `HandPositions`, `SeatOrder`,
+`ActionRequest`, `AcceptedAction`, `BettingResult`, `LegalActions`,
+`StatsContext` and `StatsAction`, including nested classes. `SetupView` remains
+in scope because it implements the session's private-card filtering.
 
-Excluded from the **current 22-component metric denominator**:
+PIT selects the domain, application, integration and localization-loader
+suites. The complete JUnit suite also runs, including headless Swing tests.
+PIT uses its standard DEFAULTS group, two workers and HTML/XML reports. Its
+executions across mutants are separate from the JUnit case count. Timeout
+permits twice a test's baseline duration plus two seconds.
 
-- The remaining domain state components; their test
-  execution is retained, but their coverage is not established by this scope.
-- `HandEvaluator`, an interface without executable default methods, and the
-  `Rank`/`Suit` and nested `ShowdownResult.Status` enums, whose constants have no hand-written branching behavior.
-- Swing `ui` classes and launch code, using the rubric's UI exemption; headless
-  behavior tests still run and shared static analysis still checks those files.
+Excluded from the current metric denominator:
+
+- Shared foundation `GameSetup` and the read-only `GameView`/`PlayerView`
+  projections; the full team suite still tests these.
+- `HandEvaluator` and enums without hand-written branch behavior, including
+  `Rank`, `Suit` and `ShowdownResult.Status`.
+- Swing and launch code under the rubric's UI exemption; headless tests and
+  shared static analysis still check those files.
 
 The rubric's 100% cyclomatic-complexity coverage goal is distinct from 100% line,
 instruction or branch coverage. [JaCoCo counters](https://www.jacoco.org/jacoco/trunk/doc/counters.html)

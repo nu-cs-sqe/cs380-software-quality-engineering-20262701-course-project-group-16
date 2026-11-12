@@ -236,9 +236,9 @@ Carry forward native desktop checks and review workflow verification.
 | Done, engine/session | Kevin | K01: full BET/RAISE, postflop CALL and raised-preflop responses; round targets, engine-owned deductions, turn order and unchanged rejected snapshots. | `feature/week7-betting`, code `fda5bdf`, based on merged main `c71e9d6`; [BVA](bva/FullBetting.md); FullBettingTest and two real-session integration cases. |
 | Done, engine/session | Kevin | K02: short all-in wagers, full/cumulative reopening and individual raise rights; retain BB option/short-blind behavior. | `feature/week7-betting`, code `978a826`; [K02 BVA](bva/ShortAllInBetting.md). Last-decision history stays immutable and resets on new streets/hands. |
 | Done, engine/session | Kevin | K03: preserve exact aggression and opportunity context across short all-ins, reopened decisions and snapshots. | Code `a7c0f14`; [K03 cases](bva/BettingHistory.md#k03-exact-raise-counts-and-all-in-observations). |
-| Planned | Kevin | K04: quit-as-fold, later-hand participation and turn handling without blocking play. | Revise the existing fixed-participation rule together with implementation/tests. |
-| Planned | Kevin | K05: engine-owned legal actions, calling costs and wager target limits shared by humans/bots. | Swing and its current queries still expose fold/check/call only. |
-| Started | Kevin | K06: extend coverage/mutation scope to betting/state and resolve actionable gaps. | K01 adds BettingEngine/Amounts/Round/History; K02 adds BettingProgress. Remaining state classes still need measurement. |
+| Done | Kevin | K04: quit-as-fold, all-in eligibility, fixed seats and later-hand participation. | Code `b9ae32b`. [Rules](requirements/game-rules.md) and [departure tests](bva/Departure.md). |
+| Done | Kevin | K05: engine-owned actions, call cost, full wager range and short all-in target. | Code `b9ae32b`. Swing and check/call bots read the same [legal options](bva/LegalActions.md). |
+| Done | Kevin | K06: measure core betting/state classes and address actionable findings. | Code `b9ae32b`. [Quality results](quality.md) record coverage and all surviving mutants. |
 | Planned | Together | Record integration and i18n plans on the board; retain English/Chinese resources, privacy and regression tests. | Existing implementation/design is evidence, not a claim that board discussion is complete. |
 
 **TDD and integration:** All 45 new boundary cases and both real-session tests
@@ -272,9 +272,17 @@ survivors. Legal replay verifies different raise labels at the same price;
 settlement verifies short c-bets, capped calls and responses after a raise.
 See [quality results](quality.md). Remote CI and partner review remain pending.
 
-**Next steps:** Kevin continues with K04 departure rules, then K05 wager limits.
-Coordinate UI/bot integration with Estella. Preserve small methods, chip
-conservation and privacy.
+**K04–K06 verification (Nov 13):** Local `build pitest` passes **1,169 tests**,
+with clean Checkstyle and SpotBugs. The 34-component JaCoCo scope covers
+**1,531/1,532 lines** and **1,103/1,104 branches**. The sole missed
+branch is an unreachable enum fallback. PIT reports **1,037/1,051 killed (98.67%)**
+with 14 reviewed survivors and zero uncovered mutants. The
+[quality results](quality.md) record the full counters and remaining hash-code
+acceptance question.
+
+**Next steps:** Push `feature/week7-betting`, request peer review, and verify CI.
+Together, record integration and localization plans on the project board and
+walk through the English/Chinese controls and card handoffs on a desktop.
 
 ## Future weekly report template
 
