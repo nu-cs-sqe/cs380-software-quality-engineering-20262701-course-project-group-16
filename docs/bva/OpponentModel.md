@@ -1,21 +1,17 @@
-# OpponentBeliefs BVA
+# OpponentModel BVA
+
+The coordinator consumes accepted public events. Belief calculations have their
+own [per-class analysis](OpponentBeliefs.md); required references follow the
+[non-null caller contract](README.md#reference-contract-update--november-15).
 
 | ID | Methods | State/input | Expected output | Implemented? |
 | --- | --- | --- | --- | --- |
-| OB-C01 | constructor/getters | No data, all tendencies, missing query context/tendency | Priors with zero observations; invalid query rejected | Yes |
-| OB-C02 | withDecision/getPrediction/getObservedDecisions | Accepted calls/raises | Correct normalized prediction; old snapshot unchanged | Yes |
-| OB-C03 | withDecision/getPrediction | Different streets, position and legal choices | Separate contextual counts; unseen context uses prior | Yes |
-| OB-C04 | withDecision/getTendency | Eligible three-bet call/fold/raise; other raise levels | One success in three opportunities; no inferred opportunities | Yes |
-| OB-C05 | withDecision/getTendency | Eligible flop check/bet/fold, other flop/turn bets | One c-bet in three opportunities | Yes |
-| OB-C06 | withDecision/getTendency | Actual c-bet call/raise/fold and ordinary fold | One fold in three eligible responses | Yes |
-| OB-C07 | withDecision/getTendency/getPrediction | All-in CALL without a raise opportunity | Zero three-bet opportunities, learned CALL | Yes |
-
-| OB-C08 | getPrediction/getObservedDecisions | Missing context after one learned choice | Reject with IllegalArgumentException and preserve count | Yes |
-
-OB-C08 is a mutation-driven regression. The original all-in-call test was corrected
-after review: an all-in call cannot invent a legal raise/three-bet opportunity.
-Counts are eligible **decisions**, not PlayStats completed-hand denominators.
-Context queries and old snapshots cannot mutate the model.
+| OM-C01 | constructor/observe/snapshot | Injected updater; mutate caller registry; two accepted events | Copied registry; updater receives current belief; publish returned snapshot | Yes: omC01CoordinatesOneOpponentUpdateAndCopiesRegistry |
+| OM-C02 | observe | Own choice, forced blind, departure fold, fresh/stale/replayed sequence | Skip nonstrategic observations; accept a fresh opponent choice exactly once | Yes: omC02SkipsOwnForcedDepartureAndReplayedDecisions |
+| OM-C03 | observe/snapshot | Wrong match, unknown participant and unknown lookup | Reject without consuming sequence or changing beliefs | Yes: omC03RejectsForeignOrMissingInputWithoutConsumingSequence |
+| OM-C04 | observe/snapshot | Updater throws, then retry same accepted event | Preserve prior and sequence on failure; publish retry once | Yes: omC04FailedUpdateAndRetryPublishOnlyOnce |
+| OM-C05 | constructors | Blank IDs; 0/5/6 registered opponents; observer included in registry | Accept 0–5 distinct opponents; reject invalid identities, observer and sixth opponent | Yes: omC05ValidatesSixSeatRegistryAndCompositionBoundary |
+| OM-C06 | observe/snapshot | Event sequence Long.MAX_VALUE, then replay | Accept once without overflow; replay causes no second update | Yes: omC06AcceptsLastSequenceWithoutOverflowAndDoesNotReplayIt |
 
 ## Integration and learning evaluation
 
@@ -38,3 +34,9 @@ event failures, each followed by implementation and GREEN. One all-in fixture wa
 later corrected as documented in OpponentBeliefs.md. Integration/evaluation cases
 and mutation-driven assertions were added later; they are not claimed feature RED
 cycles. No synthetic Git checkpoints or extra scratch reports were created.
+
+## Instructor follow-up — November 15
+
+Opponent capacity shares GameConfig.SEAT_COUNT, retaining OM-C05's 0/5/6
+registration cases. Snapshot queries check registry membership before reading
+a required stored belief; no absent-value sentinel travels to another component.

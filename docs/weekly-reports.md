@@ -233,12 +233,12 @@ still needs Kevin's K04 revision and implementation.
 
 | Status | Owner | Task and acceptance criteria | Evidence / branch / PR |
 | --- | --- | --- | --- |
-| Separate committed branch; review/merge pending | Estella | E01/E02: local profiles, lifetime persistence and desktop account integration | `feature/player-profiles`, latest local commit `e0d6015`; detailed checkpoints in issue #20. Those sources are separate from this E03 branch. |
+| Separate committed branch; review/merge pending | Estella | E01/E02: local profiles, lifetime persistence and desktop account integration | `feature/player-profiles`, latest local commit `e0d6015`; detailed checkpoints in issue #20. Profile sources remain on their separate branch. |
 | Committed/pushed; review/CI/merge pending | Estella | E03: legitimate-information Monte Carlo equity, multiway fractional ties, public side-pot eligibility, bounded/cancellable calculation | `feature/monte-carlo-equity`, commit `2ce09a0`, based on main `c71e9d6`; 51 new cases, full suite 1,084 passing; [BVA](bva/MonteCarloEquityEstimator.md), [design](design/README.md#standalone-equity-e03), [quality](quality.md#e03-standalone-equity--november-10-2026). |
-| Verified locally; awaiting commit/review/CI/merge | Estella | E04: smoothed public-decision opponent learning and contextual uncertainty | `feature/opponent-learning`, based on E03 `2ce09a0`; 49 new cases, 1,133 total tests pass, 138/138 learning and 20/20 StatsContext mutants killed; [BVA](bva/OpponentModel.md), [quality](quality.md#e04-opponent-learning--november-10-2026). |
+| Committed/pushed; local integration awaiting review/commit | Estella | E04: smoothed public-decision opponent learning and contextual uncertainty | `feature/opponent-learning`, commit `54de9ad`, based on E03 `2ce09a0`; 49 new cases, 1,133 total tests pass, 138/138 learning and 20/20 StatsContext mutants killed; [BVA](bva/OpponentModel.md), [quality](quality.md#e04-opponent-learning--november-10-2026). |
 | Planned | Estella | E05: varied legal decisions using equity, odds, position, stacks and beliefs | Consume Kevin's authoritative legal-action limits and public pot scenarios. |
 | Planned | Estella | E06: off-EDT execution, cancellation and stale-decision rejection | Match/hand/state identity must be checked before engine submission. |
-| Track in shared issue | Kevin | K01–K06: full betting/reopening, statistics context, quit-as-fold, legal-action contracts and applicable quality scope | Status not independently verified by this E03 task. |
+| Merged PR #23; departure follow-up open | Kevin | K01–K06: full betting/reopening, statistics context, quit-as-fold, legal-action contracts and applicable quality scope | Merged to main `bda4954`; integrated locally with E03/E04. Full-betting/static checks pass; departure findings are recorded below. |
 | Pending | Together | I01–I07, M01 and Q01–Q10: real integration flows, bot evaluation, complete quality/process gates | E03 supplies equity-error, privacy and observational latency evidence only; reviews, remote CI and merge remain pending. |
 
 **Progress evaluation:** E03 uses only own/public cards, reuses the existing
@@ -277,7 +277,8 @@ training. Four permutations test order invariance, not independent poker skill.
 The model updates with later evidence and keeps unseen contexts at their prior.
 No games won, learned hidden-card ranges or live Swing adaptation are claimed.
 E03 sampling stays uniform; E05/E06 will consume beliefs and connect live events.
-No E04 commit/push, extra checkout or scratch report was created. E04 and shared
+The agent created no E04 commit/push, extra checkout or scratch report. The user
+subsequently committed/pushed E04 as `54de9ad`. E04 and shared
 integration/evaluation gates stay unchecked until their acceptance gates are met.
 
 **Next steps:** Review/commit E04 and finish the E03/E04 PR review and CI gates;
@@ -285,6 +286,97 @@ this branch depends on E03 `2ce09a0`. Coordinate Kevin's public legal-action,
 position and pot-scenario contracts. Then implement E05 varied decisions and E06
 safe application/worker integration, followed by repeated controlled games and
 full-backend quality/process verification.
+
+### Kevin's merged PR23 checkpoint (historical notes)
+
+**Goal:** Complete betting rules and application contracts, measure the added
+components, and document integration/localization plans on the project board.
+Carry forward native desktop checks and review workflow verification.
+
+### Planning and progress tracking
+
+| Status | Owner | Task and acceptance criteria | Evidence / checkpoint |
+| --- | --- | --- | --- |
+| Done, engine/session | Kevin | K01: full BET/RAISE, postflop CALL and raised-preflop responses; round targets, engine-owned deductions, turn order and unchanged rejected snapshots. | `feature/week7-betting`, code `fda5bdf`, based on merged main `c71e9d6`; [BVA](bva/FullBetting.md); FullBettingTest and two real-session integration cases. |
+| Done, engine/session | Kevin | K02: short all-in wagers, full/cumulative reopening and individual raise rights; retain BB option/short-blind behavior. | `feature/week7-betting`, code `978a826`; [K02 BVA](bva/ShortAllInBetting.md). Last-decision history stays immutable and resets on new streets/hands. |
+| Done, engine/session | Kevin | K03: preserve exact aggression and opportunity context across short all-ins, reopened decisions and snapshots. | Code `a7c0f14`; [K03 cases](bva/BettingHistory.md#k03-exact-raise-counts-and-all-in-observations). |
+| Done | Kevin | K04: quit-as-fold, all-in eligibility, fixed seats and later-hand participation. | Code `b9ae32b`. [Rules](requirements/game-rules.md) and [departure tests](bva/Departure.md). |
+| Done | Kevin | K05: engine-owned actions, call cost, full wager range and short all-in target. | Code `b9ae32b`. Swing and check/call bots read the same [legal options](bva/LegalActions.md). |
+| Done | Kevin | K06: measure core betting/state classes and address actionable findings. | Code `b9ae32b`. [Quality results](quality.md) record coverage and all surviving mutants. |
+| Planned | Together | Record integration and i18n plans on the board; retain English/Chinese resources, privacy and regression tests. | Existing implementation/design is evidence, not a claim that board discussion is complete. |
+
+**TDD and integration:** All 45 new boundary cases and both real-session tests
+failed before implementation, then passed. Mutation-driven regressions follow
+these checks. The integration uses controlled Random and real dealing, betting,
+evaluation, payouts and statistics; no mock library. A raised hand reaches
+pot 1,480, four tied winners receive 370 each, and the next hand keeps chips/totals.
+Another hand verifies recorded three-bet and actual flop c-bet observations.
+
+**K01 verification (historical):** Backend full wagers on every street; no bet/raise controls. The previous Week6
+checkpoint was merged through main `c71e9d6`; its historical counts stay above.
+Local `build pitest` passes **1,091 tests** and clean Checkstyle/SpotBugs on
+Gradle 9.7.1/JDK 17 with Java 11 compilation/tests. The expanded 21-parent scope
+has zero missed JaCoCo counters (1,034 lines/600 branches/509 complexity counters).
+PIT kills **580/599 (96.83%)**, with 19 reviewed survivors and none uncovered;
+[quality.md](quality.md) preserves exact scope, counters and survivor reasoning.
+Push, new remote CI and peer review remain pending for this branch.
+
+**K02 verification (Nov 11):** Local `build pitest` passes **1,127 tests**, with
+clean Checkstyle/SpotBugs. JaCoCo has no missed counters in the 22-component
+scope; PIT kills **621/635 (97.80%)**, with 14 documented survivors and none
+uncovered. Of the original 20 K02 cases, 15 failed before implementation; all
+passed afterward. Real-session tests verify cumulative reopening through
+side-pot settlement and short all-ins through automatic board runout.
+See [quality results](quality.md) for scope and survivor reasoning.
+
+**K03 verification (Nov 12):** Local `build pitest` passes **1,138 tests**,
+with clean Checkstyle/SpotBugs and no missed JaCoCo counters in the same
+22-component scope. PIT kills **629/643 (97.82%)** with the same 14 reviewed
+survivors. Legal replay verifies different raise labels at the same price;
+settlement verifies short c-bets, capped calls and responses after a raise.
+See [quality results](quality.md). Remote CI and partner review remain pending.
+
+**K04–K06 verification (Nov 13):** Local `build pitest` passes **1,169 tests**,
+with clean Checkstyle and SpotBugs. The 34-component JaCoCo scope covers
+**1,531/1,532 lines** and **1,103/1,104 branches**. The sole missed
+branch is an unreachable enum fallback. PIT reports **1,037/1,051 killed (98.67%)**
+with 14 reviewed survivors and zero uncovered mutants. The
+[quality results](quality.md) record the full counters and remaining hash-code
+acceptance question.
+
+**Next steps:** Push `feature/week7-betting`, request peer review, and verify CI.
+Together, record integration and localization plans on the project board and
+walk through the English/Chinese controls and card handoffs on a desktop.
+
+### Instructor follow-up and integration — November 15
+
+| Status | Owner | Task / outcome | Evidence |
+| --- | --- | --- | --- |
+| Verified locally; awaiting user commit/review/CI | Estella | Refactor BettingEngine.advanceStreet and each closed-round validation condition into focused helpers. | Integrated full-betting source on `refactor/instructor-null-formatting`; existing betting/runout tests pass. |
+| Verified locally | Estella | Share named seat/default constants and enforce them automatically in the initial table-rule scope. | GameConfig.SEAT_COUNT; checkstyleSeatRules checks GameConfig, HandPositions, SeatOrder, Player and PotSettlement. Six original violations were observed before the fix. |
+| Verified locally | Estella | Complete the non-null caller contract, explicit actor/history absence and membership-based lookups. | Zero manual null comparisons or requireNonNull guard calls in production; nullable actor constructors removed and callers migrated. AGENTS.md records future conventions. Optional aggression and immutable indexed seats; five business cases observed RED → GREEN, with no new programmer-null cases. |
+| Verified locally | Estella | Remove the StatisticsPanel line-85 blank and enforce the formatting rule. | Negative Checkstyle caught that line and the same InitialDeal pattern; main/test/seat checks now pass. |
+| Integrated locally, uncommitted | Together | Preserve Kevin's merged betting/state work and E03/E04 in one checkout. | Main `bda4954` + E04 `54de9ad`; conflict resolutions retain all scopes and test patterns. |
+| Open follow-up | Together | Prevent an out-of-turn, non-all-in quitter from winning before its queued fold; reconcile departure termination with the 6,000-chip requirement. | Source review of PR #23; these functional issues are not claimed fixed by the instructor refactor. |
+
+Final local `build pitest`: **1,194 tests pass**, clean Checkstyle/SpotBugs and
+**1,223/1,237 mutants killed (98.87%)**, retaining Kevin's same 14 survivors and
+zero uncovered/error/timeout mutants. The 46-parent scope covers 1,915/1,916
+lines and 1,161/1,162 branches; the one enum-default path and survivor acceptance
+remain explicit limitations. See [quality results](quality.md#instructor-cleanup-and-local-integration--november-15-2026).
+This final pass retires 80 obsolete programmer-null invocations from the earlier
+1,274-test checkpoint; meaningful game/lifecycle boundaries remain. A redundant
+participant check found by mutation testing was consolidated; no new survivor or
+measurement exclusion remains. All 11 remaining construction/composition-result null guards were removed in
+the final follow-up; external resource validation remains. Two newly exposed
+intentional collaborator-sharing SpotBugs findings have exact constructor/field
+exceptions with rationale for peer review; no metric exclusion was added. This result excludes the
+separate profile branch; E05/E06 remain upcoming.
+
+The merge is resolved but intentionally uncommitted for the user to inspect.
+There is no second checkout, scratch report or agent commit/push. Review/remote
+CI gates remain pending. Next: user review/commit and CI; then implement E05 using
+Kevin's LegalActions/Wager APIs, retaining E06 event-origin and worker contracts.
 
 ## Future weekly report template
 

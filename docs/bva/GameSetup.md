@@ -6,8 +6,6 @@ Grouped assertions exercise the public getters at the stated boundary; no mutabl
 | ID | Public methods | State/input boundary | Expected result | Implemented |
 | --- | --- | --- | --- | --- |
 | GU-01 | GameSetup(); create | Default settings and two humans | Six seats; 6000 total; 30 pot; dealer within occupied seats | Yes |
-| GU-02 | GameSetup(GameConfig,Random) | Null config | IllegalArgumentException | Yes |
-| GU-03 | GameSetup(GameConfig,Random) | Null dealer random source | IllegalArgumentException | Yes |
 | GU-04 | create | -1 human players | IllegalArgumentException; no randomness consumed | Yes |
 | GU-05 | create | 0 human players | IllegalArgumentException; no randomness consumed | Yes |
 | GU-06 | create | 7 human players | IllegalArgumentException; no randomness consumed | Yes |

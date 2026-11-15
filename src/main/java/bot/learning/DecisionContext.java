@@ -12,16 +12,15 @@ public final class DecisionContext {
 
     public DecisionContext(BettingStreet street, Set<ResolvedActionType> legalActions,
             boolean inPosition) {
-        requireChoices(street, legalActions);
+        requireChoices(legalActions);
         this.street = street;
         this.legalActions = Set.copyOf(legalActions);
         this.inPosition = inPosition;
     }
 
-    private static void requireChoices(BettingStreet street, Set<ResolvedActionType> choices) {
-        if (street == null || choices == null || choices.isEmpty()
-                || choices.stream().anyMatch(action -> action == null
-                || action == ResolvedActionType.FORCED_POST)) {
+    private static void requireChoices(Set<ResolvedActionType> choices) {
+        if (choices.isEmpty()
+                || choices.stream().anyMatch(action -> action == ResolvedActionType.FORCED_POST)) {
             throw new IllegalArgumentException("A street and legal decision choices are required.");
         }
     }

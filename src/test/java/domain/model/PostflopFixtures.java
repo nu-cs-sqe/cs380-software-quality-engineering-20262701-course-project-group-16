@@ -12,7 +12,7 @@ final class PostflopFixtures {
         for (int seat = 0; seat < 6; seat++) {
             fixture.player(seat, 960, PlayerStatus.ACTIVE, 0, 40);
         }
-        fixture.actor = "p1";
+        fixture.actor = java.util.Optional.of("p1");
         fixture.betting = new BettingProgress(0, 20, FoundationFixtures.allIds(), FoundationFixtures.allIds());
         return fixture;
     }
@@ -22,18 +22,18 @@ final class PostflopFixtures {
     }
 
     static GameState build(FoundationFixtures.Fixture fixture, BettingHistory history) {
-        return new GameState(fixture.config, fixture.hand, fixture.phase, fixture.players,
+        return GameState.create(fixture.config, fixture.hand, fixture.phase, fixture.players,
                 fixture.positions, fixture.actor, fixture.community, fixture.deck, fixture.betting, history);
     }
 
     static GameState withHistory(GameState before, BettingHistory history) {
-        return new GameState(before.getConfig(), before.getHandId(), before.getPhase(),
-                before.getPlayerStates(), before.getPositions(), before.getCurrentActorId().orElse(null),
+        return GameState.create(before.getConfig(), before.getHandId(), before.getPhase(),
+                before.getPlayerStates(), before.getPositions(), before.getCurrentActorId(),
                 before.getCommunityCards(), before.getRemainingDeck(), before.getBettingProgress(), history);
     }
 
     static void close(FoundationFixtures.Fixture fixture) {
-        fixture.actor = null;
+        fixture.actor = java.util.Optional.empty();
         fixture.betting = new BettingProgress(fixture.betting.getCurrentBet(),
                 fixture.betting.getLastFullRaiseSize(), Set.of(), Set.of());
     }
@@ -45,6 +45,7 @@ final class PostflopFixtures {
                 state.getBigBlindSeat(), state.getCurrentActorId(), state.getCommunityCards(),
                 state.getRemainingDeck(), state.getCurrentBet(), state.getLastFullRaiseSize(),
                 state.getBettingProgress().getPlayersToAct(), state.getBettingProgress().getPlayersAllowedToRaise(),
+                state.getBettingProgress().getLastDecisionTargets(),
                 state.getBettingHistory().getFinalPreflopAggressorId(), state.getBettingHistory().getFlopCBetAmount()));
         for (PlayerState player : state.getPlayerStates()) {
             values.add(List.of(player.getPlayer().getId(), player.getPlayer().getSeat(),

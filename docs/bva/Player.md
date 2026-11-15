@@ -12,7 +12,7 @@ this first increment.
 - `type` must be `PlayerType.HUMAN` or `PlayerType.BOT`, never null.
 - `chipStack` is a nonnegative `long`. Zero is allowed to represent a player
   with no chips; initial-game stack requirements belong to game setup.
-- An invalid constructor argument throws `IllegalArgumentException`.
+- An argument outside the business bounds throws `IllegalArgumentException`.
 - `getId()`, `getSeat()`, `getType()`, and `getChipStack()` return the supplied
   valid values. ID uniqueness across players belongs to game setup.
 
@@ -25,7 +25,6 @@ exempt from a separate BVA document under the course template.
 
 | ID | Methods under test | State / input override | Expected result | Implemented? |
 | --- | --- | --- | --- | --- |
-| P-C01 | Constructor | `id=null` | `IllegalArgumentException` | Yes |
 | P-C02 | Constructor | `id=""` | `IllegalArgumentException` | Yes |
 | P-C03 | Constructor | `id=" "` | `IllegalArgumentException` | Yes |
 | P-C04 | Constructor | `id="\t"` | `IllegalArgumentException` | Yes |
@@ -41,7 +40,6 @@ exempt from a separate BVA document under the course template.
 | P-C14 | Constructor, `getSeat()` | `seat=1` | Constructed; getter returns `1` | Yes |
 | P-C15 | Constructor, `getSeat()` | `seat=4` | Constructed; getter returns `4` | Yes |
 | P-C16 | Constructor, `getSeat()` | `seat=5` | Constructed; getter returns `5` | Yes |
-| P-C17 | Constructor | `type=null` | `IllegalArgumentException` | Yes |
 | P-C18 | Constructor, `getType()` | `type=HUMAN` | Constructed; getter returns `HUMAN` | Yes |
 | P-C19 | Constructor, `getType()` | `type=BOT` | Constructed; getter returns `BOT` | Yes |
 | P-C20 | Constructor | `chipStack=Long.MIN_VALUE` | `IllegalArgumentException` | Yes |
@@ -56,3 +54,8 @@ exempt from a separate BVA document under the course template.
 The case IDs are included in the parameterized test display names in
 `PlayerTest`. Every public constructor/method is mapped above. Update a case to
 implemented only after its test has been written, executed, and passed.
+
+## Instructor follow-up — November 15
+
+Player seat bounds share GameConfig.SEAT_COUNT with position selection and the
+rest of the table; existing first/last/invalid-seat cases are unchanged.

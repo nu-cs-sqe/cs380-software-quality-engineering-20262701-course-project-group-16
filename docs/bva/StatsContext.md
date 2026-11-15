@@ -10,7 +10,6 @@ All case IDs appear in StatsContextTest. Valid-value observations also exercise 
 
 | ID | Methods under test | State / input | Expected output | Implemented? |
 | --- | --- | --- | --- | --- |
-| SC-I01 | Constructor | `null, false, false, false` | IllegalArgumentException | Yes |
 | SC-I02 | Constructor | `PreflopRaiseType.NONE, false, true, true` | IllegalArgumentException | Yes |
 | SC-I03 | Constructor | `PreflopRaiseType.NONE, true, true, false` | IllegalArgumentException | Yes |
 | SC-I04 | Constructor | `PreflopRaiseType.NONE, true, false, true` | IllegalArgumentException | Yes |

@@ -146,8 +146,8 @@ class CompletedStatisticsIntegrationTest {
                     seat < 2 ? 10 : 0));
         }
         // Board after burns is 3C 4C 5C 7C 9C; p0's AC makes the stronger flush.
-        return new domain.model.GameState(new GameConfig(), "last", GamePhase.PREFLOP, players,
-                new domain.model.HandPositions(0, 0, 1), "p0", List.of(), deck,
+        return domain.model.GameState.create(new GameConfig(), "last", GamePhase.PREFLOP, players,
+                new domain.model.HandPositions(0, 0, 1), java.util.Optional.of("p0"), List.of(), deck,
                 new domain.model.BettingProgress(10, 20, java.util.Set.of("p0"), java.util.Set.of()));
     }
 

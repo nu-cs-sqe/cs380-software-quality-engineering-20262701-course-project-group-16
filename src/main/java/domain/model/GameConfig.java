@@ -1,14 +1,17 @@
 package domain.model;
 /** Immutable match settings. Seats, antes and blind progression are fixed in this version. */
 public final class GameConfig {
-    private static final int SEAT_COUNT = 6;
+    public static final int SEAT_COUNT = 6;
+    private static final long DEFAULT_STARTING_CHIPS = 1000;
+    private static final long DEFAULT_SMALL_BLIND = 10;
+    private static final long DEFAULT_BIG_BLIND = 20;
     private final long startingChips;
     private final long smallBlind;
     private final long bigBlind;
 
     /** Creates the agreed 1,000-chip, 10/20-blind configuration. */
     public GameConfig() {
-        this(1000, 10, 20);
+        this(DEFAULT_STARTING_CHIPS, DEFAULT_SMALL_BLIND, DEFAULT_BIG_BLIND);
     }
 
     /**

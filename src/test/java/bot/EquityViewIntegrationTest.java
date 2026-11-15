@@ -38,7 +38,6 @@ class EquityViewIntegrationTest {
             assertThrows(IllegalArgumentException.class, () -> EquityRequest.fromView(state.viewFor(inactive),
                     List.of(new EquityPot("only", 1, Set.of(inactive))), 1));
         }
-        assertThrows(IllegalArgumentException.class, () -> EquityRequest.fromView(null, List.of(), 1));
     }
     @Test
     void evC03HiddenCardAndDeckChangesCannotAffectSeededEstimates() {
@@ -52,8 +51,8 @@ class EquityViewIntegrationTest {
         }
         List<Card> reversed = new ArrayList<>(state.getRemainingDeck());
         Collections.reverse(reversed);
-        GameState altered = new GameState(state.getConfig(), state.getHandId(), state.getPhase(),
-                changed, state.getPositions(), state.getCurrentActorId().orElseThrow(),
+        GameState altered = GameState.create(state.getConfig(), state.getHandId(), state.getPhase(),
+                changed, state.getPositions(), state.getCurrentActorId(),
                 state.getCommunityCards(), reversed, state.getBettingProgress());
         String hero = state.getPlayers().get(0).getId();
         EquityRequest first = EquityRequest.fromView(state.viewFor(hero), pots(state.viewFor(hero)), 5);
@@ -89,8 +88,8 @@ class EquityViewIntegrationTest {
                     statuses[i], holes, i == 1 ? 100 : 0, i == 1 ? 100 : 0));
         }
         Set<String> pending = Set.of("p0", "p4", "p5");
-        return new GameState(new GameConfig(), "mixed", GamePhase.PREFLOP, players,
-                new HandPositions(0, 1, 2), "p0", List.of(), cards.subList(next, 52),
+        return GameState.create(new GameConfig(), "mixed", GamePhase.PREFLOP, players,
+                new HandPositions(0, 1, 2), java.util.Optional.of("p0"), List.of(), cards.subList(next, 52),
                 new BettingProgress(100, 20, pending, pending));
     }
 }

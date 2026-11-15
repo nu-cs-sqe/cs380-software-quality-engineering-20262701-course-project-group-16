@@ -10,6 +10,7 @@ import domain.model.PlayerStatus;
 import domain.model.SeatOrder;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
@@ -22,10 +23,14 @@ final class NextHand {
     NextHand(Random random) { dealing = new InitialDeal(random); }
 
     GameState start(GameState previous) {
+        return start(previous, Set.of());
+    }
+
+    GameState start(GameState previous, Set<String> departed) {
         if (previous.getPhase() != GamePhase.COMPLETION) {
             throw new IllegalStateException("Settle the previous hand first.");
         }
-        List<PlayerState> players = emptyHands(previous);
+        List<PlayerState> players = emptyHands(previous, departed);
         SeatOrder seats = new SeatOrder(players);
         int dealer = seats.nextDealerAfter(previous.getDealerSeat()).orElseThrow();
         HandPositions positions = seats.positionsFor(dealer);
@@ -34,10 +39,12 @@ final class NextHand {
         return dealing.deal(table(previous, players, positions));
     }
 
-    private static List<PlayerState> emptyHands(GameState previous) {
+    private static List<PlayerState> emptyHands(GameState previous, Set<String> departed) {
         List<PlayerState> players = new ArrayList<>();
         for (PlayerState player : previous.getPlayerStates()) {
-            players.add(new PlayerState(player.getPlayer(), player.getStatus(), List.of(), 0, 0));
+            PlayerStatus status = departed.contains(player.getPlayer().getId())
+                    ? PlayerStatus.DEPARTED : player.getStatus();
+            players.add(new PlayerState(player.getPlayer(), status, List.of(), 0, 0));
         }
         return players;
     }
@@ -59,9 +66,11 @@ final class NextHand {
             currentBet = Math.max(currentBet, previous.getConfig().getBigBlind());
         }
         Set<String> pending = pendingPlayers(players, currentBet);
-        String actor = pending.isEmpty() ? null : players.get(new SeatOrder(players)
-                .firstPreflopActor(positions.getDealerSeat()).orElseThrow()).getPlayer().getId();
-        return new GameState(previous.getConfig(), UUID.randomUUID().toString(), GamePhase.SETUP,
+        Optional<String> actor = pending.isEmpty() ? Optional.empty()
+                : Optional.of(players.get(new SeatOrder(players)
+                        .firstPreflopActor(positions.getDealerSeat()).orElseThrow())
+                        .getPlayer().getId());
+        return GameState.create(previous.getConfig(), UUID.randomUUID().toString(), GamePhase.SETUP,
                 players, positions, actor, List.of(), List.of(),
                 new BettingProgress(currentBet, previous.getConfig().getBigBlind(), pending,
                         pending.size() > 1 ? pending : Set.of()));

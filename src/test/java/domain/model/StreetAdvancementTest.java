@@ -175,12 +175,6 @@ class StreetAdvancementTest {
     }
 
     @Test
-    @DisplayName("BE-SA12: reject a null advancement input")
-    void nullStateIsRejected() {
-        assertThrows(IllegalArgumentException.class, () -> engine.advanceStreet(null));
-    }
-
-    @Test
     @DisplayName("BE-SA13: postflop actor selection skips folded/all-in/eliminated seats")
     void postflopActorsExcludeIneligibleSeats() {
         FoundationFixtures.Fixture fixture = closedRound(GamePhase.PREFLOP);
@@ -292,7 +286,7 @@ class StreetAdvancementTest {
         for (int seat = 0; seat < 6; seat++) {
             fixture.player(seat, 1000 - hand, PlayerStatus.ACTIVE, round, hand);
         }
-        fixture.actor = null;
+        fixture.actor = java.util.Optional.empty();
         fixture.betting = new BettingProgress(round, 40, Set.of(), Set.of());
         return fixture;
     }

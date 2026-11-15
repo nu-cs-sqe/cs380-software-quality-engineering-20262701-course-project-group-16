@@ -48,9 +48,7 @@ class ActionPredictionTest {
         assertEquals(Map.of(ResolvedActionType.CHECK, 1.0), only.getProbabilities());
         assertEquals(Map.of(ResolvedActionType.CHECK, 0.0), only.getStandardDeviations());
         assertEquals(0.5, only.withAction(ResolvedActionType.CHECK).getEvidenceWeight());
-        assertThrows(IllegalArgumentException.class, () -> new ActionPrediction(null));
         assertThrows(IllegalArgumentException.class, () -> assertNotNull(only.withAction(ResolvedActionType.CALL)));
-        assertThrows(IllegalArgumentException.class, () -> assertNotNull(only.withAction(null)));
         assertEquals(0, only.getObservations());
     }
 }

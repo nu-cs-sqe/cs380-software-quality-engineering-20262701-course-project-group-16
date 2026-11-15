@@ -11,9 +11,6 @@ snapshot. Existing chip, blind, status and betting data must be retained.
 | ID | Method(s) | Input / state | Expected result | Implementation status |
 | --- | --- | --- | --- | --- |
 | INIT-C01 | GameInitializer(); start | Default settings; two humans | Dealt PREFLOP; six players; 6,000 conserved chips; all 52 cards split into 12 hole cards and 40 remaining | Yes - `defaultInitializerStartsADealtMatch` (passing) |
-| INIT-C02 | GameInitializer(config, dealerRandom, deckRandom) | Null config | IllegalArgumentException at construction | Yes - `rejectsNullDependencies(config)` (passing) |
-| INIT-C03 | Same constructor | Null dealer source | IllegalArgumentException at construction | Yes - `rejectsNullDependencies(dealer)` (passing) |
-| INIT-C04 | Same constructor | Null deck source | IllegalArgumentException at construction | Yes - `rejectsNullDependencies(deck)` (passing) |
 | INIT-V01 | Constructor; start | 1 human, dealer 0 | Two-round deal, SB 1, BB 2, actor 3 | Yes - `startsDealtMatchClockwiseAfterDealer` (passing) |
 | INIT-V02 | Constructor; start | 2 humans, dealer 1 | Two-round deal, SB 2, BB 3, actor 4 | Yes - same parameterized test (passing) |
 | INIT-V03 | Constructor; start | 5 humans, dealer 2 | Two-round deal, SB 3, BB 4, actor 5 | Yes - same parameterized test (passing) |
@@ -30,12 +27,13 @@ snapshot. Existing chip, blind, status and betting data must be retained.
 ## Add isolated initialization tests
 
 `application.GameInitializerTest` isolates orchestration with supplied setup/deal
-operations. Its 11 cases check requested counts, setup-before-dealing, exception
+operations. Its 10 current cases check requested counts, setup-before-dealing, exception
 propagation and fresh setup per start. Immutable domain values are fixtures;
 GameSetup, Deck and random sources do not run in these unit tests.
 
-The original 16 cases are retained as
-`integration.GameInitializerIntegrationTest`. Session tests are likewise named
+The original integration cases are retained as
+`integration.GameInitializerIntegrationTest`; three programmer-null dependency
+cases were retired on November 15. Session tests are likewise named
 `integration.SetupSessionIntegrationTest` because they run real initialization.
 The package-private `InitialDeal` owns deck construction and PlayerState copying;
 its behavior is checked by the real integration cases, not claimed as isolated.

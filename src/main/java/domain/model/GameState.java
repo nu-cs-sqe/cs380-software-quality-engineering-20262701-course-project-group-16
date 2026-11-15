@@ -28,38 +28,23 @@ public final class GameState {
     private final BettingHistory history;
 
     /**
-     * Creates a validated snapshot. A null actor is accepted at this legacy boundary
-     * and converted immediately to Optional.empty(); internal state never stores null.
+     * Creates a validated snapshot with explicit actor presence or absence.
      * The remaining deck is in deal order; burned/discarded cards need not appear in it.
      * All six seats remain after elimination. Contributions hold unawarded chips only.
-     * @throws IllegalArgumentException for missing/inconsistent state or unsafe chip totals
+     * @throws IllegalArgumentException for inconsistent state or unsafe chip totals
      */
-    public GameState(GameConfig config, String handId, GamePhase phase, List<PlayerState> players,
-            HandPositions positions, String currentActorId, List<Card> communityCards,
-            List<Card> remainingDeck, BettingProgress betting) {
-        this(config, handId, phase, players, positions, currentActorId, communityCards,
-                remainingDeck, betting, new BettingHistory());
-    }
-
-    /**
-     * Creates the same immutable snapshot with explicit engine-recorded betting provenance.
-     * Use this overload to preserve aggression/c-bet history in later snapshots.
-     * @throws IllegalArgumentException for invalid state or inconsistent history
-     */
-    public GameState(GameConfig config, String handId, GamePhase phase, List<PlayerState> players,
-            HandPositions positions, String currentActorId, List<Card> communityCards,
+    private GameState(GameConfig config, String handId, GamePhase phase, List<PlayerState> players,
+            HandPositions positions, Optional<String> currentActorId, List<Card> communityCards,
             List<Card> remainingDeck, BettingProgress betting, BettingHistory history) {
-        if (config == null || handId == null || handId.isBlank() || phase == null
-                || positions == null || betting == null || history == null) {
-            throw new IllegalArgumentException(
-                "Settings, hand identity, phase, positions and betting are required.");
+        if (handId.isBlank()) {
+            throw new IllegalArgumentException("Hand identity must not be blank.");
         }
         this.config = config;
         this.handId = handId;
         this.phase = phase;
         this.players = copyPlayers(players);
         this.positions = positions;
-        this.currentActorId = Optional.ofNullable(currentActorId);
+        this.currentActorId = currentActorId;
         this.communityCards = copyCards(communityCards);
         this.remainingDeck = copyCards(remainingDeck);
         this.betting = betting;
@@ -71,11 +56,32 @@ public final class GameState {
         validateHistory();
     }
 
+    /** Creates internal snapshots with explicit actor absence. */
+    public static GameState create(GameConfig config, String handId, GamePhase phase,
+            List<PlayerState> players, HandPositions positions, Optional<String> actor,
+            List<Card> community, List<Card> deck, BettingProgress betting) {
+        return new GameState(config, handId, phase, players, positions, actor, community, deck,
+                betting, new BettingHistory());
+    }
+
+    /** Creates an internal snapshot retaining engine history and explicit actor absence. */
+    public static GameState create(GameConfig config, String handId, GamePhase phase,
+            List<PlayerState> players, HandPositions positions, Optional<String> actor,
+            List<Card> community, List<Card> deck, BettingProgress betting,
+            BettingHistory history) {
+        return new GameState(config, handId, phase, players, positions, actor, community, deck,
+                betting, history);
+    }
+
     public BettingHistory getBettingHistory() {
         return history;
     }
 
     private void validateHistory() {
+        // Each raise increases the preflop target by at least one chip above the big blind.
+        if (history.getPreflopRaiseCount() > config.getInitialTotalChips() - config.getBigBlind()) {
+            throw new IllegalArgumentException("Preflop raise count exceeds the match chip limit.");
+        }
         Optional<String> aggressorId = history.getFinalPreflopAggressorId();
         if (aggressorId.isEmpty()) {
             return;
@@ -87,9 +93,9 @@ public final class GameState {
                 .filter(player -> player.getPlayer().getId().equals(aggressorId.orElseThrow()))
                 .findFirst().orElseThrow(() ->
                         new IllegalArgumentException("Unknown preflop aggressor."));
-        if (phase != GamePhase.COMPLETION && aggressor.getStatus() == PlayerStatus.ELIMINATED) {
+        if (phase != GamePhase.COMPLETION && !aggressor.isDealtSeat()) {
             throw new IllegalArgumentException(
-                    "An eliminated seat did not participate in this hand.");
+                    "An undealt seat did not participate in this hand.");
         }
         if (history.getFlopCBetAmount().isPresent()) {
             long amount = history.getFlopCBetAmount().orElseThrow();
@@ -111,9 +117,6 @@ public final class GameState {
     }
 
     private static List<Card> copyCards(List<Card> cards) {
-        if (cards == null || cards.stream().anyMatch(card -> card == null)) {
-            throw new IllegalArgumentException("Card collections and elements must be non-null.");
-        }
         return List.copyOf(cards);
     }
 
@@ -169,7 +172,7 @@ public final class GameState {
             List<Card> cards = state.getHoleCards();
             if ((phase == GamePhase.SETUP && !cards.isEmpty())
                     || (phase != GamePhase.SETUP && phase != GamePhase.COMPLETION
-                    && state.getStatus() != PlayerStatus.ELIMINATED && cards.size() != 2)) {
+                    && state.isDealtSeat() && cards.size() != 2)) {
                 throw new IllegalArgumentException(
                     "Hole cards must match setup or dealt-hand status.");
             }
@@ -196,7 +199,8 @@ public final class GameState {
         Set<String> eligible = players.stream().filter(PlayerState::canAct)
                 .map(state -> state.getPlayer().getId()).collect(Collectors.toSet());
         if (!eligible.containsAll(betting.getPlayersToAct())
-                || !eligible.containsAll(betting.getPlayersAllowedToRaise())) {
+                || !eligible.containsAll(betting.getPlayersAllowedToRaise())
+                || !eligible.containsAll(betting.getLastDecisionTargets().keySet())) {
             throw new IllegalArgumentException(
                 "Only active players may have pending decisions or raise rights.");
         }
@@ -208,8 +212,7 @@ public final class GameState {
                 "The current actor must be a pending active player.");
         }
         if ((phase == GamePhase.SHOWDOWN || phase == GamePhase.COMPLETION)
-                && (pending || currentActorId.isPresent()
-                || !betting.getPlayersAllowedToRaise().isEmpty())) {
+                && (pending || !betting.getPlayersAllowedToRaise().isEmpty())) {
             throw new IllegalArgumentException("A terminal phase has no betting decisions.");
         }
         if (phase == GamePhase.COMPLETION && getPot() != 0) {
@@ -294,7 +297,7 @@ public final class GameState {
 
     /** @throws IllegalArgumentException if the viewer is not a player in this match */
     public GameView viewFor(String playerId) {
-        if (playerId == null || players.stream()
+        if (players.stream()
                 .noneMatch(state -> state.getPlayer().getId().equals(playerId))) {
             throw new IllegalArgumentException("A view requires an existing player ID.");
         }

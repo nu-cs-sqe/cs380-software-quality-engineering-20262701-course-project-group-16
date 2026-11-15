@@ -46,8 +46,6 @@ class UniformDealSamplerTest {
     }
     @Test
     void usC03RejectsInvalidDependenciesRequestsAndRandomIndices() {
-        assertThrows(IllegalArgumentException.class, () -> new UniformDealSampler(null));
-        assertThrows(IllegalArgumentException.class, () -> new UniformDealSampler().sample(null));
         EquityRequest request = EquityFixtures.request(1, Rank.NINE);
         assertThrows(IllegalArgumentException.class, () -> new UniformDealSampler(b -> -1).sample(request));
         assertThrows(IllegalArgumentException.class, () -> new UniformDealSampler(b -> b).sample(request));

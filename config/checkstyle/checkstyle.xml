@@ -13,7 +13,18 @@
     </module>
     <module name="FileTabCharacter"/>
     <module name="NewlineAtEndOfFile"/>
+    <!-- Reject the extra blank line before an outer type's closing brace. -->
+    <module name="RegexpMultiline">
+        <property name="fileExtensions" value="java"/>
+        <property name="format" value="(?m)^[ \t]*\r?\n(?=})"/>
+        <property name="message" value="Remove the blank line before the closing type brace."/>
+    </module>
     <module name="TreeWalker">
+        <module name="RegexpSinglelineJava">
+            <property name="format" value="(?:==|!=)[ \t]*null\b|\breturn[ \t]+null\b|\.orElse\([ \t]*null[ \t]*\)|\bthis\([ \t]*null\b|\bnull[ \t]*(?:==|!=)|\b(?:requireNonNull(?:Else|ElseGet)?|isNull|nonNull)[ \t]*\(|\bObjects[ \t]*::[ \t]*(?:isNull|nonNull)"/>
+            <property name="ignoreComments" value="true"/>
+            <property name="message" value="Use non-null contracts and explicit absence; do not add null guards or sentinels."/>
+        </module>
         <module name="OuterTypeFilename"/>
         <module name="AvoidStarImport"/>
         <module name="RedundantImport"/>

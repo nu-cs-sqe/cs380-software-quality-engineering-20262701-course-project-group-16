@@ -19,14 +19,6 @@ class ShowdownResolverTest {
     private static final String BOARD = "2C 3D 4H 8S 9C";
     private static final String[] HANDS = {"AH AD", "KH KD", "QH QD", "JH JD", "TH TD", "6H 6D"};
 
-    @Test void SR_C01_rejectsNullEvaluator() {
-        assertThrows(NullPointerException.class, () -> new ShowdownResolver(null));
-    }
-
-    @Test void SR_N01_rejectsNullState() {
-        assertThrows(NullPointerException.class, () -> new ShowdownResolver().resolve(null));
-    }
-
     @Test void SR_V01_realEvaluatorFindsWinnerWithoutSettling() {
         GameState state = state(GamePhase.SHOWDOWN, statuses(), HANDS, BOARD);
         List<PlayerState> players = state.getPlayerStates();
@@ -119,8 +111,8 @@ class ShowdownResolverTest {
         Arrays.fill(status, PlayerStatus.FOLDED);
         status[0] = PlayerStatus.ACTIVE;
         GameState base = state(GamePhase.PREFLOP, status, HANDS, BOARD);
-        GameState pending = new GameState(base.getConfig(), base.getHandId(), base.getPhase(),
-                base.getPlayerStates(), base.getPositions(), "p0", base.getCommunityCards(),
+        GameState pending = GameState.create(base.getConfig(), base.getHandId(), base.getPhase(),
+                base.getPlayerStates(), base.getPositions(), java.util.Optional.of("p0"), base.getCommunityCards(),
                 base.getRemainingDeck(), new BettingProgress(0, 20, Set.of("p0"), Set.of()));
         assertThrows(IllegalStateException.class, () -> new ShowdownResolver().resolve(pending));
     }
@@ -130,8 +122,8 @@ class ShowdownResolverTest {
         Arrays.fill(status, PlayerStatus.FOLDED);
         status[0] = PlayerStatus.ACTIVE;
         GameState base = state(GamePhase.PREFLOP, status, HANDS, BOARD);
-        GameState pending = new GameState(base.getConfig(), base.getHandId(), base.getPhase(),
-                base.getPlayerStates(), base.getPositions(), null, base.getCommunityCards(),
+        GameState pending = GameState.create(base.getConfig(), base.getHandId(), base.getPhase(),
+                base.getPlayerStates(), base.getPositions(), java.util.Optional.empty(), base.getCommunityCards(),
                 base.getRemainingDeck(), new BettingProgress(0, 20, Set.of(), Set.of("p0")));
         assertThrows(IllegalStateException.class, () -> new ShowdownResolver().resolve(pending));
     }
@@ -162,8 +154,8 @@ class ShowdownResolverTest {
         }
         int boardSize = phase == GamePhase.SETUP || phase == GamePhase.PREFLOP ? 0
                 : phase == GamePhase.FLOP ? 3 : phase == GamePhase.TURN ? 4 : 5;
-        return new GameState(new GameConfig(), "result-hand", phase, players,
-                new SeatOrder(players).positionsFor(0), null, cards(boardText).subList(0, boardSize),
+        return GameState.create(new GameConfig(), "result-hand", phase, players,
+                new SeatOrder(players).positionsFor(0), java.util.Optional.empty(), cards(boardText).subList(0, boardSize),
                 List.of(), new BettingProgress(0, 20, Set.of(), Set.of()));
     }
 }

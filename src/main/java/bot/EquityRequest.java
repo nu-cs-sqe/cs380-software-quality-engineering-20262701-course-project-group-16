@@ -2,6 +2,7 @@ package bot;
 
 import domain.model.Card;
 import domain.model.GameView;
+import domain.model.GameConfig;
 import domain.model.PlayerStatus;
 import domain.model.PlayerView;
 import java.util.HashSet;
@@ -23,7 +24,6 @@ public final class EquityRequest {
 
     public EquityRequest(String heroId, List<Card> holeCards, List<Card> board,
             List<String> opponents, List<EquityPot> pots, int simulations) {
-        requireId(heroId);
         requireBounds(holeCards, board, opponents, pots, simulations);
         requireKnownCards(holeCards, board);
         Set<String> participants = requireParticipants(heroId, opponents);
@@ -45,13 +45,11 @@ public final class EquityRequest {
 
     private static void requireBounds(List<Card> holes, List<Card> board,
             List<String> opponents, List<EquityPot> pots, int simulations) {
-        if (holes == null || board == null || opponents == null || pots == null) {
-            throw new IllegalArgumentException("Cards, opponents and pots are required.");
-        }
         if (holes.size() != 2 || !Set.of(0, 3, 4, 5).contains(board.size())) {
             throw new IllegalArgumentException("Use two hole cards and a valid Hold'em board.");
         }
-        if (opponents.size() > 5 || pots.isEmpty() || pots.size() > 6
+        if (opponents.size() >= GameConfig.SEAT_COUNT
+                || pots.isEmpty() || pots.size() > GameConfig.SEAT_COUNT
                 || simulations < 1 || simulations > MAX_SIMULATIONS) {
             throw new IllegalArgumentException("Player, pot or simulation count is out of range.");
         }
@@ -65,27 +63,32 @@ public final class EquityRequest {
 
     private static void addKnown(List<Card> cards, Set<Card> known) {
         for (Card card : cards) {
-            if (card == null || !known.add(card)) {
-                throw new IllegalArgumentException("Known cards must be non-null and unique.");
+            if (!known.add(card)) {
+                throw new IllegalArgumentException("Known cards must be unique.");
             }
         }
     }
 
     private static Set<String> requireParticipants(String hero, List<String> opponents) {
-        Set<String> players = new HashSet<>(Set.of(hero));
+        Set<String> players = new HashSet<>();
+        addParticipant(players, hero);
         for (String opponent : opponents) {
-            requireId(opponent);
-            if (!players.add(opponent)) {
-                throw new IllegalArgumentException("Participant IDs must be unique.");
-            }
+            addParticipant(players, opponent);
         }
         return players;
+    }
+
+    private static void addParticipant(Set<String> players, String id) {
+        requireId(id);
+        if (!players.add(id)) {
+            throw new IllegalArgumentException("Participant IDs must be unique.");
+        }
     }
 
     private static void requirePots(List<EquityPot> pots, Set<String> players) {
         Set<String> ids = new HashSet<>();
         for (EquityPot pot : pots) {
-            if (pot == null || !ids.add(pot.getId())
+            if (!ids.add(pot.getId())
                     || !players.containsAll(pot.getEligiblePlayers())) {
                 throw new IllegalArgumentException("Pots require unique IDs and live eligibility.");
             }
@@ -93,16 +96,13 @@ public final class EquityRequest {
     }
 
     private static void requireId(String id) {
-        if (id == null || id.isBlank()) {
+        if (id.isBlank()) {
             throw new IllegalArgumentException("Participant IDs must be nonblank.");
         }
     }
 
     /** Uses only the viewer's cards and public information; pots describe a supplied scenario. */
     public static EquityRequest fromView(GameView view, List<EquityPot> pots, int simulations) {
-        if (view == null) {
-            throw new IllegalArgumentException("A filtered player view is required.");
-        }
         PlayerView hero = view.getPlayers().stream()
                 .filter(player -> player.getId().equals(view.getViewerId())).findFirst()
                 .orElseThrow();

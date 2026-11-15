@@ -71,14 +71,6 @@ class MonteCarloEquityEstimatorTest {
         assertEquals(120, estimate.getExpectedPayout());
     }
     @Test
-    void mcC06RejectsInvalidCalculationInputsAndDependencies() {
-        assertThrows(IllegalArgumentException.class, () -> new MonteCarloEquityEstimator(null, r -> EquityFixtures.deal()));
-        assertThrows(IllegalArgumentException.class, () -> new MonteCarloEquityEstimator(ORDER, null));
-        MonteCarloEquityEstimator estimator = new MonteCarloEquityEstimator(ORDER, r -> EquityFixtures.deal());
-        assertThrows(IllegalArgumentException.class, () -> estimator.estimate(null));
-        assertThrows(IllegalArgumentException.class, () -> estimator.estimate(EquityFixtures.request(1), null));
-    }
-    @Test
     void mcC07CancellationDoesNotReturnPartialResultsOrRetainAggregates() {
         AtomicInteger samples = new AtomicInteger();
         MonteCarloEquityEstimator estimator = new MonteCarloEquityEstimator(ORDER, r -> {

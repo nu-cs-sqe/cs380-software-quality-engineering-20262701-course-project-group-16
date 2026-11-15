@@ -22,8 +22,6 @@ class OpponentBeliefsTest {
                 ResolvedActionType.FOLD, ResolvedActionType.CALL));
         assertEquals(Map.of(ResolvedActionType.FOLD, 0.5, ResolvedActionType.CALL, 0.5), prediction.getProbabilities());
         assertEquals(0, beliefs.getObservedDecisions());
-        assertThrows(IllegalArgumentException.class, () -> beliefs.getPrediction(null));
-        assertThrows(IllegalArgumentException.class, () -> beliefs.getTendency(null));
     }
     @Test
     void obC02UpdatesChoicesWithoutChangingPreviouslyPublishedBeliefs() {
@@ -116,13 +114,6 @@ class OpponentBeliefsTest {
         assertTendency(beliefs, OpponentTendency.THREE_BET, 0, 0);
         assertEquals(Map.of(ResolvedActionType.FOLD, 1.0 / 3, ResolvedActionType.CALL, 2.0 / 3),
                 beliefs.getPrediction(context).getProbabilities());
-    }
-    @Test
-    void obC08RejectsMissingPredictionContextAfterLearningToo() {
-        OpponentBeliefs beliefs = new OpponentBeliefs().withDecision(decision(1, "p1", BettingStreet.TURN,
-                ResolvedActionType.CHECK, NONE, ResolvedActionType.CHECK));
-        assertThrows(IllegalArgumentException.class, () -> beliefs.getPrediction(null));
-        assertEquals(1, beliefs.getObservedDecisions());
     }
     private static void assertTendency(OpponentBeliefs beliefs, OpponentTendency tendency, long successes, long opportunities) {
         TendencyEstimate estimate = beliefs.getTendency(tendency);

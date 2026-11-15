@@ -2,7 +2,7 @@
 
 ## Input domains
 
-A card has one `Rank` and one `Suit`. Java enums restrict non-null inputs to the declared values; arbitrary numbers or strings cannot be passed to this constructor. The valid cases below sample the lowest/next-lowest and highest/next-highest ranks and all four suits. Null is the invalid input category.
+A card has one `Rank` and one `Suit`. Java enums restrict non-null inputs to the declared values; arbitrary numbers or strings cannot be passed to this constructor. The valid cases below sample the lowest/next-lowest and highest/next-highest ranks and all four suits. Rank and suit are required caller-supplied values.
 
 `Rank` and `Suit` are enums and do not require separate BVA documents under the repository's BVA rules.
 
@@ -19,13 +19,11 @@ Each case constructs a new card, then reads its rank and suit. A getter must ret
 
 ## Constructor validation: Card(Rank rank, Suit suit)
 
-The constructor rejects null rank/suit values with `NullPointerException`. All three validation cases below pass.
+The former programmer-null constructor cases are retired under the non-null
+caller contract; domain and Java Object.equals cases remain current.
 
 | ID | State/input | Expected output | Test implemented? |
 |---|---|---|---|
-| CARD-05 | Construct with null rank and SPADES | Reject with NullPointerException | Yes - `CardTest.cardRejectsNullRankOrSuit` (passing) |
-| CARD-06 | Construct with ACE and null suit | Reject with NullPointerException | Yes - `CardTest.cardRejectsNullRankOrSuit` (passing) |
-| CARD-07 | Construct with null rank and null suit | Reject with NullPointerException | Yes - `CardTest.cardRejectsNullRankOrSuit` (passing) |
 
 ## Methods: equals(Object other), hashCode()
 
@@ -44,4 +42,5 @@ Equality is based on rank and suit rather than object identity. The cases are ca
 
 ## TDD checkpoint status
 
-Rank/suit storage was completed in GREEN checkpoint `2219068`, and null validation in GREEN checkpoint `acbd186`. Equality RED checkpoint `82175f2` recorded failures for separate same-value cards and hash-based duplicate detection. This GREEN checkpoint overrides `equals` and `hashCode` using rank and suit. All 15 Card cases (CARD-01 through CARD-15) and the existing Deck test pass.
+Rank/suit storage was completed in GREEN checkpoint `2219068`, and null validation in GREEN checkpoint `acbd186`. Equality RED checkpoint `82175f2` recorded failures for separate same-value cards and hash-based duplicate detection. This GREEN checkpoint overrides `equals` and `hashCode` using rank and suit. Those 15 cases describe the historical checkpoint. The three constructor-null
+cases are now retired; the remaining 12 Card cases are current.

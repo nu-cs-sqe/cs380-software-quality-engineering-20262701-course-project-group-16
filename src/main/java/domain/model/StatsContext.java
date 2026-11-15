@@ -14,13 +14,10 @@ public final class StatsContext {
      * A faced-c-bet opportunity means this player faces an actual flop c-bet and
      * has a legal response decision. Raise level is authoritative engine context.
      *
-     * @throws IllegalArgumentException if fields are null or logically incompatible
+     * @throws IllegalArgumentException if fields are logically incompatible
      */
     public StatsContext(PreflopRaiseType preflopRaiseType, boolean threeBetOpportunity,
             boolean flopCBetOpportunity, boolean facedFlopCBetOpportunity) {
-        if (preflopRaiseType == null) {
-            throw new IllegalArgumentException("Preflop raise type must not be null.");
-        }
 
         if (flopCBetOpportunity && facedFlopCBetOpportunity) {
             throw new IllegalArgumentException("Opening and facing a flop c-bet are incompatible.");

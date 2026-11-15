@@ -1,5 +1,9 @@
 package domain.model;
+
+import static domain.model.GameConfig.SEAT_COUNT;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.OptionalInt;
 import java.util.HashSet;
 import java.util.Set;
@@ -7,38 +11,43 @@ import java.util.function.Predicate;
 
 /** Stable clockwise seats. Position selection does not decide whether a betting round is over. */
 public final class SeatOrder {
-    private static final int SEAT_COUNT = 6;
-    private final PlayerState[] bySeat = new PlayerState[SEAT_COUNT];
+    private final List<PlayerState> bySeat;
 
     /** @throws IllegalArgumentException unless all six seats and IDs are present exactly once */
     public SeatOrder(List<PlayerState> players) {
-        if (players == null || players.size() != SEAT_COUNT) {
+        bySeat = indexPlayers(players);
+    }
+
+    private static List<PlayerState> indexPlayers(List<PlayerState> players) {
+        if (players.size() != SEAT_COUNT) {
             throw new IllegalArgumentException("Six stable seat records are required.");
         }
         Set<String> ids = new HashSet<>();
+        Set<Integer> seats = new HashSet<>();
         for (PlayerState state : players) {
-            if (state == null || bySeat[state.getPlayer().getSeat()] != null
+            if (!seats.add(state.getPlayer().getSeat())
                     || !ids.add(state.getPlayer().getId())) {
                 throw new IllegalArgumentException(
-                    "Players, seats and IDs must be unique and non-null.");
+                    "Seats and player IDs must be unique.");
             }
-            bySeat[state.getPlayer().getSeat()] = state;
         }
+        List<PlayerState> indexed = new ArrayList<>(players);
+        indexed.sort(Comparator.comparingInt(state -> state.getPlayer().getSeat()));
+        return List.copyOf(indexed);
     }
 
     /**
      * Assigns blinds among remaining players; folded/all-in seats retain their hand positions.
-     * @throws IllegalArgumentException if the dealer seat is invalid or eliminated
+     * @throws IllegalArgumentException if the dealer seat is invalid or inactive for the hand
      * @throws IllegalStateException if fewer than two players remain
      */
     public HandPositions positionsFor(int dealer) {
         requireSeat(dealer);
-        long remaining = java.util.Arrays.stream(bySeat)
-                .filter(state -> state.getStatus() != PlayerStatus.ELIMINATED).count();
+        long remaining = bySeat.stream().filter(PlayerState::isDealtSeat).count();
         if (remaining < 2) {
             throw new IllegalStateException("A hand requires at least two remaining players.");
         }
-        if (bySeat[dealer].getStatus() == PlayerStatus.ELIMINATED) {
+        if (!bySeat.get(dealer).isDealtSeat()) {
             throw new IllegalArgumentException("The dealer must be a remaining player.");
         }
         int smallBlind = remaining == 2 ? dealer : nextDealerAfter(dealer).orElseThrow();
@@ -47,7 +56,7 @@ public final class SeatOrder {
 
     /** Moving-button policy; an empty result means no player remains. */
     public OptionalInt nextDealerAfter(int seat) {
-        return nextAfter(seat, state -> state.getStatus() != PlayerStatus.ELIMINATED);
+        return nextAfter(seat, PlayerState::isDealtSeat);
     }
 
     /** Skips eliminated, folded and all-in players; empty means nobody can act. */
@@ -68,7 +77,7 @@ public final class SeatOrder {
         requireSeat(seat);
         for (int distance = 1; distance <= SEAT_COUNT; distance++) {
             int next = (seat + distance) % SEAT_COUNT;
-            if (eligible.test(bySeat[next])) {
+            if (eligible.test(bySeat.get(next))) {
                 return OptionalInt.of(next);
             }
         }

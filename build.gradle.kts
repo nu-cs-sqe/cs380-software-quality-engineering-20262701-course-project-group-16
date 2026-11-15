@@ -49,7 +49,7 @@ application {
     mainClass.set("ui.Main")
 }
 
-// Shared scope includes settlement, statistics, continuation and standalone equity calculation.
+// Shared scope includes betting, settlement, statistics and stable-seat continuation.
 // This is not a whole-team coverage or mutation score.
 val measuredClasses = listOf(
     "domain.model.Card",
@@ -66,6 +66,23 @@ val measuredClasses = listOf(
     "domain.model.PotSettlement",
     "domain.model.Settlement",
     "domain.model.PlayStats",
+    "domain.model.BettingEngine",
+    "domain.model.BettingAmounts",
+    "domain.model.BettingRound",
+    "domain.model.BettingHistory",
+    "domain.model.BettingProgress",
+    "domain.model.GameConfig",
+    "domain.model.GameState",
+    "domain.model.Player",
+    "domain.model.PlayerState",
+    "domain.model.HandPositions",
+    "domain.model.SeatOrder",
+    "domain.model.ActionRequest",
+    "domain.model.AcceptedAction",
+    "domain.model.BettingResult",
+    "domain.model.LegalActions",
+    "domain.model.StatsContext",
+    "domain.model.StatsAction",
     "application.SetupSession",
     "application.SetupView",
     "localization.Localizations",
@@ -74,13 +91,13 @@ val measuredClasses = listOf(
     "bot.EquityEstimate",
     "bot.UniformDealSampler",
     "bot.MonteCarloEquityEstimator",
-    "domain.model.StatsContext",
     "bot.learning.DecisionContext",
     "bot.learning.TendencyEstimate",
     "bot.learning.PublicDecision",
     "bot.learning.ActionPrediction",
     "bot.learning.OpponentBeliefs",
-    "bot.learning.OpponentModel"
+    "bot.learning.OpponentModel",
+    "domain.model.GameSetup"
 )
 val measuredClassFiles = measuredClasses.flatMap {
     val path = it.replace('.', '/')
@@ -121,6 +138,21 @@ tasks.withType<Checkstyle>().configureEach {
     }
 }
 
+// Initially enforce named rule constants in the shared table/configuration boundary.
+val checkstyleSeatRules = tasks.register<Checkstyle>("checkstyleSeatRules") {
+    configFile = file("config/checkstyle/checkstyle-seat-rules.xml")
+    source(fileTree("src/main/java") {
+        include("domain/model/HandPositions.java", "domain/model/GameConfig.java",
+                "domain/model/SeatOrder.java", "domain/model/Player.java",
+                "domain/model/PotSettlement.java")
+    })
+    classpath = files()
+    reports {
+        html.outputLocation.set(layout.buildDirectory.file("reports/checkstyle/seat-rules.html"))
+        xml.outputLocation.set(layout.buildDirectory.file("reports/checkstyle/seat-rules.xml"))
+    }
+}
+
 tasks.named<Checkstyle>("checkstyleTest") {
     configFile = file("config/checkstyle/checkstyle-test.xml")
 }
@@ -147,23 +179,8 @@ pitest {
     targetClasses.set(measuredClasses.flatMap { listOf(it, "$it\$*") }.toSet())
     excludedClasses.set(setOf("domain.model.ShowdownResult\$Status"))
     targetTests.set(setOf(
-        "domain.model.CardTest", "domain.model.DeckTest", "domain.model.DeckSetupTest",
-        "domain.model.PokerHandEvaluatorTest", "domain.model.PokerHandRankingTest",
-        "domain.model.ShowdownResolverTest",
-        "domain.model.ShowdownResultTest", "application.GameInitializerTest",
-        "integration.GameInitializerIntegrationTest",
-        "integration.SetupSessionIntegrationTest", "application.SessionBettingTest",
-        "application.HandStatisticsTest", "application.SessionStatisticsIntegrationTest",
-        "domain.model.PotSettlementTest", "domain.model.PlayStatsTest",
-        "domain.model.PlayStatsCopyTest", "application.NextHandTest",
-        "application.CompletedStatisticsIntegrationTest", "application.ShortBlindIntegrationTest",
-        "application.SetupViewTest", "integration.SetupIntegrationTest",
-        "integration.ShowdownIntegrationTest", "integration.PlayedHandIntegrationTest",
-        "localization.LocalizationsTest",
-        "bot.EquityPotTest", "bot.EquityRequestTest", "bot.UniformDealSamplerTest",
-        "bot.MonteCarloEquityEstimatorTest", "bot.EquityViewIntegrationTest",
-        "bot.EquityIntegrationTest", "domain.model.StatsContextTest",
-        "bot.learning.*Test"
+        "domain.model.*Test", "application.*Test", "integration.*Test",
+        "localization.LocalizationsTest", "bot.*Test", "bot.learning.*Test"
     ))
     threads.set(2)
     mutators.set(setOf("DEFAULTS"))
@@ -176,5 +193,5 @@ pitest {
 }
 
 tasks.check {
-    dependsOn(tasks.jacocoTestReport)
+    dependsOn(tasks.jacocoTestReport, checkstyleSeatRules)
 }

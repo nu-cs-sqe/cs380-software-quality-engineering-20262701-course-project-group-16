@@ -1,8 +1,9 @@
 package bot.learning;
 
+import domain.model.GameConfig;
+
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiFunction;
 
@@ -20,7 +21,7 @@ public final class OpponentModel {
 
     OpponentModel(String matchId, String observerId, Map<String, OpponentBeliefs> initial,
             BiFunction<OpponentBeliefs, PublicDecision, OpponentBeliefs> update) {
-        requireRegistration(matchId, observerId, initial, update);
+        requireRegistration(matchId, observerId, initial);
         this.matchId = matchId;
         this.observerId = observerId;
         beliefs = new HashMap<>(initial);
@@ -28,21 +29,16 @@ public final class OpponentModel {
     }
 
     private static Map<String, OpponentBeliefs> emptyBeliefs(Set<String> opponents) {
-        if (opponents == null) {
-            throw new IllegalArgumentException("A set of opponent identities is required.");
-        }
         Map<String, OpponentBeliefs> result = new HashMap<>();
         opponents.forEach(id -> result.put(id, new OpponentBeliefs()));
         return result;
     }
 
     private static void requireRegistration(String match, String observer,
-            Map<String, OpponentBeliefs> initial,
-            BiFunction<OpponentBeliefs, PublicDecision, OpponentBeliefs> update) {
+            Map<String, OpponentBeliefs> initial) {
         requireId(match);
         requireId(observer);
-        if (initial == null || update == null || initial.size() > 5
-                || initial.values().stream().anyMatch(Objects::isNull)) {
+        if (initial.size() >= GameConfig.SEAT_COUNT) {
             throw new IllegalArgumentException(
                     "At most five opponents and an updater are required.");
         }
@@ -56,7 +52,7 @@ public final class OpponentModel {
     }
 
     private static void requireId(String id) {
-        if (id == null || id.isBlank()) {
+        if (id.isBlank()) {
             throw new IllegalArgumentException("Match and participant IDs must be nonblank.");
         }
     }
@@ -73,8 +69,7 @@ public final class OpponentModel {
         String player = decision.getAction().getPlayerId();
         boolean learned = decision.isStrategic() && !observerId.equals(player);
         if (learned) {
-            OpponentBeliefs next = Objects.requireNonNull(
-                    update.apply(beliefs.get(player), decision));
+            OpponentBeliefs next = update.apply(beliefs.get(player), decision);
             beliefs.put(player, next);
         }
         lastSequence = decision.getSequence();
@@ -82,7 +77,7 @@ public final class OpponentModel {
     }
 
     private void requireKnownEvent(PublicDecision decision) {
-        if (decision == null || !matchId.equals(decision.getMatchId())) {
+        if (!matchId.equals(decision.getMatchId())) {
             throw new IllegalArgumentException("The accepted event must belong to this match.");
         }
         String player = decision.getAction().getPlayerId();
@@ -92,10 +87,9 @@ public final class OpponentModel {
     }
 
     public OpponentBeliefs snapshot(String opponentId) {
-        OpponentBeliefs result = beliefs.get(opponentId);
-        if (result == null) {
+        if (!beliefs.containsKey(opponentId)) {
             throw new IllegalArgumentException("A registered opponent is required.");
         }
-        return result;
+        return beliefs.get(opponentId);
     }
 }

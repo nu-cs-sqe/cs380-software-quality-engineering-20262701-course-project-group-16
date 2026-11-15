@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Optional;
 import java.util.Set;
 
 /** Validated, resource-backed language catalog. No JVM-default locale fallback is used. */
@@ -38,13 +39,10 @@ public final class Localizations {
 
     /**
      * Loads UTF-8 resources from a supplied application resource loader.
-     * @throws IllegalArgumentException for null loaders, invalid configuration,
+     * @throws IllegalArgumentException for invalid configuration,
      *     or incomplete messages
      */
     public static Localizations load(ClassLoader loader) {
-        if (loader == null) {
-            throw new IllegalArgumentException("A resource loader is required.");
-        }
         Properties config = read(loader, "ui/languages.properties");
         List<String> languages = new ArrayList<>();
         Map<String, Locale> locales = new LinkedHashMap<>();
@@ -134,7 +132,7 @@ public final class Localizations {
      */
     public String text(String language, String key, Object... arguments) {
         Properties messages = bundle(language);
-        if (key == null || !messages.containsKey(key)) {
+        if (!messages.containsKey(key)) {
             throw new IllegalArgumentException("Unknown message key: " + key);
         }
         String pattern = messages.getProperty(key);
@@ -144,24 +142,23 @@ public final class Localizations {
             argumentCount = Math.max(argumentCount, index + 1);
         }
         MessageFormat format = new MessageFormat(pattern, locale);
-        if (arguments == null || arguments.length != argumentCount) {
+        if (arguments.length != argumentCount) {
             throw new IllegalArgumentException("Incorrect argument count for " + key);
         }
         return format.format(arguments);
     }
 
     private Properties bundle(String language) {
-        if (language == null || !bundles.containsKey(language)) {
+        if (!bundles.containsKey(language)) {
             throw new IllegalArgumentException("Unsupported language: " + language);
         }
         return bundles.get(language);
     }
 
     private static Properties read(ClassLoader loader, String path) {
-        try (InputStream input = loader.getResourceAsStream(path)) {
-            if (input == null) {
-                throw new IllegalArgumentException("Missing localization resource: " + path);
-            }
+        try (InputStream input = Optional.ofNullable(loader.getResourceAsStream(path))
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Missing localization resource: " + path))) {
             try (InputStreamReader reader = new InputStreamReader(input, StandardCharsets.UTF_8)) {
                 Properties properties = new Properties();
                 properties.load(reader);
@@ -174,8 +171,8 @@ public final class Localizations {
     }
 
     private static String required(Properties properties, String key) {
-        String value = properties.getProperty(key);
-        if (value == null || value.trim().isEmpty()) {
+        String value = properties.getProperty(key, "");
+        if (value.trim().isEmpty()) {
             throw new IllegalArgumentException("Missing or blank localization value: " + key);
         }
         return value;

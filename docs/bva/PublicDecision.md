@@ -3,7 +3,7 @@
 | ID | Methods | State/input | Expected output | Implemented? |
 | --- | --- | --- | --- | --- |
 | PD-C01 | context constructor/getMatchId/getSequence/getAction/getContext/isStrategic | Exact match ID, Long.MAX_VALUE sequence, accepted CHECK | Preserve immutable public event | Yes |
-| PD-C02 | constructor | Missing fields, sequence −1/0, wrong street/choice, non-fold departure | Reject | Yes |
+| PD-C02 | constructor | Blank match ID, sequence −1/0, wrong street/choice, non-fold departure | Reject | Yes |
 | PD-C03 | isStrategic | Forced post, automatic departure fold, voluntary fold | Only voluntary fold is strategic | Yes |
 | PD-C04 | constructor/getAction/isStrategic | All-in CALL/BET/RAISE | Preserve resolved action meaning | Yes |
 | PD-C05 | context constructor | Three-bet opportunity but no legal RAISE | IllegalArgumentException | Yes |
@@ -17,8 +17,8 @@ Only AcceptedAction can enter this boundary; rejected requests produce no learni
 
 The context constructor accepts a public legal-choice snapshot. The automatic-event
 constructor avoids invented choices for forced posts or non-current departures.
-Null at the optional public boundary is immediately converted to Optional.empty();
-a strategic choice must then supply context. Internal fields never store null.
+The context overload requires a supplied context; the automatic-event overload
+represents absence with Optional.empty(). A strategic choice cannot omit context.
 
 PD-C05/06 ran two expected RED cases before consistency checks; PD-C07–09 ran
 three expected RED cases before the automatic-event constructor. PublicDecision

@@ -65,17 +65,11 @@ public final class OpponentBeliefs {
     }
 
     public ActionPrediction getPrediction(DecisionContext context) {
-        if (context == null) {
-            throw new IllegalArgumentException("A public prediction context is required.");
-        }
         return predictions.stream().filter(prediction -> prediction.getContext().matches(context))
                 .findFirst().orElseGet(() -> new ActionPrediction(context));
     }
 
     public TendencyEstimate getTendency(OpponentTendency tendency) {
-        if (tendency == null) {
-            throw new IllegalArgumentException("A named tendency is required.");
-        }
         return tendencies.get(tendency);
     }
 

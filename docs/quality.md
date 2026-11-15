@@ -8,6 +8,85 @@ no `ignoreFailures`, global suppression or baseline hiding existing warnings. Re
 CI uploads test, coverage, mutation and static-analysis reports even after a
 failed step.
 
+## Instructor cleanup and local integration — November 15, 2026
+
+Local branch `refactor/instructor-null-formatting` combines E03/E04 (`54de9ad`)
+with main `bda4954`, which merged Kevin's PR #23 (`41c1455`). The merge is resolved
+and deliberately uncommitted. Profile PR #21 remains separate from this code.
+The source of the Week 7 feedback is [instructor PR #22](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/pull/22).
+
+The four requested cleanup areas are implemented locally: focused street and
+validation helpers; shared named table/default constants; a consistent non-null
+caller contract with explicit actor/aggressor absence; and automatic formatting
+checks. The earlier internal-only cleanup was incomplete; this final pass removes
+the repeated manual null guards across production (zero manual null comparisons),
+removes nullable String actor constructors and migrates existing callers/fixtures.
+BettingHistory uses Optional for absence; automatic PublicDecision events use a
+separate overload. The localization loader normalizes a missing JDK resource once;
+external resource validation remains. The final follow-up removes all 11 remaining requireNonNull calls as well,
+including construction and composition-result guards. There are no production
+manual null comparisons or requireNonNull/isNull/nonNull guard calls.
+AGENTS.md records these conventions, focused methods and the 100-character limit
+for future work; method responsibility still requires review, rather than an
+arbitrary numeric method-length claim.
+See the [API contract](design/README.md#instructor-follow-up-november-15).
+
+| Check | Verified result |
+| --- | --- |
+| Full suite | **1,194 passing**, zero failures/errors/skips. Includes Kevin's betting suite, E03/E04 and five explicit-absence business cases; 80 obsolete programmer-null invocations retired from the earlier 1,274 checkpoint (six in this final follow-up). |
+| Checkstyle | Zero main, test and seat-rule findings. The new seat-rule task is part of check/build. |
+| SpotBugs | Zero main/test unexcluded findings, analysis errors or missing classes. Two exact constructor/collaborator exceptions are documented below and remain visible for peer review. |
+| Shared measurement | **46 parent components / 48 reported classes**, including newly measured GameSetup and both standalone bot packages. |
+| JaCoCo | **1,915/1,916 lines; 1,161/1,162 branches; 1,084/1,085 complexity counters; 9,703/9,708 instructions; 498/498 methods; 48/48 classes.** |
+| PIT | **1,223/1,237 killed (98.87%)**; the same 14 documented survivors as Kevin's PR, zero uncovered/timeout/error mutants. PIT lines 1,911/1,914; 68 selected test classes, 9,989 executions across mutants. |
+
+The sole missed JaCoCo path remains GameState's enum-default fallback;
+its rationale and acceptance limits are retained below. The seven original
+survivors and seven betting/state survivors remain visible with their existing
+reasoning. The cleanup introduces no new survivor. This is not an unqualified
+100% cyclomatic/path or all-mutants grading claim; instructor/peer acceptance of
+the remaining interpretations is still required. GameSetup kills 15/15 mutants;
+EquityRequest 45/45 and OpponentModel 24/24.
+No operator, target or exclusion was removed to improve the score.
+
+The retained five OptionalGameStateTest cases were observed RED before the
+factory implementation, then GREEN. They cover actor presence, explicit absence,
+provided history, an unknown actor and pending-decision consistency. New TDD/BVA
+cases follow the user's business-boundary focus. Current business boundaries
+remain covered; retired reference-input cases are
+removed from current BVA tables without renumbering. Historical RED/GREEN evidence
+and dated counts remain intact; no synthetic test-first Git commits were created.
+
+A verification run exposed one additional EquityRequest survivor: the hero-ID
+check overlapped other scenario validation. Participant validation was consolidated
+into one addParticipant helper for hero and opponents. The final rerun kills that
+mutant and retains only the 14 existing survivors. No mutation operator, measured
+class or test-target pattern was dropped. Reduced counters reflect removed guards,
+not measurement exclusions.
+
+Negative Checkstyle verification caught the exact extra blank at StatisticsPanel
+line 85 plus InitialDeal's matching final blank before either was fixed. The
+new production check also caught the existing internal absence propagation
+patterns. A final temporary requireNonNull guard in Card was rejected by the
+strengthened rule, then the original source was restored before final verification. MagicNumber first reported six actual violations in HandPositions and
+GameConfig, then passed after named constants were introduced. Its initial scope
+is explicitly GameConfig, HandPositions, SeatOrder, Player and PotSettlement;
+ordinary production style continues to apply to every main Java source. This is
+not a global magic-number compliance claim. The task uses supported Gradle task
+registration and introduces no Gradle deprecation warning.
+
+No local scratch reports, second checkout, agent commit or push were created.
+Standard Gradle reports remain under build/. Remote CI and peer review for this
+uncommitted integration are pending. Both main and bot test patterns are retained
+in PIT; merging one side did not remove the other team's measurement.
+
+Two functional PR #23 review follow-ups remain separate from this refactor:
+(1) a queued, non-all-in quitter can remain eligible for an uncontested win before
+its turn; (2) retirement currently permits a match winner below 6,000 chips,
+contradicting issue #20's stated terminal requirement. These need a regression/fix
+and explicit policy reconciliation before complete-backend acceptance. E05/E06
+also still need varied decisions and safe live application wiring.
+
 ## E04 opponent learning — November 10, 2026
 
 Verified locally on `feature/opponent-learning`, based on the committed/pushed
@@ -126,6 +205,159 @@ integration work. CI, peer review and merge for this branch are pending; leave
 E03 unchecked in issue #20 until those gates are met.
 
 ## Completed match statistics — November 6, 2026
+
+## Week 7 departure, legal actions and state measurement (November 13, 2026)
+
+Branch `feature/week7-betting`, code `b9ae32b`. Local `build pitest` passed
+with Gradle 9.7.1 on JDK 17 and Java 11 compilation/tests.
+
+| Check | Result |
+| --- | --- |
+| Team suite | **1,169 passing**, zero failures, errors or skips. |
+| Checkstyle / SpotBugs | Zero main/test findings and no new exclusions. |
+| JaCoCo, 34 configured parent components | **1,531/1,532 lines, 1,103/1,104 branches, 922/923 complexity counters, 7,922/7,927 instructions, 365/365 methods and 36/36 classes.** |
+| PIT | **1,037/1,051 killed (98.67%)**, 14 reviewed survivors, zero uncovered, timeout or error mutants. |
+
+The new scope adds core state, betting input/output and statistics context
+classes. The sole missed JaCoCo branch is the unknown-phase fallback in
+`GameState.validateCards`. Every `GamePhase` constant has a case, and
+construction rejects a missing phase before validation.
+
+Boundary and real-session tests cover departure during and outside a player's
+turn, all-in eligibility through payout, exclusion from later hands, and
+private-card handoffs. They also check exact-stack calls, full and short wager
+targets, and the inclusive raise-count limit for constructed snapshots.
+Headless Swing tests exercise the controls in both languages.
+
+| Remaining survivor | Count | Reason |
+| --- | --- | --- |
+| Evaluator and hash-code baseline | 7 | Six evaluator mutations preserve ranking. The constant hash preserves Java's contract but changes hash values. Course acceptance remains pending. See [mutation survivor review](#mutation-survivor-review). |
+| `BettingEngine` | 3 | A zero c-bet cannot have an outstanding call in the matching context. The acting seat has left the pending set before the search wraps. A zero chip delta cannot exhaust an active player's positive stack. |
+| `BettingRound.closeMatchedLoneActor` | 1 | Including the actor in the maximum keeps the same comparison against other contributions. |
+| `BettingAmounts.chipsAdded` | 1 | Accepted-action validation still rejects a zero-chip CALL before any state is published. |
+| `GameState.hasShortBlindTarget` | 1 | The caller checks that the posted maximum differs from the target, which this helper requires to equal the big blind. |
+| `GameConfig.validateSettings` | 1 | A zero starting stack still violates the required positive big blind and its stack limit. |
+
+## Betting statistics context — November 12, 2026
+
+Branch `feature/week7-betting`, code `a7c0f14`. Local `build pitest` passed
+with Gradle 9.7.1 on JDK 17 and Java 11 compilation/tests.
+
+| Check | Result |
+| --- | --- |
+| Team suite | **1,138 passing**, zero failures/errors/skips; 11 cases added. |
+| Checkstyle / SpotBugs | Zero main/test findings; no new exclusions. |
+| 22 configured parent components | **1,080 lines, 646 branches, 550 complexity counters, 5,735 instructions, 223 methods and 23 reported classes**, zero missed counters. |
+| PIT | **629/643 killed (97.82%)**, 14 survivors; zero uncovered, timeout or error mutants. Selected-test line coverage 1,076/1,078; 36 test classes and 6,499 executions across mutants. |
+
+The scope is unchanged. GameState's new count bound is exercised by the full
+suite; GameState remains outside the measured scope pending K06. The 14
+survivors match the prior checkpoint, including the c-bet boundary now in
+`BettingEngine.flopContext`. No new survivor or exclusion was introduced.
+
+Four inconsistent-count cases failed before constructor validation. Review
+identified the overflow risk from an impossible count; two more tests failed
+before the snapshot bound was added. The legal replay cases reach the same
+wager with different raise counts, including short all-ins. Settlement tests
+confirm that the all-in caller remains CALL and that direct c-bet responses
+alone receive a fold-to-c-bet denominator. See [K03 cases](bva/BettingHistory.md#k03-exact-raise-counts-and-all-in-observations).
+
+## Short all-ins and reopening — November 11, 2026
+
+Branch `feature/week7-betting`, code `978a826`, after K01 report commit
+`cc17bf4`. Local `build pitest` passed with Gradle 9.7.1 on JDK 17 and Java 11
+compilation/tests. Remote checks and partner approval remain pending.
+
+| Check | Result |
+| --- | --- |
+| Team suite | **1,127 passing**, zero failures/errors/skips; 36 cases added. |
+| Checkstyle / SpotBugs | Zero main/test findings; no new exclusions. The immutable map copy is explicit in its constructor. |
+| 22 configured parent components | **1,078 lines, 638 branches, 544 complexity counters, 5,700 instructions, 221 methods and 23 reported classes**, zero missed counters. |
+| PIT | **621/635 killed (97.80%)**, 14 survivors; zero uncovered, timeout or error mutants. Selected-test line coverage 1,074/1,076; 36 test classes and 6,493 executions across mutants. |
+
+The scope adds BettingProgress. GameState's new decision-history validation is
+covered by the full suite; GameState and the other state classes remain outside
+the measurement scope pending K06. Scoped JaCoCo counters do not prove
+whole-game coverage or independent basis paths.
+
+The [K02 cases](bva/ShortAllInBetting.md) first showed 13 of 18 engine cases
+failing and both application cases failing, then all passing. The first full
+run and code review caught an opening-minimum regression with a valid unopened
+snapshot carrying a stale prior increment. A short-opening regression also
+failed before the correction. The final run covers short/full openings,
+individual reopening, exact-stack calls, side pots and automatic board runout.
+
+Seven survivors are the unchanged evaluator/hash baseline described below.
+The other seven preserve the engine contract for the same reasons as at K01:
+three BettingEngine boundary changes (zero c-bet, zero chip delta and revisiting
+the acting seat), three BettingAmounts guards (zero-cost CALL and two routes
+past unopened preflop BET validation), and one BettingRound predicate (including
+the lone actor in the opposing maximum). The redundant guards can affect
+exception text but still reject the same requests before publishing state.
+The target-at-current-wager guard now matters for exact-stack matches; a
+regression kills both mutations there. No survivors were excluded from the score.
+
+## Full betting checkpoint — November 9, 2026 (historical)
+
+Branch `feature/week7-betting`, code `fda5bdf`, based on merged main `c71e9d6`. Local
+`build pitest` passed with Gradle 9.7.1 on JDK 17 and Java 11 compilation/tests.
+Push, new remote CI and partner approval remain pending.
+
+| Check | Result |
+| --- | --- |
+| Team suite | **1,091 passing**, zero failures/errors/skips; 58 added cases. |
+| Checkstyle / SpotBugs | Zero main/test findings, analysis errors or missing classes; existing exact exceptions retained. |
+| 21 configured parent components | **1,034 lines, 600 branches, 509 complexity counters, 5,468 instructions, 205 methods and 22 reported classes**, zero missed counters. |
+| PIT | **580/599 killed (96.83%)**, 19 survivors; zero uncovered, timeout or error mutants. Selected-test line coverage 1030/1032; 32 test classes and 6,097 executions across mutants. |
+
+The added components are BettingEngine, BettingAmounts, BettingRound and
+BettingHistory. This extends the earlier 17-parent scope; the remaining state
+classes are still outside it. Swing remains exempt from scoped metrics.
+JaCoCo uses the full JUnit suite; PIT uses selected tests, so its line count
+can differ. These counters do not prove whole-game or independent basis-path
+coverage. No mutation operator, target class or exclusion was removed to improve
+these results; K06 still includes the remaining betting/state measurement work.
+
+TDD: 45 boundary cases and two real played-hand integration cases failed before
+implementation, then passed. Eleven later regression cases address reported
+coverage/mutation gaps: affordable full-raise opportunity boundaries, opening
+minimum/stack limits, rejection before dealing, matched/aggressor c-bet context,
+short-blind targets and closing independent raise rights. The actual pipeline
+uses real setup/dealing, betting, evaluation, payouts and completed statistics,
+with controlled Random; it adds no mock library. Read-only code review found no
+actionable K01 issues.
+
+The raw 19 survivors remain visible. Seven are the unchanged evaluator/hash
+baseline reviewed below; the twelve additional betting survivors are reviewed
+separately below. K02 short all-in/reopening rules and K05 UI/limits are not
+claimed complete by these measurements.
+
+### Betting survivor review
+
+Read-only review of source, PIT reports and bytecode found these twelve survivors
+equivalent under the public engine contract (exception type, acceptance and
+immutable state). Guard-removal mutants can change error messages or exception
+origin; those are not promised by that contract. Keep all mutants in the raw
+score and reassess these conclusions when K02 changes validation/reopening.
+
+| Location / mutant | Count | Reason |
+| --- | --- | --- |
+| BettingEngine.contextFor:178, c-bet positive boundary | 1 | With cBet=0, the remaining conditions require currentBet=0 and a negative round contribution, which valid states reject. |
+| BettingEngine.nextPendingActor:211, loop boundary | 1 | The omitted final iteration revisits the actor, whose ID was already removed from pending decisions. |
+| BettingEngine.resolveAction:152, positive chip delta boundary | 1 | An ACTIVE actor has a positive stack; zero chips cannot equal that stack or make the actor all-in. |
+| BettingAmounts.canMakeFullWager:51, maximum/current boundary | 1 | Equality leaves zero increment, below the positive full minimum. |
+| BettingAmounts.chipsAdded:18, remove zero-cost CALL guard | 1 | AcceptedAction constructs StatsAction, which independently rejects zero-chip CALL before publishing state. |
+| BettingAmounts.wagerDelta:35, target/current boundary and removed ordering guard | 2 | Targets at/below currentBet have a nonpositive increment and still fail the later positive full minimum; subtracting nonnegative bounded amounts cannot overflow. |
+| BettingAmounts.wagerDelta:29/30, remove opening/PREFLOP checks | 2 | Bytecode indices 32/38 skip only the unopened-preflop phase rejection; the BET/opening-kind check remains. Their only new path is preflop BET, independently rejected by StatsAction.validateStreet. |
+| BettingRound.after:25, participant-count boundary | 1 | With exactly one participant, lone-actor cleanup already clears pending, or no active pending player remains. The pending-empty condition still closes both sets. |
+| BettingRound.after:27, remove pending.clear | 1 | Pending is already empty whenever this block runs; independent raise rights still clear. |
+| BettingRound.closeMatchedLoneActor:48, include actor in opposing maximum | 1 | Testing actor >= max(opponents, actor) gives the same result as actor >= max(opponents), including the empty-opponent zero default. |
+
+The other seven survivors retain the earlier six evaluator and one hash-contract
+rationales below. No additional exclusion or artificial hash-value assertion was
+added to force a perfect mutation score.
+
+## Completed match statistics — November 6, 2026 (historical)
 
 Branch `feature/week6-finish`; local `build pitest` uses Gradle 9.7.1 / JDK 17
 with Java 11 compilation/tests. Checkpoints: `1a99b7d` pays pots and refunds;
@@ -282,13 +514,18 @@ Primary references:
 
 ## Reviewed static-analysis exceptions
 
-The first real main-bytecode run reported 13 SpotBugs findings. Each exception
+The first real main-bytecode run reported 13 SpotBugs findings. Removing the
+last null guards exposed two additional intentional-sharing findings on November
+15: Deck.random and GamePanel.session. The old requireNonNull calls obscured
+these aliases from the analyzer; they were not a real ownership fix. Each exception
 below matches only its exact class, method/field and bug pattern; other findings
 in these classes still fail. These are not metric exclusions.
 
 | Exact location | Pattern / count | Review and reason |
 | --- | --- | --- |
 | `InitialDeal.random`, `GameSetup.dealerRandom` | `EI_EXPOSE_REP2` / 2 | Injected `Random` objects intentionally preserve caller-selected seeded/stub behavior. Copying would destroy the seam; these services are mutable and do not claim immutable/thread-safe ownership. |
+| `Deck.<init>:random` | `EI_EXPOSE_REP2` / 1, November 15 | Same intentional injected Random contract as InitialDeal/GameSetup. Seeded/stub shuffle behavior is tested; copying changes the selected sequence. The filter requires this exact constructor, field and bug type. |
+| `GamePanel.<init>:session` | `EI_EXPOSE_REP2` / 1, November 15 | Mutable application collaborator deliberately shared between actions and rendering on Swing's event thread. It is not immutable snapshot data; copying would disconnect UI actions from the session. Existing UI/session integrations exercise the sharing. The filter requires this exact constructor, field and bug type. |
 | `BettingProgress.getPlayersToAct/getPlayersAllowedToRaise` | `EI_EXPOSE_REP` / 2 | Private helper validates then calls `Set.copyOf`; the returned sets are immutable. |
 | `GameState.getCommunityCards/getPlayerStates/getRemainingDeck` | `EI_EXPOSE_REP` / 3 | Constructor helpers call `List.copyOf`; callers cannot mutate internal lists. |
 | `GameView.getPlayers/getCommunityCards` | `EI_EXPOSE_REP` / 2 | Players use `Collectors.toUnmodifiableList`; community comes from the immutable state snapshot. |
@@ -301,35 +538,37 @@ change. Shared Checkstyle violations are fixed in source instead of baselined.
 
 ## Scope and interpretation
 
-SetupSession and SetupView include shared played-hand integration. The
-current configured scope has 17 parent components, including dealing, settlement,
-completed statistics, continuation and the shared session/view.
-Earlier nine-class results below are historical, not current full-game
-coverage. PIT retains the renamed integration tests and the new session
-and played-hand tests.
+The current scope has 46 parent components, including betting, state, dealing,
+settlement, completed statistics, continuation and the shared session/view.
+Earlier measurements below are historical and retain their original scopes.
 
-JaCoCo and PIT include `Card`, `Deck`, `PokerHandEvaluator`,
-`ShowdownResolver`, `ShowdownResult`, `GameInitializer`, `InitialDeal`,
-`HandStatistics`, `MatchStatistics`, `NextHand`, `StatisticsView`, `PotSettlement`,
-`Settlement`, `PlayStats`, `SetupSession`, `SetupView` and `Localizations`,
-including their nested classes. `SetupView` remains in the scope
-even though a display DTO could qualify for a view exemption: its private-card
-filtering is useful behavior to measure. Tests exercise these components
-through their public contracts; the complete JUnit suite also runs in the build.
-PIT selects their focused domain/application tests plus deck-setup,
-setup/showdown integration and localization-loader tests. PIT counts repeated
-test executions across mutants separately from the JUnit suite count. It uses the standard `DEFAULTS` operator group, two
-workers, HTML/XML output and deterministic report paths. A mutant may hang a
-loop; timeout permits twice its baseline test duration plus two seconds.
+JaCoCo and PIT include `Card`, `Deck`, `PokerHandEvaluator`, `ShowdownResolver`,
+`ShowdownResult`, `GameInitializer`, `InitialDeal`, `HandStatistics`,
+`MatchStatistics`, `NextHand`, `StatisticsView`, `PotSettlement`, `Settlement`,
+`PlayStats`, `BettingEngine`, `BettingAmounts`, `BettingRound`, `BettingHistory`,
+`BettingProgress`, `SetupSession`, `SetupView`, `Localizations`, `GameConfig`,
+`GameState`, `Player`, `PlayerState`, `HandPositions`, `SeatOrder`,
+`ActionRequest`, `AcceptedAction`, `BettingResult`, `LegalActions`,
+`StatsContext`, `StatsAction`, `GameSetup`, `EquityPot`, `EquityRequest`,
+`EquityEstimate`, `UniformDealSampler`, `MonteCarloEquityEstimator`, `DecisionContext`,
+`TendencyEstimate`, `PublicDecision`, `ActionPrediction`, `OpponentBeliefs` and
+`OpponentModel`, including nested classes. `SetupView` remains
+in scope because it implements the session's private-card filtering.
 
-Excluded from the **current 17-component metric denominator**:
+PIT selects the domain, application, integration, localization-loader and
+standalone bot/learning suites. The complete JUnit suite also runs, including headless Swing tests.
+PIT uses its standard DEFAULTS group, two workers and HTML/XML reports. Its
+executions across mutants are separate from the JUnit case count. Timeout
+permits twice a test's baseline duration plus two seconds.
 
-- The remaining domain state and betting components; their test
-  execution is retained, but their coverage is not established by this scope.
-- `HandEvaluator`, an interface without executable default methods, and the
-  `Rank`/`Suit` and nested `ShowdownResult.Status` enums, whose constants have no hand-written branching behavior.
-- Swing `ui` classes and launch code, using the rubric's UI exemption; headless
-  behavior tests still run and shared static analysis still checks those files.
+Excluded from the current metric denominator:
+
+- Read-only `GameView`/`PlayerView` projections under the view exemption; the
+  full team suite still tests them. GameSetup is now measured.
+- `HandEvaluator` and enums without hand-written branch behavior, including
+  `Rank`, `Suit` and `ShowdownResult.Status`.
+- Swing and launch code under the rubric's UI exemption; headless tests and
+  shared static analysis still check those files.
 
 The rubric's 100% cyclomatic-complexity coverage goal is distinct from 100% line,
 instruction or branch coverage. [JaCoCo counters](https://www.jacoco.org/jacoco/trunk/doc/counters.html)

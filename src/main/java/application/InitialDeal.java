@@ -5,7 +5,6 @@ import domain.model.Deck;
 import domain.model.GamePhase;
 import domain.model.GameState;
 import domain.model.PlayerState;
-import domain.model.PlayerStatus;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -23,8 +22,8 @@ final class InitialDeal {
         deck.shuffle();
         List<List<Card>> hands = dealHoleCards(table, deck);
         List<PlayerState> players = playersWithCards(table, hands);
-        return new GameState(table.getConfig(), table.getHandId(), GamePhase.PREFLOP,
-                players, table.getPositions(), table.getCurrentActorId().orElse(null),
+        return GameState.create(table.getConfig(), table.getHandId(), GamePhase.PREFLOP,
+                players, table.getPositions(), table.getCurrentActorId(),
                 table.getCommunityCards(), deck.deal(deck.remainingCards()),
                 table.getBettingProgress());
     }
@@ -49,7 +48,7 @@ final class InitialDeal {
     private static void dealClockwise(GameState table, List<List<Card>> hands, Deck deck) {
         for (int distance = 1; distance <= hands.size(); distance++) {
             int seat = (table.getDealerSeat() + distance) % hands.size();
-            if (table.getPlayerStates().get(seat).getStatus() != PlayerStatus.ELIMINATED) {
+            if (table.getPlayerStates().get(seat).isDealtSeat()) {
                 hands.get(seat).addAll(deck.deal(1));
             }
         }
@@ -64,5 +63,4 @@ final class InitialDeal {
         }
         return players;
     }
-
 }

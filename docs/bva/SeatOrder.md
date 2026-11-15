@@ -32,10 +32,15 @@ Grouped assertions exercise the public getters at the stated boundary; no mutabl
 | SO-25 | firstPreflopActor | Seat 6 | IllegalArgumentException | Yes |
 | SO-26 | firstPostflopActor | Seat -1 | IllegalArgumentException | Yes |
 | SO-27 | firstPostflopActor | Seat 6 | IllegalArgumentException | Yes |
-| SO-28 | SeatOrder | null table | IllegalArgumentException | Yes |
 | SO-29 | SeatOrder | five seat records | IllegalArgumentException | Yes |
 | SO-30 | SeatOrder | seven seat records | IllegalArgumentException | Yes |
-| SO-31 | SeatOrder | null seat record | IllegalArgumentException | Yes |
 | SO-32 | SeatOrder | duplicate seat | IllegalArgumentException | Yes |
 | SO-33 | SeatOrder | duplicate ID | IllegalArgumentException | Yes |
 | SO-34 | SeatOrder; positionsFor; nextDealerAfter | Unsorted input subsequently cleared | Snapshot uses seats; caller changes cannot affect it | Yes |
+
+## Instructor follow-up — November 15
+
+Seat records are validated with explicit unique-seat/ID sets, then stored in an
+immutable list sorted by seat. SO-32/33 retain uniqueness checks and SO-34 covers
+reversed input followed by caller mutation. The table size comes from
+GameConfig.SEAT_COUNT; no unfilled array slots represent seat ownership.

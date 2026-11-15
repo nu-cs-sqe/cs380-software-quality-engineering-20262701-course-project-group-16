@@ -18,9 +18,6 @@ public final class UniformDealSampler implements DealSampler {
     public UniformDealSampler() { this(new Random()::nextInt); }
 
     public UniformDealSampler(IntUnaryOperator chooseIndex) {
-        if (chooseIndex == null) {
-            throw new IllegalArgumentException("A random index source is required.");
-        }
         this.chooseIndex = chooseIndex;
     }
 
@@ -36,9 +33,6 @@ public final class UniformDealSampler implements DealSampler {
 
     @Override
     public Map<String, List<Card>> sample(EquityRequest request) {
-        if (request == null) {
-            throw new IllegalArgumentException("An equity request is required.");
-        }
         List<Card> unseen = new ArrayList<>(CARDS);
         unseen.removeAll(request.getHoleCards());
         unseen.removeAll(request.getBoard());

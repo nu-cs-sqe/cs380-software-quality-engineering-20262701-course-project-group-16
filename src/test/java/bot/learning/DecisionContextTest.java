@@ -19,10 +19,8 @@ class DecisionContextTest {
     }
     @Test
     void dcC02RejectsMissingOrNonDecisionChoices() {
-        assertThrows(IllegalArgumentException.class, () -> new DecisionContext(null, Set.of(ResolvedActionType.CHECK), false));
-        assertThrows(IllegalArgumentException.class, () -> new DecisionContext(BettingStreet.FLOP, null, false));
         for (Set<ResolvedActionType> choices : List.of(Set.<ResolvedActionType>of(),
-                Set.of(ResolvedActionType.FORCED_POST), new HashSet<>(Arrays.asList((ResolvedActionType) null)))) {
+                Set.of(ResolvedActionType.FORCED_POST))) {
             assertThrows(IllegalArgumentException.class, () -> new DecisionContext(BettingStreet.FLOP, choices, false));
         }
     }

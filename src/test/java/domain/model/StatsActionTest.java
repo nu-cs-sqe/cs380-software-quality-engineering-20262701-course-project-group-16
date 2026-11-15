@@ -25,9 +25,6 @@ class StatsActionTest {
         StatsContext cBet = context(PreflopRaiseType.NONE, false, true, false);
         StatsContext faced = context(PreflopRaiseType.NONE, false, false, true);
         return Stream.of(
-                Arguments.of("SA-I01", null, ResolvedActionType.CHECK, 0L, none),
-                Arguments.of("SA-I02", BettingStreet.PREFLOP, null, 0L, none),
-                Arguments.of("SA-I03", BettingStreet.PREFLOP, ResolvedActionType.CHECK, 0L, null),
                 Arguments.of("SA-I04", BettingStreet.PREFLOP, ResolvedActionType.CALL, Long.MIN_VALUE, none),
                 Arguments.of("SA-I05", BettingStreet.PREFLOP, ResolvedActionType.CALL, -1L, none),
                 Arguments.of("SA-I06", BettingStreet.PREFLOP, ResolvedActionType.CHECK, 1L, none),

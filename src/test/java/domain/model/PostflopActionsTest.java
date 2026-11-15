@@ -156,7 +156,7 @@ class PostflopActionsTest {
     @DisplayName("BE-PF08: skip folded/all-in/eliminated and already-acted seats")
     void actorSelectionUsesOnlyPendingActivePlayers() {
         FoundationFixtures.Fixture fixture = PostflopFixtures.street(GamePhase.FLOP);
-        fixture.actor = "p0";
+        fixture.actor = java.util.Optional.of("p0");
         fixture.player(1, 960, PlayerStatus.FOLDED, 0, 40);
         fixture.player(2, 0, PlayerStatus.ALL_IN, 0, 40);
         fixture.player(3, 0, PlayerStatus.ELIMINATED, 0, 0);
@@ -273,15 +273,16 @@ class PostflopActionsTest {
         assertContext(act(before, 1, ActionType.FOLD), false, false);
     }
 
-    @ParameterizedTest(name = "BE-PF11-{0}-{1}: other postflop actions remain outside this increment")
+    @ParameterizedTest(name = "BE-PF11-{0}-{1}: reject an invalid postflop action kind")
     @CsvSource({"FLOP,CALL", "FLOP,BET", "FLOP,RAISE", "TURN,CALL", "TURN,BET", "TURN,RAISE",
         "RIVER,CALL", "RIVER,BET", "RIVER,RAISE"})
-    void unsupportedPostflopActionsRemainExplicit(GamePhase phase, ActionType type) {
-        GameState before = PostflopFixtures.build(PostflopFixtures.street(phase), new BettingHistory());
+    void invalidPostflopActionsAreRejectedWithoutChanges(GamePhase phase, ActionType type) {
+        GameState before = PostflopFixtures.build(type == ActionType.BET ? facingBet(phase, 20)
+                : PostflopFixtures.street(phase), new BettingHistory());
         List<Object> original = PostflopFixtures.snapshot(before);
         ActionRequest request = type == ActionType.CALL ? new ActionRequest("p1", type)
                 : new ActionRequest("p1", type, 60);
-        assertThrows(UnsupportedOperationException.class, () -> engine.apply(before, request));
+        assertThrows(IllegalArgumentException.class, () -> engine.apply(before, request));
         assertEquals(original, PostflopFixtures.snapshot(before));
     }
 

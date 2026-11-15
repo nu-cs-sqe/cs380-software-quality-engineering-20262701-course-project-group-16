@@ -2,7 +2,6 @@ package domain.model;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 /** Compares eligible players without mutating state or paying the pot. */
@@ -13,20 +12,17 @@ public final class ShowdownResolver {
         this(new PokerHandEvaluator());
     }
 
-    /** @throws NullPointerException if evaluator is null */
     public ShowdownResolver(HandEvaluator evaluator) {
-        this.evaluator = Objects.requireNonNull(evaluator, "evaluator");
+        this.evaluator = evaluator;
     }
 
     /**
      * Requires a dealt, decision-free state. Contested results require SHOWDOWN;
      * a sole remaining participant can win before the board is complete.
      * The result ranks contenders only: side-pot eligibility and payouts are later work.
-     * @throws NullPointerException if state is null
      * @throws IllegalStateException for an unready/completed hand or no eligible player
      */
     public ShowdownResult resolve(GameState state) {
-        Objects.requireNonNull(state, "state");
         if (state.getPhase() == GamePhase.SETUP || state.getPhase() == GamePhase.COMPLETION
                 || !state.getBettingProgress().getPlayersToAct().isEmpty()
                 || !state.getBettingProgress().getPlayersAllowedToRaise().isEmpty()) {

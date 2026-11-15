@@ -4,9 +4,9 @@ Public scenario value; eligibility comes from the engine/application. Refunds ar
 
 | ID | Methods | State/input | Expected output | Implemented? |
 | --- | --- | --- | --- | --- |
-| EP-C01 | constructor | ID null, empty, spaces or tab | IllegalArgumentException | Yes |
+| EP-C01 | constructor | ID empty, spaces or tab | IllegalArgumentException | Yes |
 | EP-C02 | constructor | Amount −1 or 0 | IllegalArgumentException | Yes |
-| EP-C03 | constructor | Missing/empty eligibility, null/blank member | IllegalArgumentException | Yes |
+| EP-C03 | constructor | Empty eligibility or blank member | IllegalArgumentException | Yes |
 | EP-C04 | constructor, getId/getAmount/getEligiblePlayers | Exact opaque ID, Long.MAX_VALUE, mutable source set | Preserved values and detached immutable set | Yes |
 
 

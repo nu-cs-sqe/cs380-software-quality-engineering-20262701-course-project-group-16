@@ -39,8 +39,9 @@ validates it against current state, then produces a new snapshot and
 `AcceptedAction`. Bots and the interface receive
 `GameView`; profiles and saved statistics stay separate from live match state.
 
-Implemented here: initialization, immutable contracts, unraised preflop
-FOLD/CHECK/CALL (including all-in calls), and postflop CHECK/FOLD.
+Implemented here: initialization, immutable contracts and full
+FOLD/CHECK/CALL/BET/RAISE on every street, including short all-ins and
+individual/cumulative reopening. Legal-action information comes from the engine.
 `BettingEngine.apply` returns a `BettingResult`
 with a new state and accepted action; it does not mutate earlier snapshots or
 update statistics itself. Pending active players act clockwise, retaining the
@@ -66,11 +67,13 @@ GameState constructor creates empty history, while the explicit-history
 constructor validates it and engine operations preserve it across snapshots.
 Two integration demonstrations connect real setup/dealing, preflop actions,
 postflop checks/folds and advancement through SHOWDOWN without paying pots.
-Betting/raising, raised-round action handling, postflop CALL, pot
-settlement, bot strategy and profile storage follow later. See the
+Settlement, completed statistics and match continuation are available, with
+full betting/legal options and departure handling integrated from PR #23.
+Varied bot policies and safe worker integration remain E05/E06; profiles are
+developed separately and still need integration. See the
 [engine BVA](../bva/BettingEngine.md).
-Best-five evaluation and closed-state winner/tie resolution are also implemented
-without payouts. SetupSession now connects the played betting flow to ShowdownResolver and Swing;
+ShowdownResolver supplies winner/tie comparisons; PotSettlement separately
+pays awardable pots and refunds. SetupSession now connects the played betting flow to ShowdownResolver and Swing;
 see [played-hand application flow](played-hand.md).
 The Swing setup preview uses SetupSession and
 SetupView to display initialization and private-card handoffs; see [setup design](game-setup.md).
@@ -85,8 +88,8 @@ SpotBugs, scoped coverage and mutation results.
 Each new or changed method should do one named task. Keep orchestration readable
 by extracting independent validation, dealing, state transitions and rendering
 steps into private helpers. Keep constructors short and collaborators injectable
-where coordination needs isolated tests. Prefer explicit absence to nullable
-internal values, while retaining validation at public boundaries. Splitting a
+where coordination needs isolated tests. Use non-null caller contracts and explicit
+absence; retain business validation and external resource/data validation. Splitting a
 method should improve its responsibilities, not merely move lines elsewhere.
 Apply these method-design rules to future changes.
 
@@ -212,3 +215,55 @@ Four permutations of fixed train/held-out compositions test order invariance;
 they are not four independent playing-strength measurements. E05/E06 still need
 to use these snapshots in varied legal decisions, wire committed engine events,
 run simulations off Swing's event thread and reject stale calculated actions.
+
+
+## Instructor follow-up (November 15)
+
+The cleanup is applied to the local integration of merged PR #23 with E03/E04.
+BettingEngine.advanceStreet is a short coordinator. Dealing a street, validating
+available cards, choosing pending actors, selecting the first actor and forming
+the board have focused helper names. requireClosedRound delegates separately to
+pending-decision, participation and matched-contribution checks.
+
+Required application-owned reference arguments follow a non-null caller contract.
+Internal actor selection and stored preflop aggression use Optional. GameState.create
+requires an Optional actor; nullable String actor constructors were removed. All
+production callers and existing fixtures use the same explicit API. BettingHistory
+accepts an Optional for absence, or a required String for a known aggressor.
+PublicDecision has a separate automatic-event overload without strategic context.
+There are no manual equality checks against null in production. The localization
+loader normalizes the JDK's potentially missing resource once with Optional;
+missing/malformed external resources still fail with a meaningful error.
+
+Manual null guards and Objects.requireNonNull calls have been removed throughout
+production, including constructors and collaborator-result handling. Required
+collaborators follow the same non-null caller contract as other internal inputs.
+Business validation still rejects blank/unknown identities, duplicate cards,
+invalid amounts, illegal actions and inconsistent lifecycle transitions.
+Seat indexing uses an immutable ordered list and explicit membership sets;
+owned registries validate membership before reading required values.
+
+GameConfig.SEAT_COUNT is shared by player/position bounds, clockwise payout,
+seat selection, the table UI and bot capacities. Defaults for starting chips and
+blinds are named. checkstyleSeatRules initially applies MagicNumber to GameConfig,
+HandPositions, SeatOrder, Player and PotSettlement. It runs through check/build;
+this is a declared initial scope, not a claim of global magic-number enforcement.
+
+Production Checkstyle also rejects an empty line immediately before an outer
+type's closing brace. The negative check caught StatisticsPanel line 85 and the
+same problem in InitialDeal before their fixes. Another targeted production rule
+rejects manual null comparisons, returning an absence sentinel, unwrapping
+Optional into one, starting constructor delegation with one, or adding
+requireNonNull/isNull/nonNull guard calls. These checks
+prevent the observed patterns; they do not replace type design or thorough review.
+
+The five retained new TDD/BVA cases cover present/absent actors, preserved
+history, an unknown actor and inconsistent pending decisions. The new cases
+contain no programmer-error reference inputs. Existing integration tests verify
+full betting, short all-ins, payouts and statistics after the refactor.
+
+For E05/E06, use the authoritative LegalActions and Wager.allows APIs. A nominal
+full minimum may be unaffordable: a supplied shortAllInTarget is the exact legal
+alternative. Live learning still needs committed event identity/order, explicit
+departure origin and pre-action public context; equity needs engine-owned public
+pot scenarios and a filtered bot view.

@@ -7,15 +7,10 @@ Grouped assertions exercise the public getters at the stated boundary; no mutabl
 | --- | --- | --- | --- | --- |
 | AA-01 | AcceptedAction(...); getHandId(); getPlayerId(); getStreet(); getType(); getChipsAdded(); getRoundContributionAfter(); becameAllIn(); getStatsContext(); toStatsAction() | Call adds 10 after prior contribution 10 | Accepted call observation; after=20; all fields retained | Yes |
 | AA-02 | AcceptedAction; toStatsAction | Raise-to 60 from contribution 10 adds 50 | Resolved raise; target total differs from chips added | Yes |
-| AA-03 | AcceptedAction | null hand ID | IllegalArgumentException | Yes |
 | AA-04 | AcceptedAction | empty hand ID | IllegalArgumentException | Yes |
 | AA-05 | AcceptedAction | blank hand ID | IllegalArgumentException | Yes |
-| AA-06 | AcceptedAction | null player ID | IllegalArgumentException | Yes |
 | AA-07 | AcceptedAction | empty player ID | IllegalArgumentException | Yes |
 | AA-08 | AcceptedAction | blank player ID | IllegalArgumentException | Yes |
-| AA-09 | AcceptedAction | null street | IllegalArgumentException | Yes |
-| AA-10 | AcceptedAction | null resolved type | IllegalArgumentException | Yes |
-| AA-11 | AcceptedAction | null context | IllegalArgumentException | Yes |
 | AA-12 | AcceptedAction | negative added chips | IllegalArgumentException | Yes |
 | AA-13 | AcceptedAction | negative resulting contribution | IllegalArgumentException | Yes |
 | AA-14 | AcceptedAction | added chips exceed resulting contribution | IllegalArgumentException | Yes |

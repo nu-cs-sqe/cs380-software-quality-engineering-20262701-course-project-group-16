@@ -1,8 +1,6 @@
 package domain.model;
 
 import java.util.stream.Stream;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -22,7 +20,6 @@ class PlayerTest {
 
     static Stream<Arguments> invalidIds() {
         return Stream.of(
-                Arguments.of("P-C01", (String) null),
                 Arguments.of("P-C02", ""),
                 Arguments.of("P-C03", " "),
                 Arguments.of("P-C04", "\t"),
@@ -73,13 +70,6 @@ class PlayerTest {
                 Arguments.of("P-C14", 1),
                 Arguments.of("P-C15", 4),
                 Arguments.of("P-C16", 5));
-    }
-
-    @Test
-    @DisplayName("P-C17: rejects a null player type")
-    void rejectsNullPlayerType() {
-        assertThrows(IllegalArgumentException.class,
-                () -> new Player("player-1", 2, null, 1_000L), "P-C17");
     }
 
     @ParameterizedTest(name = "{0}: retains the player type")

@@ -22,16 +22,13 @@ public final class ActionPrediction {
     }
 
     private static Map<ResolvedActionType, Long> emptyCounts(DecisionContext context) {
-        if (context == null) {
-            throw new IllegalArgumentException("A public decision context is required.");
-        }
         Map<ResolvedActionType, Long> empty = new EnumMap<>(ResolvedActionType.class);
         context.getLegalActions().forEach(action -> empty.put(action, 0L));
         return empty;
     }
 
     ActionPrediction withAction(ResolvedActionType action) {
-        if (action == null || !counts.containsKey(action)) {
+        if (!counts.containsKey(action)) {
             throw new IllegalArgumentException("Only a supplied legal choice can be learned.");
         }
         Map<ResolvedActionType, Long> next = new EnumMap<>(counts);

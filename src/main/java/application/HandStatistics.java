@@ -37,10 +37,9 @@ final class HandStatistics {
         if (!handId.equals(action.getHandId())) {
             throw new IllegalArgumentException("The observation belongs to another hand.");
         }
-        PlayStats collector = players.get(action.getPlayerId());
-        if (collector == null) {
+        if (!players.containsKey(action.getPlayerId())) {
             throw new IllegalArgumentException("The observation requires a player in this hand.");
         }
-        collector.recordAction(action.toStatsAction());
+        players.get(action.getPlayerId()).recordAction(action.toStatsAction());
     }
 }

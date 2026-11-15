@@ -29,11 +29,6 @@ class AcceptedActionTest {
     }
 
     @Test
-    void AA_03() {
-        assertThrows(IllegalArgumentException.class, () -> event(null, "p", BettingStreet.PREFLOP, ResolvedActionType.CALL, 10, 20, false, none()));
-    }
-
-    @Test
     void AA_04() {
         assertThrows(IllegalArgumentException.class, () -> event("", "p", BettingStreet.PREFLOP, ResolvedActionType.CALL, 10, 20, false, none()));
     }
@@ -44,11 +39,6 @@ class AcceptedActionTest {
     }
 
     @Test
-    void AA_06() {
-        assertThrows(IllegalArgumentException.class, () -> event("h", null, BettingStreet.PREFLOP, ResolvedActionType.CALL, 10, 20, false, none()));
-    }
-
-    @Test
     void AA_07() {
         assertThrows(IllegalArgumentException.class, () -> event("h", "", BettingStreet.PREFLOP, ResolvedActionType.CALL, 10, 20, false, none()));
     }
@@ -56,21 +46,6 @@ class AcceptedActionTest {
     @Test
     void AA_08() {
         assertThrows(IllegalArgumentException.class, () -> event("h", " ", BettingStreet.PREFLOP, ResolvedActionType.CALL, 10, 20, false, none()));
-    }
-
-    @Test
-    void AA_09() {
-        assertThrows(IllegalArgumentException.class, () -> event("h", "p", null, ResolvedActionType.CALL, 10, 20, false, none()));
-    }
-
-    @Test
-    void AA_10() {
-        assertThrows(IllegalArgumentException.class, () -> event("h", "p", BettingStreet.PREFLOP, null, 10, 20, false, none()));
-    }
-
-    @Test
-    void AA_11() {
-        assertThrows(IllegalArgumentException.class, () -> event("h", "p", BettingStreet.PREFLOP, ResolvedActionType.CALL, 10, 20, false, null));
     }
 
     @Test

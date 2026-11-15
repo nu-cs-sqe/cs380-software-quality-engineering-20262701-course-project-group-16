@@ -7,8 +7,7 @@ Only own cards and public scenario information are accepted. IDs remain opaque a
 | ER-C01 | constructor; all getters | Board sizes 0/3/4/5; two own cards; one opponent/pot/trial | Exact immutable values, eligible and total amount 100 | Yes |
 | ER-C02 | constructor | Board sizes 1/2/6 | IllegalArgumentException | Yes |
 | ER-C03 | constructor | Own-card sizes 0/1/3; duplicates within/across known cards | IllegalArgumentException | Yes |
-| ER-C04 | constructor | Missing collections; null card/pot members | IllegalArgumentException | Yes |
-| ER-C05 | constructor, getOpponents | Blank/null hero; repeated/self/blank/null opponent; 0/5/6 opponents | Accept 0–5 distinct opponents, reject invalid identities and sixth opponent | Yes |
+| ER-C05 | constructor, getOpponents | Blank hero; repeated/self/blank opponent; 0/5/6 opponents | Accept 0–5 distinct opponents, reject invalid identities and sixth opponent | Yes |
 | ER-C06 | constructor | Trials −1/0/10001 | IllegalArgumentException | Yes |
 | ER-C07 | constructor; collection/count getters | 10000 trials; mutate input lists and attempt output mutation | Upper bound accepted; copied immutable lists | Yes |
 | ER-C08 | constructor, getEligiblePotAmount/getTotalPotAmount | Empty/duplicate/unknown-eligibility pots; hero ineligible; mixed pots; eligible sum overflow | Reject invalid scenarios; count eligible amount separately; checked overflow | Yes |
@@ -28,3 +27,8 @@ Local TDD observed 15 expected constructor failures after EquityPot was implemen
 then GREEN. EV-C01–03 produced three expected failures before fromView.
 ER-C09 is boundary hardening; ER-C10–11 are mutation-driven regressions, not
 additional claimed feature RED cycles.
+
+## Instructor follow-up — November 15
+
+Participant/pot limits use GameConfig.SEAT_COUNT. ER-C05 and ER-C09 continue
+to verify five-opponent and six-pot upper bounds with their adjacent invalid values.

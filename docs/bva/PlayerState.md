@@ -7,10 +7,6 @@ Grouped assertions exercise the public getters at the stated boundary; no mutabl
 | --- | --- | --- | --- | --- |
 | PS-01 | PlayerState(...); getPlayer(); getStatus(); getHoleCards(); getRoundContribution(); getHandContribution(); canAct(); isParticipating() | Active player with two cards; round 10 within hand 30 | Retain immutable player/cards; can act and participates | Yes |
 | PS-02 | PlayerState; getHoleCards | Setup: zero cards and zero contributions | Accept empty card state | Yes |
-| PS-03 | PlayerState | Null player | IllegalArgumentException | Yes |
-| PS-04 | PlayerState | Null status | IllegalArgumentException | Yes |
-| PS-05 | PlayerState | Null card list | IllegalArgumentException | Yes |
-| PS-06 | PlayerState | Null card element | IllegalArgumentException | Yes |
 | PS-07 | PlayerState | One hole card | IllegalArgumentException | Yes |
 | PS-08 | PlayerState | Three hole cards | IllegalArgumentException | Yes |
 | PS-09 | PlayerState | Duplicate hole cards | IllegalArgumentException | Yes |
@@ -33,3 +29,4 @@ Grouped assertions exercise the public getters at the stated boundary; no mutabl
 | PS-26 | PlayerState; getPlayer | Largest non-overflowing per-player total | Accept | Yes |
 | PS-27 | PlayerState; getHoleCards | Caller mutates card list after construction | Stored cards unaffected | Yes |
 | PS-28 | getHoleCards | Caller mutates returned card list | UnsupportedOperationException | Yes |
+| PS-29 | PlayerState; isDealtSeat; canAct; isParticipating | Departed seat with retained stack; zero or nonzero commitments; cards absent or present | Retain stack only with no cards/commitments; never deal or act | Yes; BettingStateBoundaryTest.departedSeatsCannotRetainCardsOrCommitChipsInLaterHands |

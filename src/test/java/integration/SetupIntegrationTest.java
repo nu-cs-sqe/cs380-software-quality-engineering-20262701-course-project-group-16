@@ -105,8 +105,8 @@ class SetupIntegrationTest {
     }
 
     private static GameState preflop(GameState setup, List<PlayerState> players, List<Card> remaining) {
-        return new GameState(setup.getConfig(), setup.getHandId(), GamePhase.PREFLOP, players,
-                setup.getPositions(), setup.getCurrentActorId().orElseThrow(),
+        return GameState.create(setup.getConfig(), setup.getHandId(), GamePhase.PREFLOP, players,
+                setup.getPositions(), setup.getCurrentActorId(),
                 List.of(), remaining, setup.getBettingProgress());
     }
 }

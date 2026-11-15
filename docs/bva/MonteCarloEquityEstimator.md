@@ -9,7 +9,6 @@ Samples are shared across pots. Comparisons are cached per trial and reused for 
 | MC-C03 | estimate | Different eligible subsets and amounts; hero-ineligible side pot | Correct per-pot shares; eligible-weighted equity 1/3 and payout 100; comparisons reused | Yes |
 | MC-C04 | estimate | Win/tie/loss sequence over three trials | Mean 0.5; exactly three samples | Yes |
 | MC-C05 | estimate | Hero-only uncontested pot | Share 1 without evaluator calls | Yes |
-| MC-C06 | constructors, both estimate overloads | Null collaborator/request/cancellation source | IllegalArgumentException | Yes |
 | MC-C07 | estimate(request,cancelled) | Cancel before or after first trial, then retry | CancellationException; no partial result; retry uses fresh totals | Yes |
 | MC-C08 | estimate(request,cancelled) | Thread interruption before calculation | CancellationException; interrupt status preserved | Yes |
 | MC-C09 | estimate | Injected sampler/evaluator failure | Original exception propagated; no published result | Yes |

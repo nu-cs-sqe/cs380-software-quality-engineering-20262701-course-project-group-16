@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.EmptySource;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -79,11 +79,6 @@ class LocalizationsTest {
         assertTrue(closed.get(), "A failed resource read must still close its stream");
     }
 
-    @Test
-    void nullResourceLoaderIsRejected() {
-        assertThrows(IllegalArgumentException.class, () -> Localizations.load(null));
-    }
-
     @ParameterizedTest
     @ValueSource(strings = {
         "languageName=中文\ngreeting=你好 {0}\n",
@@ -109,7 +104,7 @@ class LocalizationsTest {
     }
 
     @ParameterizedTest
-    @NullAndEmptySource
+    @EmptySource
     @ValueSource(strings = {"fr-FR", "en-US", " "})
     void unconfiguredLanguageIsRejectedInsteadOfFallingBack(String language) {
         Localizations messages = load(fixture());
@@ -119,7 +114,7 @@ class LocalizationsTest {
     }
 
     @ParameterizedTest
-    @NullAndEmptySource
+    @EmptySource
     @ValueSource(strings = {"missing"})
     void unknownMessageKeyIsRejected(String key) {
         Localizations messages = load(fixture());
@@ -131,7 +126,6 @@ class LocalizationsTest {
         Localizations messages = load(fixture());
         assertThrows(IllegalArgumentException.class, () -> messages.text("en", "greeting"));
         assertThrows(IllegalArgumentException.class, () -> messages.text("en", "greeting", "Ada", "Extra"));
-        assertThrows(IllegalArgumentException.class, () -> messages.text("en", "greeting", (Object[]) null));
         assertThrows(IllegalArgumentException.class, () -> messages.text("en", "amount", "not a number"));
     }
 

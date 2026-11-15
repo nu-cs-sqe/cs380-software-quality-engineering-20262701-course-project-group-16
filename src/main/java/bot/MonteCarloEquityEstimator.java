@@ -20,10 +20,6 @@ public final class MonteCarloEquityEstimator implements EquityEstimator {
     }
 
     public MonteCarloEquityEstimator(HandEvaluator evaluator, DealSampler sampler) {
-        if (evaluator == null || sampler == null) {
-            throw new IllegalArgumentException(
-                    "An evaluator and hypothetical sampler are required.");
-        }
         this.evaluator = evaluator;
         this.sampler = sampler;
     }
@@ -35,9 +31,6 @@ public final class MonteCarloEquityEstimator implements EquityEstimator {
 
     /** Cancellation is checked between trials; no partial result is returned. */
     public EquityEstimate estimate(EquityRequest request, BooleanSupplier cancelled) {
-        if (request == null || cancelled == null) {
-            throw new IllegalArgumentException("A request and cancellation source are required.");
-        }
         Map<String, Double> totals = new LinkedHashMap<>();
         request.getPots().forEach(pot -> totals.put(pot.getId(), 0.0));
         IntStream.range(0, request.getSimulations()).forEach(trial ->

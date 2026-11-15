@@ -52,13 +52,11 @@ class OpponentModelTest {
             calls.incrementAndGet(); return empty;
         });
         PublicDecision valid = call(100, "p1");
-        assertThrows(IllegalArgumentException.class, () -> model.observe(null));
         assertThrows(IllegalArgumentException.class, () -> model.observe(new PublicDecision("other", 100,
                 valid.getAction(), valid.getContext().orElseThrow(), DecisionOrigin.PLAYER_CHOICE)));
         assertThrows(IllegalArgumentException.class, () -> model.observe(call(100, "unknown")));
         assertSame(empty, model.snapshot("p1"));
         assertThrows(IllegalArgumentException.class, () -> model.snapshot("unknown"));
-        assertThrows(IllegalArgumentException.class, () -> model.snapshot(null));
         assertEquals(0, calls.get());
         assertTrue(model.observe(call(1, "p1")));
     }
@@ -84,30 +82,24 @@ class OpponentModelTest {
     void omC05ValidatesSixSeatRegistryAndCompositionBoundary() {
         assertDoesNotThrow(() -> new OpponentModel("match", "hero", Set.of()));
         assertDoesNotThrow(() -> new OpponentModel("match", "hero", Set.of("a", "b", "c", "d", "e")));
-        for (String id : Arrays.asList(null, "", " ")) {
+        for (String id : List.of("", " ")) {
             assertThrows(IllegalArgumentException.class, () -> new OpponentModel(id, "hero", Set.of("p1")));
             assertThrows(IllegalArgumentException.class, () -> new OpponentModel("match", id, Set.of("p1")));
             assertThrows(IllegalArgumentException.class, () -> new OpponentModel("match", "hero", new HashSet<>(Arrays.asList(id))));
         }
-        assertThrows(IllegalArgumentException.class, () -> new OpponentModel("match", "hero", (Set<String>) null));
         assertThrows(IllegalArgumentException.class, () -> new OpponentModel("match", "hero", Set.of("hero")));
         assertThrows(IllegalArgumentException.class, () -> new OpponentModel("match", "hero", Set.of("a", "b", "c", "d", "e", "f")));
-        assertThrows(IllegalArgumentException.class, () -> new OpponentModel("match", "hero", null, (a, b) -> a));
-        assertThrows(IllegalArgumentException.class, () -> new OpponentModel("match", "hero", Map.of("p1", new OpponentBeliefs()), null));
-        Map<String, OpponentBeliefs> missing = new HashMap<>(); missing.put("p1", null);
-        assertThrows(IllegalArgumentException.class, () -> new OpponentModel("match", "hero", missing, (a, b) -> a));
     }
     @Test
-    void omC06AcceptsLastSequenceWithoutOverflowAndRejectsNullUpdaterResultAtomically() {
+    void omC06AcceptsLastSequenceWithoutOverflowAndDoesNotReplayIt() {
         OpponentBeliefs before = new OpponentBeliefs();
         AtomicInteger calls = new AtomicInteger();
-        OpponentModel model = new OpponentModel("match", "hero", Map.of("p1", before), (a, b) -> calls.incrementAndGet() == 1 ? null : before);
+        OpponentModel model = new OpponentModel("match", "hero", Map.of("p1", before), (a, b) -> { calls.incrementAndGet(); return before; });
         PublicDecision decision = call(Long.MAX_VALUE, "p1");
-        assertThrows(NullPointerException.class, () -> model.observe(decision));
         assertSame(before, model.snapshot("p1"));
         assertTrue(model.observe(decision));
         assertFalse(model.observe(decision));
-        assertEquals(2, calls.get());
+        assertEquals(1, calls.get());
     }
     private static PublicDecision call(long sequence, String player) {
         return decision(sequence, player, BettingStreet.PREFLOP, ResolvedActionType.CALL, NONE,

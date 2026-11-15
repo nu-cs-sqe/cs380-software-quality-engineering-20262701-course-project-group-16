@@ -33,7 +33,7 @@ class StreetAdvancementIntegrationTest {
         List<PlayerState> players = new ArrayList<>(initial.getPlayerStates());
         players.set(3, playerWith(players.get(3), 19, PlayerStatus.ACTIVE, 0));
         players.set(0, playerWith(players.get(0), 1981, PlayerStatus.ACTIVE, 0));
-        GameState state = copyWith(initial, players, initial.getCurrentActorId().orElseThrow(),
+        GameState state = copyWith(initial, players, initial.getCurrentActorId(),
                 initial.getBettingProgress());
         int[] seats = {3, 4, 5, 0, 1, 2};
         ActionType[] actions = {ActionType.CALL, ActionType.FOLD, ActionType.CALL,
@@ -97,7 +97,7 @@ class StreetAdvancementIntegrationTest {
                 players.add(playerWith(dealt.getPlayerStates().get(seat), seat == 0 ? 5880 : 0,
                         seat == 0 ? PlayerStatus.ACTIVE : PlayerStatus.ALL_IN, 20));
             }
-            closed = copyWith(dealt, players, null, new BettingProgress(20, 20, Set.of(), Set.of()));
+            closed = copyWith(dealt, players, java.util.Optional.empty(), new BettingProgress(20, 20, Set.of(), Set.of()));
         }
         List<Card> deck = closed.getRemainingDeck();
         GameState state = closed;
@@ -139,9 +139,9 @@ class StreetAdvancementIntegrationTest {
         return new GameInitializer(config, dealer, new Random(7)).start(2);
     }
 
-    private static GameState copyWith(GameState before, List<PlayerState> players, String actor,
+    private static GameState copyWith(GameState before, List<PlayerState> players, java.util.Optional<String> actor,
             BettingProgress progress) {
-        return new GameState(before.getConfig(), before.getHandId(), before.getPhase(), players,
+        return GameState.create(before.getConfig(), before.getHandId(), before.getPhase(), players,
                 before.getPositions(), actor, before.getCommunityCards(), before.getRemainingDeck(), progress);
     }
 

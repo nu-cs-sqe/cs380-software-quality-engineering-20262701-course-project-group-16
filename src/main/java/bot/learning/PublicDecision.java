@@ -15,7 +15,7 @@ public final class PublicDecision {
 
     public PublicDecision(String matchId, long sequence, AcceptedAction action,
             DecisionContext context, DecisionOrigin origin) {
-        this(matchId, sequence, action, Optional.ofNullable(context), origin);
+        this(matchId, sequence, action, Optional.of(context), origin);
     }
 
     /** Automatic events need no legal-choice context and do not teach preferences. */
@@ -26,7 +26,7 @@ public final class PublicDecision {
 
     private PublicDecision(String matchId, long sequence, AcceptedAction action,
             Optional<DecisionContext> context, DecisionOrigin origin) {
-        requireFields(matchId, sequence, action, origin);
+        requireFields(matchId, sequence);
         requireChoice(action, context, origin);
         this.matchId = matchId;
         this.sequence = sequence;
@@ -35,9 +35,8 @@ public final class PublicDecision {
         this.origin = origin;
     }
 
-    private static void requireFields(String match, long sequence, AcceptedAction action,
-            DecisionOrigin origin) {
-        if (match == null || match.isBlank() || sequence < 1 || action == null || origin == null) {
+    private static void requireFields(String match, long sequence) {
+        if (match.isBlank() || sequence < 1) {
             throw new IllegalArgumentException("Match, sequence and accepted origin are required.");
         }
     }

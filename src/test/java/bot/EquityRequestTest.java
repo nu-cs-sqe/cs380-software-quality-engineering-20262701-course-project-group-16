@@ -52,23 +52,13 @@ class EquityRequestTest {
                 () -> request(HOLE, List.of(BOARD.get(0), BOARD.get(0), BOARD.get(1)), List.of("p1"), POTS, 1));
     }
     @Test
-    void erC04RejectsMissingCollectionsAndNullElements() {
-        assertThrows(IllegalArgumentException.class, () -> request(null, List.of(), List.of("p1"), POTS, 1));
-        assertThrows(IllegalArgumentException.class, () -> request(HOLE, null, List.of("p1"), POTS, 1));
-        assertThrows(IllegalArgumentException.class, () -> request(HOLE, List.of(), null, POTS, 1));
-        assertThrows(IllegalArgumentException.class, () -> request(HOLE, List.of(), List.of("p1"), null, 1));
-        assertThrows(IllegalArgumentException.class, () -> request(Arrays.asList(null, HOLE.get(0)), List.of(), List.of("p1"), POTS, 1));
-        assertThrows(IllegalArgumentException.class, () -> request(HOLE, Arrays.asList(null, BOARD.get(0), BOARD.get(1)), List.of("p1"), POTS, 1));
-        assertThrows(IllegalArgumentException.class, () -> request(HOLE, List.of(), List.of("p1"), Arrays.asList((EquityPot) null), 1));
-    }
-    @Test
     void erC05ValidatesParticipantIdentityAndSixSeatLimit() {
-        for (String id : Arrays.asList(null, "", " ")) {
+        for (String id : List.of("", " ")) {
             assertThrows(IllegalArgumentException.class,
                     () -> new EquityRequest(id, HOLE, List.of(), List.of("p1"), POTS, 1));
         }
         for (List<String> ids : List.of(List.of("hero"), List.of("p1", "p1"), List.of(" "),
-                Arrays.asList((String) null), List.of("p1", "p2", "p3", "p4", "p5", "p6"))) {
+                List.of("p1", "p2", "p3", "p4", "p5", "p6"))) {
             assertThrows(IllegalArgumentException.class, () -> request(HOLE, List.of(), ids, POTS, 1));
         }
         EquityRequest six = request(HOLE, List.of(), List.of("p1", "p2", "p3", "p4", "p5"), POTS, 1);
@@ -127,7 +117,7 @@ class EquityRequestTest {
     @Test
     void erC10RejectsInvalidOpponentIdsWithoutRelyingOnPotMembership() {
         List<EquityPot> onlyHero = List.of(new EquityPot("main", 1, Set.of("hero")));
-        for (String invalid : Arrays.asList(null, "", " ", "\t")) {
+        for (String invalid : List.of("", " ", "\t")) {
             assertThrows(IllegalArgumentException.class,
                     () -> request(HOLE, List.of(), Arrays.asList(invalid), onlyHero, 1));
         }

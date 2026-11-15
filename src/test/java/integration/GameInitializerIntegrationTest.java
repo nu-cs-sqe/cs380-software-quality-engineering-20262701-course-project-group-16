@@ -43,17 +43,6 @@ class GameInitializerIntegrationTest {
         }
     }
 
-    @ParameterizedTest(name = "reject null {0}")
-    @ValueSource(strings = {"config", "dealer", "deck"})
-    void rejectsNullDependencies(String dependency) {
-        GameConfig config = dependency.equals("config") ? null : new GameConfig();
-        Random dealer = dependency.equals("dealer") ? null : new Random(1);
-        Random deck = dependency.equals("deck") ? null : new Random(7);
-
-        assertThrows(IllegalArgumentException.class,
-                () -> new GameInitializer(config, dealer, deck));
-    }
-
     @ParameterizedTest(name = "{0}: humans {1}, dealer {2}")
     @CsvSource({
         "INIT-V01, 1, 0",

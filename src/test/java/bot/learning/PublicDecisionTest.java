@@ -1,7 +1,7 @@
 package bot.learning;
 
 import domain.model.*;
-import java.util.Arrays;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -24,15 +24,12 @@ class PublicDecisionTest {
     void pdC02RejectsMissingOrInconsistentBoundaries() {
         AcceptedAction action = action("opponent", BettingStreet.FLOP, ResolvedActionType.CHECK, NONE);
         DecisionContext context = context(BettingStreet.FLOP, false, ResolvedActionType.CHECK);
-        for (String id : Arrays.asList(null, "", " ")) {
+        for (String id : List.of("", " ")) {
             assertThrows(IllegalArgumentException.class, () -> new PublicDecision(id, 1, action, context, DecisionOrigin.PLAYER_CHOICE));
         }
         for (long sequence : new long[] {-1, 0}) {
             assertThrows(IllegalArgumentException.class, () -> new PublicDecision("match", sequence, action, context, DecisionOrigin.PLAYER_CHOICE));
         }
-        assertThrows(IllegalArgumentException.class, () -> new PublicDecision("match", 1, null, context, DecisionOrigin.PLAYER_CHOICE));
-        assertThrows(IllegalArgumentException.class, () -> new PublicDecision("match", 1, action, null, DecisionOrigin.PLAYER_CHOICE));
-        assertThrows(IllegalArgumentException.class, () -> new PublicDecision("match", 1, action, context, null));
         assertThrows(IllegalArgumentException.class, () -> new PublicDecision("match", 1, action,
                 context(BettingStreet.TURN, false, ResolvedActionType.CHECK), DecisionOrigin.PLAYER_CHOICE));
         assertThrows(IllegalArgumentException.class, () -> new PublicDecision("match", 1, action,

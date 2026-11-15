@@ -138,8 +138,8 @@ class AllInCallIntegrationTest {
         PlayerState donor = players.get(0);
         players.set(3, withStack(caller, 19));
         players.set(0, withStack(donor, 1981));
-        return new GameState(before.getConfig(), before.getHandId(), before.getPhase(), players,
-                before.getPositions(), before.getCurrentActorId().orElseThrow(),
+        return GameState.create(before.getConfig(), before.getHandId(), before.getPhase(), players,
+                before.getPositions(), before.getCurrentActorId(),
                 before.getCommunityCards(), before.getRemainingDeck(), before.getBettingProgress());
     }
 

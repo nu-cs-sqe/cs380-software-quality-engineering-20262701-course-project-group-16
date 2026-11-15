@@ -5,6 +5,19 @@ status. Tables map case IDs to JUnit methods (parameterized methods may cover
 several IDs). Enums are excluded under the course rule; view models also have
 privacy and immutability cases.
 
+## Reference contract update — November 15
+
+Required application-owned references and collection elements are non-null caller
+contracts. Current BVA focuses on game/domain boundaries; obsolete programmer-null
+cases and their current table rows have been retired without renumbering the
+remaining case IDs. Historical RED/GREEN and test counts remain dated checkpoints.
+Intentional actor/aggressor absence uses Optional.empty(), hidden cards use empty
+lists, and unavailable statistics use OptionalDouble. Those are still tested.
+Missing or malformed external localization resources remain validated and tested.
+Constructor/composition null checks and their programmer-null cases are also
+retired. Java Object.equals compatibility still includes its required absent-object
+case. No new null-input tests were introduced. See the [shared API contract](../design/README.md#instructor-follow-up-november-15).
+
 | Class | Analysis |
 | --- | --- |
 | `Card` | [Card.md](Card.md) |
@@ -22,14 +35,15 @@ privacy and immutability cases.
 | `PlayerState` | [PlayerState.md](PlayerState.md) |
 | `BettingProgress` | [BettingProgress.md](BettingProgress.md) |
 | `BettingHistory` | [BettingHistory.md](BettingHistory.md) |
-| `BettingEngine` (preflop/postflop actions and street advancement) | [BettingEngine.md](BettingEngine.md) |
+| `BettingEngine` (actions and street advancement) | [BettingEngine.md](BettingEngine.md), [full bets/raises](FullBetting.md), [short all-ins/reopening](ShortAllInBetting.md) |
+| `LegalActions` | [LegalActions.md](LegalActions.md) |
 | `BettingResult` | [BettingResult.md](BettingResult.md) |
 | `HandPositions` | [HandPositions.md](HandPositions.md) |
 | `SeatOrder` | [SeatOrder.md](SeatOrder.md) |
 | `GameState` | [GameState.md](GameState.md) |
 | `GameSetup` | [GameSetup.md](GameSetup.md) |
 | `GameInitializer` | [GameInitializer.md](GameInitializer.md) |
-| `SetupSession` | [SetupSession.md](SetupSession.md), [played-hand lifecycle](SessionBetting.md) |
+| `SetupSession` | [SetupSession.md](SetupSession.md), [played-hand lifecycle](SessionBetting.md), [departure](Departure.md) |
 | `GamePanel` played flow | [PlayedGamePanel.md](PlayedGamePanel.md) |
 | `GameView` | [GameView.md](GameView.md) |
 | `PlayerView` | [PlayerView.md](PlayerView.md) |

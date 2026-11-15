@@ -1,9 +1,9 @@
 package domain.model;
 
+import static domain.model.GameConfig.SEAT_COUNT;
+
 /** Immutable player identity, seat, control type, and chip stack. */
 public final class Player {
-
-    private static final int SEAT_COUNT = 6;
 
     private final String id;
     private final int seat;
@@ -20,14 +20,11 @@ public final class Player {
      * @throws IllegalArgumentException if any argument violates these constraints
      */
     public Player(String id, int seat, PlayerType type, long chipStack) {
-        if (id == null || id.isBlank()) {
-            throw new IllegalArgumentException("Player ID must not be null or blank.");
+        if (id.isBlank()) {
+            throw new IllegalArgumentException("Player ID must not be blank.");
         }
         if (seat < 0 || seat >= SEAT_COUNT) {
             throw new IllegalArgumentException("Seat must be between 0 and 5.");
-        }
-        if (type == null) {
-            throw new IllegalArgumentException("Player type must not be null.");
         }
         if (chipStack < 0) {
             throw new IllegalArgumentException("Chip stack must not be negative.");

@@ -17,7 +17,7 @@ public final class EquityPot {
     }
 
     private static void requireEligibility(long amount, Set<String> players) {
-        if (amount <= 0 || players == null || players.isEmpty()) {
+        if (amount <= 0 || players.isEmpty()) {
             throw new IllegalArgumentException("A positive pot and eligible players are required.");
         }
         for (String player : players) {
@@ -26,7 +26,7 @@ public final class EquityPot {
     }
 
     private static void requireId(String id) {
-        if (id == null || id.isBlank()) {
+        if (id.isBlank()) {
             throw new IllegalArgumentException("Pot/player IDs must be nonblank.");
         }
     }

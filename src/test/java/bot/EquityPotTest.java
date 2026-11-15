@@ -4,13 +4,13 @@ import java.util.HashSet;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.EmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import static org.junit.jupiter.api.Assertions.*;
 
 class EquityPotTest {
     @ParameterizedTest
-    @NullAndEmptySource
+    @EmptySource
     @ValueSource(strings = {" ", "\t"})
     void epC01RejectsBlankIds(String id) {
         assertThrows(IllegalArgumentException.class, () -> new EquityPot(id, 1, Set.of("hero")));
@@ -22,12 +22,8 @@ class EquityPotTest {
     }
     @Test
     void epC03RejectsMissingOrInvalidEligibility() {
-        assertThrows(IllegalArgumentException.class, () -> new EquityPot("main", 1, null));
         assertThrows(IllegalArgumentException.class, () -> new EquityPot("main", 1, Set.of()));
         assertThrows(IllegalArgumentException.class, () -> new EquityPot("main", 1, Set.of(" ")));
-        Set<String> nullId = new HashSet<>();
-        nullId.add(null);
-        assertThrows(IllegalArgumentException.class, () -> new EquityPot("main", 1, nullId));
     }
     @Test
     void epC04RetainsExactValuesAndImmutableDetachedEligibility() {
