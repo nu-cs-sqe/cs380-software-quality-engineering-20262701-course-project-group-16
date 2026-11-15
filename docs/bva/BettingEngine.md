@@ -1,5 +1,9 @@
 # BettingEngine BVA
 
+Current full BET/RAISE and raised-round CALL boundaries are in
+[FullBetting.md](FullBetting.md). Earlier increment tables below preserve the
+original TDD history; their unsupported-wager scope is superseded by K01.
+
 ## Contract for review
 
 `domain.model.BettingEngine.apply(GameState before, ActionRequest request)` returns
@@ -10,16 +14,16 @@ CHECK while chips are owed or a zero-cost CALL throw `IllegalArgumentException`.
 `UnsupportedOperationException`. Neither failure produces a result or changes
 the input state.
 
-Implemented actions are FOLD, CHECK and CALL in an unraised preflop round,
-plus CHECK/FOLD on FLOP, TURN and RIVER.
+The original increments implemented FOLD/CHECK/CALL in unraised preflop and
+CHECK/FOLD postflop. K01 extends them to full wagers and legal responses on all streets.
 A CALL requires a positive amount owed and adds the smaller of that amount and
 the available stack. Exhausting the stack sets ALL_IN and `becameAllIn=true`
 while retaining CALL classification. FOLD is allowed on the player's turn even when
 checking is possible. Decisions end when nobody remains pending or only one
-participant remains. Raised preflop rounds, bets, raises and postflop calls remain
-unsupported by `apply`. The explicit `advanceStreet` operation supports closed
+participant remains. Full wagers and raised-round responses are now supported;
+short all-in wager exceptions remain K02. The explicit `advanceStreet` operation supports closed
 round transitions through SHOWDOWN; see the fourth increment below. Payouts,
-further action types and Swing wiring remain later increments. The six original cases below verify the initial CALL and
+short all-in wagers and numeric Swing controls remain later increments. The six original cases below verify the initial CALL and
 out-of-turn/null-input rejection; the later tables extend the action boundaries.
 
 ## Shared state
@@ -91,11 +95,11 @@ Parameterized case suffixes identify the input value in the corresponding test.
 | BE-CLOSED01-FOLD | BB has checked; no pending decisions; requests FOLD | IllegalArgumentException; closed snapshot retained | Implemented, GREEN; `noActionIsAcceptedAfterTheRoundHasNoActor(FOLD)` |
 | BE-CLOSED01-CHECK | Same closed round; requests CHECK | IllegalArgumentException; closed snapshot retained | Implemented, GREEN; `noActionIsAcceptedAfterTheRoundHasNoActor(CHECK)` |
 | BE-CLOSED01-CALL | Same closed round; requests CALL | IllegalArgumentException; closed snapshot retained | Implemented, GREEN; `noActionIsAcceptedAfterTheRoundHasNoActor(CALL)` |
-| BE-LIMIT01-FOLD | Current bet 60, last full raise 40; actor requests FOLD | UnsupportedOperationException pending authoritative raised-round statistics context; snapshot retained | Implemented, GREEN; `raisedRoundsRemainExplicitlyUnsupported(FOLD)` |
-| BE-LIMIT01-CHECK | Same raised round; actor requests CHECK | UnsupportedOperationException; snapshot retained | Implemented, GREEN; `raisedRoundsRemainExplicitlyUnsupported(CHECK)` |
-| BE-LIMIT01-CALL | Same raised round; actor requests CALL | UnsupportedOperationException; snapshot retained | Implemented, GREEN; `raisedRoundsRemainExplicitlyUnsupported(CALL)` |
-| BE-LIMIT02-BET | Initial state; actor requests BET to 60 | UnsupportedOperationException; snapshot retained | Implemented, GREEN; `betsAndRaisesRemainUnsupported(BET)` |
-| BE-LIMIT02-RAISE | Initial state; actor requests RAISE to 60 | UnsupportedOperationException; snapshot retained | Implemented, GREEN; `betsAndRaisesRemainUnsupported(RAISE)` |
+| BE-LIMIT01-FOLD | Current bet60, last full raise40; actor FOLD | Accepted FOLD, adds0; input retained | Passing; `raisedRoundsAcceptLegalResponsesAndRejectUnpaidChecks(FOLD)` |
+| BE-LIMIT01-CHECK | Same raised round; actor CHECK while owing60 | IllegalArgumentException; input retained | Passing; `raisedRoundsAcceptLegalResponsesAndRejectUnpaidChecks(CHECK)` |
+| BE-LIMIT01-CALL | Same raised round; actor CALL | Accepted CALL adds60; total6000; input retained | Passing; `raisedRoundsAcceptLegalResponsesAndRejectUnpaidChecks(CALL)` |
+| BE-LIMIT02-BET | Preflop actor BET to60 | IllegalArgumentException; preflop requires RAISE over blinds | Passing; `preflopUsesRaiseRatherThanBet(BET)` |
+| BE-LIMIT02-RAISE | Preflop actor RAISE to60 | Accepted RAISE adds60; input retained | Passing; `preflopUsesRaiseRatherThanBet(RAISE)` |
 | BE-SEQUENCE01 | Real GameInitializer, dealer 0: seat 3 CALL, 4 FOLD, 5 CALL, 0 CALL, 1 CALL, 2 CHECK | BB retains final decision after SB call; check ends decisions; five live hands; every live contribution 20; pot 100; total 6,000 throughout; cards and earlier snapshot retained; no next street or payout | Implemented, GREEN; `controlledPreflopSequenceEndsAtPot100WithFiveLiveHands` |
 
 Tests are in [BettingEngineFoldCheckTest](../../src/test/java/domain/model/BettingEngineFoldCheckTest.java).
@@ -110,7 +114,7 @@ available stack. A positive call that exhausts the stack is accepted as CALL,
 with `becameAllIn=true` and status ALL_IN. A short call does not lower
 `currentBet`, change `lastFullRaiseSize`, reopen raising rights or increase the
 amount another player owes. An all-in player remains a hand participant but has
-no further pending decisions or raising rights. The engine still accepts only
+no further pending decisions or raising rights. At that original checkpoint the engine accepted only
 unraised preflop decisions in this increment.
 
 Unit fixtures use the same 1,000-chip / 10–20 configuration and a 6,000 total.
@@ -298,15 +302,15 @@ Only accepted results emit observations; rejected requests retain all values.
 | BE-PC07 | BettingEngine.apply; BettingResult.getAcceptedAction | Preflop aggressor p1 faces another opening bettor p0; FOLD | No opportunity to open with a c-bet; no actual c-bet faced | Implemented, GREEN; `anAggressorFacingAnotherOpeningBetCannotCBet` |
 | BE-PC08-TURN | BettingEngine.apply; BettingResult.getAcceptedAction | TURN bet 20 and recorded past flop c-bet 20; p1 FOLD | No flop opportunity on later streets despite equal amounts | Implemented, GREEN; `aPastCBetIsNotACurrentTurnOrRiverCBet(TURN)` |
 | BE-PC08-RIVER | BettingEngine.apply; BettingResult.getAcceptedAction | RIVER bet 20 and recorded past flop c-bet 20; p1 FOLD | No flop opportunity on later streets despite equal amounts | Implemented, GREEN; `aPastCBetIsNotACurrentTurnOrRiverCBet(RIVER)` |
-| BE-PF11-FLOP-CALL | BettingEngine.apply | FLOP actor requests CALL | UnsupportedOperationException; no state or history changes | Implemented, GREEN; `unsupportedPostflopActionsRemainExplicit(FLOP,CALL)` |
-| BE-PF11-FLOP-BET | BettingEngine.apply | FLOP actor requests BET | UnsupportedOperationException; no state or history changes | Implemented, GREEN; `unsupportedPostflopActionsRemainExplicit(FLOP,BET)` |
-| BE-PF11-FLOP-RAISE | BettingEngine.apply | FLOP actor requests RAISE | UnsupportedOperationException; no state or history changes | Implemented, GREEN; `unsupportedPostflopActionsRemainExplicit(FLOP,RAISE)` |
-| BE-PF11-TURN-CALL | BettingEngine.apply | TURN actor requests CALL | UnsupportedOperationException; no state or history changes | Implemented, GREEN; `unsupportedPostflopActionsRemainExplicit(TURN,CALL)` |
-| BE-PF11-TURN-BET | BettingEngine.apply | TURN actor requests BET | UnsupportedOperationException; no state or history changes | Implemented, GREEN; `unsupportedPostflopActionsRemainExplicit(TURN,BET)` |
-| BE-PF11-TURN-RAISE | BettingEngine.apply | TURN actor requests RAISE | UnsupportedOperationException; no state or history changes | Implemented, GREEN; `unsupportedPostflopActionsRemainExplicit(TURN,RAISE)` |
-| BE-PF11-RIVER-CALL | BettingEngine.apply | RIVER actor requests CALL | UnsupportedOperationException; no state or history changes | Implemented, GREEN; `unsupportedPostflopActionsRemainExplicit(RIVER,CALL)` |
-| BE-PF11-RIVER-BET | BettingEngine.apply | RIVER actor requests BET | UnsupportedOperationException; no state or history changes | Implemented, GREEN; `unsupportedPostflopActionsRemainExplicit(RIVER,BET)` |
-| BE-PF11-RIVER-RAISE | BettingEngine.apply | RIVER actor requests RAISE | UnsupportedOperationException; no state or history changes | Implemented, GREEN; `unsupportedPostflopActionsRemainExplicit(RIVER,RAISE)` |
+| BE-PF11-FLOP-CALL | BettingEngine.apply | FLOP unopened round; request CALL | IllegalArgumentException; state/history retained | Passing; `invalidPostflopActionsAreRejectedWithoutChanges(FLOP,CALL)` |
+| BE-PF11-FLOP-BET | BettingEngine.apply | FLOP round already opened to20; request BET | IllegalArgumentException; state/history retained | Passing; `invalidPostflopActionsAreRejectedWithoutChanges(FLOP,BET)` |
+| BE-PF11-FLOP-RAISE | BettingEngine.apply | FLOP unopened round; request RAISE | IllegalArgumentException; state/history retained | Passing; `invalidPostflopActionsAreRejectedWithoutChanges(FLOP,RAISE)` |
+| BE-PF11-TURN-CALL | BettingEngine.apply | TURN unopened round; request CALL | IllegalArgumentException; state/history retained | Passing; `invalidPostflopActionsAreRejectedWithoutChanges(TURN,CALL)` |
+| BE-PF11-TURN-BET | BettingEngine.apply | TURN round already opened to20; request BET | IllegalArgumentException; state/history retained | Passing; `invalidPostflopActionsAreRejectedWithoutChanges(TURN,BET)` |
+| BE-PF11-TURN-RAISE | BettingEngine.apply | TURN unopened round; request RAISE | IllegalArgumentException; state/history retained | Passing; `invalidPostflopActionsAreRejectedWithoutChanges(TURN,RAISE)` |
+| BE-PF11-RIVER-CALL | BettingEngine.apply | RIVER unopened round; request CALL | IllegalArgumentException; state/history retained | Passing; `invalidPostflopActionsAreRejectedWithoutChanges(RIVER,CALL)` |
+| BE-PF11-RIVER-BET | BettingEngine.apply | RIVER round already opened to20; request BET | IllegalArgumentException; state/history retained | Passing; `invalidPostflopActionsAreRejectedWithoutChanges(RIVER,BET)` |
+| BE-PF11-RIVER-RAISE | BettingEngine.apply | RIVER unopened round; request RAISE | IllegalArgumentException; state/history retained | Passing; `invalidPostflopActionsAreRejectedWithoutChanges(RIVER,RAISE)` |
 | BE-PFI01 | BettingEngine.apply; advanceStreet; BettingResult getters | Real setup; preflop CALL/FOLD/CALL/CALL/CALL/CHECK; all five remaining players CHECK all postflop streets | SHOWDOWN after 21 accepted actions; exact actor order and action streets; board 5/deck 32; pot 100/stacks 5,900/total 6,000; no payout | Implemented, GREEN; `CheckThroughHandIntegrationTest.setupAndPlayerActionsReachShowdownWithConservedChips(false)` |
 | BE-PFI02 | BettingEngine.apply; advanceStreet; BettingResult getters | Same setup; seat 2 folds on flop and remaining players check through | SHOWDOWN after 19 accepted actions; folded seat 2 retains 20 and never acts later; same pot/cards/total; input snapshots unchanged | Implemented, GREEN; `CheckThroughHandIntegrationTest.setupAndPlayerActionsReachShowdownWithConservedChips(true)` |
 

@@ -2,15 +2,16 @@
 
 A Java desktop no-limit Texas Hold'em game with six seats for 1–6 humans and bots
 filling the remaining seats. Players share one computer and use virtual chips.
-Seats stay fixed during a match; players can stop the whole game.
-The intended full match ends when one player holds all the chips.
+Seats and chip ownership stay fixed during a match. Humans can leave. The agreed
+match target is one player holding all 6,000 chips; departure-related terminal
+behavior still needs reconciliation with that requirement.
 
-**Status:** The supported fold/check/call flow now reaches real results, pays pots
-and carries chips and player statistics into the next hand. Swing supports
-English and Chinese, explicit private-card handoffs and a read-only statistics
-tab. Bots use a temporary check/call policy. Bets/raises, postflop calls, equity
-bots remain unfinished. Local password accounts and lifetime statistics are
-connected to the desktop interface.
+**Status:** The engine and application session support full bets/raises and
+fold/check/call on every street, settlement and continued hands with carried
+chips/statistics. Requests specify round targets; the engine calculates deductions
+and individual reopening eligibility. Swing exposes the five actions in English
+and Chinese, private-card handoffs, local password accounts and lifetime statistics.
+Bots use a temporary check/call policy; adaptive bots remain on their separate branch.
 
 ## Contributors
 
@@ -68,11 +69,12 @@ password under **Sign in**, choose **Sign in and add**, and repeat for 1–6 hum
 Choose **Start Game**; bots fill the remaining seats. Removing a profile from the
 next-match roster does not change an ongoing match.
 
-Use **Fold**, **Check** or **Call** for the current human, passing the computer
-at each handoff. Choose **Reveal cards** only after passing it to the selected
-person. Switching humans/tabs, changing language, restarting or leaving the window
-hides cards and clears password fields. Each signed-in human is identified by
-profile name; private-card access still relies on the shared-computer handoff.
+Use **Fold**, **Check** or **Call**, or enter a round total and choose **Bet** or
+**Raise**. Engine-provided limits determine the allowed wagers. Pass the computer
+to the selected human before choosing **Reveal cards**. Switching humans/tabs,
+changing language, restarting or leaving the window hides cards and clears password
+fields. Profile authentication identifies accounts; private-card access still relies
+on shared-computer handoffs.
 
 After a result, choose **Settle hand**, then **Next hand**. **Statistics** shows
 current-match totals; **Profiles** shows the selected signed-in account's lifetime
@@ -80,6 +82,11 @@ totals. N/A means no qualifying opportunity. A new match resets stacks/match tot
 and retains completed lifetime data. Closing discards unfinished play. Saved
 accounts/statistics are local in `~/.cs380-holdem/profiles.properties`; they reopen
 after password verification. Storage errors leave settlement retryable.
+
+Select a human and choose **Leave match** to retire their seat. Current actors fold
+immediately; other active departures queue a fold, and all-in eligibility lasts
+through settlement. The queued-departure winner and 6,000-chip terminal-policy
+follow-ups are still open; see [quality results](docs/quality.md).
 New locales use resources/configuration; see [localization](docs/design/localization.md).
 Tests run headlessly with temporary catalogs, without creating real profiles.
 
@@ -126,9 +133,9 @@ and required status-check enforcement still need verification after push.
 
 Run `bash ./gradlew build` for tests/static checks/coverage and
 `bash ./gradlew pitest` for mutation testing. The team suite and shared static
-checks run across the project; coverage/PIT use twenty-seven documented components,
-including dealing, settlement, continuation, PlayStats, profile storage/password
-services and the shared session. These are not full-game metrics.
+checks run across the project; coverage/PIT use 44 documented parent components,
+including betting/state, dealing, settlement, continuation, PlayStats, local account
+storage/password services and the shared session. These are not full-game metrics.
 [Quality results](docs/quality.md)
 list exact scope, report paths, adapted Checkstyle rules and reviewed SpotBugs
 exceptions. There is no invented metric threshold that hides findings.
@@ -150,18 +157,17 @@ exceptions. There is no invented metric threshold that hides findings.
 
 ### Code Coverage
 
-Coverage uses the documented 27-component scope, including InitialDeal and the
-shared session/view, statistics collectors, settlement and local accounts. The
-rubric targets 100% cyclomatic coverage, with View/Main/Enum exemptions. JaCoCo line, branch
+Coverage uses the documented 44-component scope, including betting/state,
+shared session/view, statistics, settlement and local accounts. The rubric targets
+100% cyclomatic coverage, with View/Main/Enum exemptions. JaCoCo line, branch
 and covered-complexity counters are reported separately; these do not prove
 independent basis-path execution. The exact class scope and results are in
-[quality.md](docs/quality.md); the remaining betting/state components
-remain outside this measurement scope,
-while their tests and shared static checks still run.
+[quality.md](docs/quality.md). The complete team suite and static checks also
+cover components outside that measurement scope.
 
 ### Mutation Testing
 
-PIT uses the DEFAULTS operator group on the documented 27-component scope. The target
+PIT uses the DEFAULTS operator group on the documented 44-component scope. The target
 is to kill every non-equivalent mutant. Actual raw scores and each surviving
 mutant's reasoning remain visible in [quality.md](docs/quality.md), including
 the unresolved acceptance of a contract-preserving constant hash. Survivor reasoning and acceptance limits are documented alongside the raw score.

@@ -24,3 +24,13 @@ Latest verification: full build 1,196 passing tests; Checkstyle/SpotBugs clean;
 new/modified E02 component mutants all killed. See the existing
 [quality record](../quality.md#completed-lifetime-statistics--november-9-2026).
 These are local results; commit/CI/review/merge gates are not marked complete.
+
+## Raised-hand persistence merge regression — November 15, 2026
+
+PM-C06 composes profiles with the main branch's full betting engine: an opening
+raise, the profile's three-bet to 80, a flop continuation bet to 40, calls and
+checks through showdown. The 720-chip pot settles with 6,000 chips conserved.
+The profile's VPIP, PFR, three-bet and flop c-bet rates are each 100%; a fresh
+service loads identical completed rates. Continuing preserves profile bindings
+and does not count the settled hand twice. This is a passing integration
+regression for the merge, not a claim of a new feature RED cycle.

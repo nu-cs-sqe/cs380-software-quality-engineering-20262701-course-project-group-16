@@ -49,7 +49,7 @@ application {
     mainClass.set("ui.Main")
 }
 
-// Shared scope includes settlement, completed statistics and stable-seat continuation.
+// Shared scope includes betting, settlement, statistics and stable-seat continuation.
 // This is not a whole-team coverage or mutation score.
 val measuredClasses = listOf(
     "domain.model.Card",
@@ -76,6 +76,23 @@ val measuredClasses = listOf(
     "domain.model.PotSettlement",
     "domain.model.Settlement",
     "domain.model.PlayStats",
+    "domain.model.BettingEngine",
+    "domain.model.BettingAmounts",
+    "domain.model.BettingRound",
+    "domain.model.BettingHistory",
+    "domain.model.BettingProgress",
+    "domain.model.GameConfig",
+    "domain.model.GameState",
+    "domain.model.Player",
+    "domain.model.PlayerState",
+    "domain.model.HandPositions",
+    "domain.model.SeatOrder",
+    "domain.model.ActionRequest",
+    "domain.model.AcceptedAction",
+    "domain.model.BettingResult",
+    "domain.model.LegalActions",
+    "domain.model.StatsContext",
+    "domain.model.StatsAction",
     "application.SetupSession",
     "application.SetupView",
     "localization.Localizations"
@@ -145,26 +162,8 @@ pitest {
     targetClasses.set(measuredClasses.flatMap { listOf(it, "$it\$*") }.toSet())
     excludedClasses.set(setOf("domain.model.ShowdownResult\$Status"))
     targetTests.set(setOf(
-        "domain.model.CompletedStatisticsTest", "application.LifetimeStatisticsTest",
-        "application.ProfiledMatchIntegrationTest", "persistence.LifetimeStorageTest",
-        "persistence.StatisticsPropertiesTest",
-        "domain.model.CardTest", "domain.model.PlayerProfileTest",
-        "domain.model.PasswordHashTest", "domain.model.StoredProfileTest",
-        "security.PasswordBufferTest", "integration.Pbkdf2PasswordHasherIntegrationTest",
-        "application.ProfileServiceTest", "persistence.FileProfileRepositoryTest",
-        "integration.ProfilePersistenceIntegrationTest",
-        "domain.model.DeckTest", "domain.model.DeckSetupTest",
-        "domain.model.PokerHandEvaluatorTest", "domain.model.PokerHandRankingTest",
-        "domain.model.ShowdownResolverTest",
-        "domain.model.ShowdownResultTest", "application.GameInitializerTest",
-        "integration.GameInitializerIntegrationTest",
-        "integration.SetupSessionIntegrationTest", "application.SessionBettingTest",
-        "application.HandStatisticsTest", "application.SessionStatisticsIntegrationTest",
-        "domain.model.PotSettlementTest", "domain.model.PlayStatsTest",
-        "domain.model.PlayStatsCopyTest", "application.NextHandTest",
-        "application.CompletedStatisticsIntegrationTest", "application.ShortBlindIntegrationTest",
-        "application.SetupViewTest", "integration.SetupIntegrationTest",
-        "integration.ShowdownIntegrationTest", "integration.PlayedHandIntegrationTest",
+        "domain.model.*Test", "application.*Test", "integration.*Test",
+        "persistence.*Test", "security.*Test",
         "localization.LocalizationsTest"
     ))
     threads.set(2)

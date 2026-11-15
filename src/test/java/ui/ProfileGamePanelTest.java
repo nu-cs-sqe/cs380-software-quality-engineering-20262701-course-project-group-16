@@ -353,6 +353,46 @@ class ProfileGamePanelTest {
         });
     }
 
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1})
+    void uiAc16ProfileWorkDisablesMergedWagerAndDepartureControls(int language)
+            throws IOException, GeneralSecurityException, InterruptedException,
+            InvocationTargetException {
+        service().create("Player", PASSWORD.toCharArray());
+        GateHasher hasher = new GateHasher();
+        ProfileService profiles = new ProfileService(new FileProfileRepository(directory), hasher,
+                () -> "another-profile");
+        SetupSession session = session();
+        GamePanel panel = panel(profiles, session, language);
+        login(panel, PASSWORD);
+        event(() -> {
+            find(panel, "start", JButton.class).doClick();
+            assertTrue(find(panel, "wager", JButton.class).isEnabled());
+            assertTrue(find(panel, "quit", JButton.class).isEnabled());
+            find(panel, "profileName", JTextField.class).setText("Another player");
+            find(panel, "createPassword", JPasswordField.class).setText(PASSWORD);
+            find(panel, "createProfile", JButton.class).doClick();
+        });
+        try {
+            assertTrue(hasher.entered.await(10, TimeUnit.SECONDS));
+            event(() -> {
+                assertTrue(Boolean.TRUE.equals(panel.getClientProperty("profileBusy")));
+                for (String name : List.of("quit", "wager", "wagerTarget")) {
+                    assertFalse(find(panel, name, JComponent.class).isEnabled(), name);
+                }
+                assertFalse(session.hasDeparted(session.getView().orElseThrow()
+                        .getPlayers().get(0).getId()));
+            });
+        } finally {
+            hasher.release.countDown();
+        }
+        idle(panel);
+        event(() -> {
+            assertTrue(find(panel, "wager", JButton.class).isEnabled());
+            assertTrue(find(panel, "quit", JButton.class).isEnabled());
+        });
+    }
+
     private ProfileService service() {
         java.util.concurrent.atomic.AtomicInteger ids = new java.util.concurrent.atomic.AtomicInteger();
         return new ProfileService(new FileProfileRepository(directory), new FixedHasher(),

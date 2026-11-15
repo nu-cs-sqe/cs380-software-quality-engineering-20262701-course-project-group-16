@@ -163,6 +163,60 @@ class ProfiledMatchIntegrationTest {
                 .mapToLong(Player::getChipStack).sum());
     }
 
+    @Test
+    void pmC06RaisedProfileHandPersistsExactStatisticsAfterRestart()
+            throws IOException, GeneralSecurityException {
+        ProfileService profiles = new ProfileService(new FileProfileRepository(directory));
+        PlayerProfile profile = profiles.create("Player", PASSWORD);
+        AuthenticatedProfile account =
+                profiles.login(profile.getProfileId(), PASSWORD).orElseThrow();
+        SetupSession session = session();
+        session.startProfiles(profiles, List.of(account));
+        String playerId = session.getView().orElseThrow().getPlayers().get(0).getId();
+        wager(session, ActionType.RAISE, 40); // Seat 3 opens.
+        act(session, ActionType.CALL); // Seat 4.
+        act(session, ActionType.CALL); // Seat 5.
+        wager(session, ActionType.RAISE, 80); // Profile at seat 0 three-bets.
+        while (session.getView().orElseThrow().getPhase() == GamePhase.PREFLOP) {
+            act(session, session.getAvailableActions().contains(ActionType.CALL)
+                    ? ActionType.CALL : ActionType.CHECK);
+        }
+        for (int index = 0; index < 5; index++) {
+            act(session, ActionType.CHECK);
+        }
+        wager(session, ActionType.BET, 40); // Final preflop aggressor makes a flop c-bet.
+        for (int index = 0; index < 5; index++) {
+            act(session, ActionType.CALL);
+        }
+        while (session.getResult().isEmpty()) {
+            act(session, ActionType.CHECK);
+        }
+        assertEquals(720, session.getView().orElseThrow().getPot());
+        assertEquals(0, profiles.getLifetimeStatistics(account).getHandsPlayed());
+        session.settleHand();
+        StatisticsView current = session.getStatistics().get(playerId);
+        assertEquals(1, current.getHandsPlayed());
+        for (int metric : new int[]{0, 1, 3, 6}) {
+            assertEquals(100, current.getRates().get(metric).orElseThrow());
+        }
+        ProfileService reopened = new ProfileService(new FileProfileRepository(directory));
+        AuthenticatedProfile login = reopened.login(profile.getProfileId(), PASSWORD).orElseThrow();
+        StatisticsView persisted = reopened.getLifetimeStatistics(login);
+        assertEquals(current.getHandsPlayed(), persisted.getHandsPlayed());
+        assertEquals(current.getRates(), persisted.getRates());
+        assertEquals(6000, session.getView().orElseThrow().getPlayers().stream()
+                .mapToLong(Player::getChipStack).sum());
+        session.nextHand();
+        assertEquals(Map.of(playerId, profile.getProfileId()), session.getProfileIds());
+        assertEquals(1, profiles.getLifetimeStatistics(account).getHandsPlayed());
+    }
+
+    private static void wager(SetupSession session, ActionType type, long target) {
+        SetupView view = session.getView().orElseThrow();
+        String actor = view.getPlayers().get(view.getCurrentActorSeat()).getId();
+        session.submitAction(new ActionRequest(actor, type, target));
+    }
+
     private static SetupSession session() {
         Random dealer = new Random() {
             private static final long serialVersionUID = 1L;

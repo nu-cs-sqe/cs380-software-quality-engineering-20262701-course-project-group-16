@@ -50,3 +50,12 @@ Registration length is now 6–15 characters in both hints and backend checks.
 UI-AC06 uses 5/16-character passwords and checks the revised plain-text range;
 fixtures use a valid 14-character sample. Passwords saved under the older policy
 remain accepted for sign-in; see PW-C07/08.
+
+## Main/profile merge regression — November 15, 2026
+
+UI-AC16-en/zh covers a live profile-bound match while another profile is being
+created by a gated background hasher. The merged Leave match, Bet/Raise and wager
+target controls must be disabled during that operation and enabled again afterward.
+The human remains in the match. Both cases first failed because Leave match stayed
+enabled, then passed after all three controls joined the existing busy-state list.
+This is an observed local RED/GREEN cycle, not separate Git TDD commits.
