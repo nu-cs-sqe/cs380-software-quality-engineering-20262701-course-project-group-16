@@ -236,8 +236,8 @@ still needs Kevin's K04 revision and implementation.
 | Separate committed branch; review/merge pending | Estella | E01/E02: local profiles, lifetime persistence and desktop account integration | `feature/player-profiles`, latest local commit `e0d6015`; detailed checkpoints in issue #20. Profile sources remain on their separate branch. |
 | Committed/pushed; review/CI/merge pending | Estella | E03: legitimate-information Monte Carlo equity, multiway fractional ties, public side-pot eligibility, bounded/cancellable calculation | `feature/monte-carlo-equity`, commit `2ce09a0`, based on main `c71e9d6`; 51 new cases, full suite 1,084 passing; [BVA](bva/MonteCarloEquityEstimator.md), [design](design/README.md#standalone-equity-e03), [quality](quality.md#e03-standalone-equity--november-10-2026). |
 | Committed/pushed; local integration awaiting review/commit | Estella | E04: smoothed public-decision opponent learning and contextual uncertainty | `feature/opponent-learning`, commit `54de9ad`, based on E03 `2ce09a0`; 49 new cases, 1,133 total tests pass, 138/138 learning and 20/20 StatsContext mutants killed; [BVA](bva/OpponentModel.md), [quality](quality.md#e04-opponent-learning--november-10-2026). |
-| Verified locally; review/commit/CI/merge pending | Estella | E05: varied legal decisions using equity, odds, position, stacks and beliefs | feature/bot-policy, based on 93ab0fe; 1,257 tests, 172/172 new-class mutants killed; detailed E05 checkpoint below. |
-| Planned | Estella | E06: off-EDT execution, cancellation and stale-decision rejection | Match/hand/state identity must be checked before engine submission. |
+| Committed/pushed; review/CI/merge pending | Estella | E05: varied legal decisions using equity, odds, position, stacks and beliefs | `feature/bot-policy`, user commits `4e421c6` / `36f9a49`; 1,257 tests, 172/172 new-class mutants killed; detailed E05 checkpoint below. |
+| Verified locally; commit/review/CI/merge pending | Estella | E06: live accepted learning, public call scenarios, off-EDT execution, cancellation and stale-decision rejection | `feature/bot-integration`, based on committed E05 `36f9a49`; detailed checkpoint below. |
 | Merged PR #23; departure follow-up open | Kevin | K01–K06: full betting/reopening, statistics context, quit-as-fold, legal-action contracts and applicable quality scope | Merged to main `bda4954`; integrated locally with E03/E04. Full-betting/static checks pass; departure findings are recorded below. |
 | Pending | Together | I01–I07, M01 and Q01–Q10: real integration flows, bot evaluation, complete quality/process gates | E03 supplies equity-error, privacy and observational latency evidence only; reviews, remote CI and merge remain pending. |
 
@@ -380,10 +380,10 @@ Kevin's LegalActions/Wager APIs, retaining E06 event-origin and worker contracts
 
 ### E05 policy checkpoint — November 15
 
-**Status:** Implemented and verified locally on feature/bot-policy; awaiting user
-review, commit/push, peer review, remote CI and merge. Base 93ab0fe is the user's
-committed instructor-refactor integration; the earlier instructor checkpoint
-retains its original verification-time wording.
+**Status:** Implemented and verified locally on feature/bot-policy; subsequently
+committed/pushed by the user as `4e421c6` / `36f9a49`. Peer review, remote CI and
+merge acceptance are still pending here. Base 93ab0fe is the user's committed
+instructor-refactor integration; earlier checkpoint wording remains historical.
 
 Completed E05's pure decision API: immutable filtered requests and distributions,
 eligible-pot/net-call odds, public street-order position, stack-aware raise-to
@@ -414,11 +414,89 @@ and is not a latency guarantee or playing-strength claim.
 
 Updated required BVA and existing project records; no extra reports or checkout.
 The E05 issue checkbox stays open until its review/CI/merge gates are complete.
-E06 is next: live accepted-event wiring, authoritative public scenarios, background
-calculation, cancellation and stale-result rejection. Swing still runs the
-temporary check/call policy. Profile integration and known departure/terminal
+At this E05 checkpoint, E06 was next and Swing used temporary check/call bots.
+The E06 checkpoint below records the subsequent live integration. Profile integration and known departure/terminal
 policy findings remain open.
 
+### E06 live integration checkpoint — November 15
+
+Branch `feature/bot-integration` starts from the user's E05 commits `4e421c6`
+and `36f9a49`, in the original checkout. No agent commit/push, additional
+checkout or scratch report was created. Profiles stay on their separate branch.
+
+BotTable prepares accepted public-event learning transactionally, retaining
+match-scoped beliefs between hands and excluding automatic departure folds.
+PotLayout is shared by settlement and prospective-call scenarios. BotTurn carries
+only immutable own/public information plus matching legal limits and state tokens.
+The preview assumes no further betting; its refunds are conditional scenario
+values and do not promise later betting outcomes.
+
+BotComputer connects Monte Carlo equity to the varied legal policy. BotWorker
+uses one background thread and one waiting job, cooperative cancellation and a
+one-second budget. BotController applies results only on the owner thread after
+match/revision/hand/actor checks and authoritative engine validation. GamePanel
+uses translated thinking/retry controls and preserves human handoffs. Restart,
+departure, game progression and close invalidate work; old callbacks cannot hide
+newly revealed cards. Closing releases the executor; locale changes preserve play.
+
+Local TDD observed missing APIs for contribution/position/transactional models,
+then for session/worker/computer boundaries. Five controller behavior cases and
+six Swing invocations were observed failing against unsupported implementations,
+then passing. Later refund/context/lifecycle regressions address quality gaps;
+they are not claimed as initial feature RED cycles. Git test-first evidence still
+needs the user's honest commit history and review, not fabricated checkpoints.
+
+Final `build pitest --warning-mode all` exits 0: **1,308 tests passing**, clean
+Checkstyle and zero unexcluded SpotBugs findings. Six new executable parents
+(seven reported classes) have zero missed counters and kill **136/136 mutants**.
+Shared scope is 56 parents / 59 classes: 2,434/2,435 lines, 1,399/1,400 branches,
+1,354/1,355 complexity counters and 649/649 methods. Shared PIT is **1,581/1,595
+(99.12%)**, with the same 14 baseline survivors and zero uncovered/error/timeout
+mutants. The existing enum-default miss remains; these are scoped measurements,
+not independent basis-path or whole-backend proof. [Full evidence](quality.md#e06-live-adaptive-bots--november-15-2026).
+
+Real integrations cover background/Swing dispatch, bounded queue replacement,
+bot-to-human handoff, an adaptive played hand through payment/continuation, and
+capped side-pot CALL settlement. Exact public learning contexts, automatic
+fold exclusion and recorder-failure rollback/retry are verified. The final
+three-bot-to-human flow took 216.011 ms locally; not a timing guarantee.
+A precise live-Swing controller serialization exception is documented; no new
+coverage/mutation exclusion was added.
+Native display/focus testing, profile integration, peer review, remote CI and merge
+remain pending. The issue E06 checkbox remains open until those code review/merge
+gates are met. Existing queued-departure winner and below-6,000 terminal-policy
+follow-ups still prevent claiming that the whole backend is complete.
+
+Style follow-up: extracted named budget-validation and model-creation helpers;
+checked 100-character lines, four-space indentation and absence of production
+null guards. The real-thread integration now uses seeded randomness and bounded
+explicit test-driver retries for supported timeouts; exact deadlines remain
+covered with a controlled clock. The full 1,308-test build and PIT rerun pass.
+
+### Readability review of current and earlier methods — November 15
+
+Reviewed all 80 current production Java source files, including earlier shared
+work. Refactored mixed responsibilities in GameState, PlayStats, StatsAction /
+StatsContext, evaluation/showdown, setup/continuation and UI rendering. Helper
+names identify real rules or transformations; cohesive parsing/betting algorithms
+remain intact. Bot rule/sizing names are explicit, and UI tests share typed
+component lookup. Thirty-nine statistics expectation rows use OptionalDouble.
+The public APIs, game rules and 1,308 existing test invocations are retained.
+
+Final `build pitest --warning-mode all` passes: clean Checkstyle and zero
+unexcluded SpotBugs findings; PIT **1,645/1,659 (99.16%)**, same 14 baseline
+survivors, zero uncovered/error/timeout mutants. The unchanged 56-parent /
+59-class scope covers 2,544/2,545 lines, 1,403/1,404 branches, 1,414/1,415
+complexity counters and 707/707 methods. The existing enum-default miss remains;
+these are scoped counters, not independent basis-path proof. [Latest evidence](quality.md#readability-review-of-current-and-earlier-work--november-15-2026).
+
+The profile branch e0d6015 was inspected read-only. It still needs internal
+null-guard cleanup, storage-boundary normalization and profile-selector/roster
+rendering separation. It was not merged or edited while E06 remains uncommitted;
+that cleanup must be verified separately. No extra checkout/report, commit or
+push was created. Existing BVA/design records and issue #20 retain review/CI/
+merge gates; neither this review nor green local checks establish whole-backend
+or final-grade completion.
 
 ## Future weekly report template
 

@@ -33,3 +33,8 @@ claimed failing-before-implementation cycles.
 
 Clockwise odd-chip ordering uses the shared GameConfig.SEAT_COUNT constant.
 Existing tie and separated-seat payout cases verify the unchanged behavior.
+
+E06 extracts the existing contribution-level algorithm into
+[PotLayout](PotLayout.md), shared with bot call previews. PL01–05 verify pot and
+refund totals, eligibility, immutable layers and unchanged settlement payouts.
+The payout/odd-chip and completed-state rules remain here.

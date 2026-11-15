@@ -40,3 +40,8 @@ or live-learning claim. BotPersonality is an enum and uses the rubric exemption.
 BP11–18 and BI01–03 were added after the first feature GREEN; BP15–18 strengthen
 the first mutation findings. These are hardening/integration evidence, not extra
 feature RED cycles. BI cases map to BotPolicyIntegrationTest.
+
+Readability follow-up (November 15): private names now state paid call/fold
+weights and break-even call equity explicitly. Raise sizing names the called
+round total, remaining capacity and desired chips. Preference formulas, action
+probabilities, limits and public API remain unchanged.

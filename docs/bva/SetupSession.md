@@ -42,3 +42,11 @@ SetupView is a view model (course view exemption); its data and privacy are
 checked through these session tests. UI callbacks use the session on the Swing
 event thread. Real setup/deck/state components run with a fixed dealer stub and
 seeded shuffle source; no game components are mocked.
+
+## E06 bot application operations
+
+See [BotTurn](BotTurn.md) and [BotTable](BotTable.md) for SB01–09, covering
+getBotTurn, isCurrentBotTurn, applyBotDecision, getBotBeliefs,
+invalidateBotTurns and playDepartureTurns. Invalidating work changes only the
+revision; stale results preserve hand, log, learning and newly revealed cards.
+Queued automatic folds do not teach strategic preferences.

@@ -40,3 +40,13 @@ cycles. No synthetic Git checkpoints or extra scratch reports were created.
 Opponent capacity shares GameConfig.SEAT_COUNT, retaining OM-C05's 0/5/6
 registration cases. Snapshot queries check registry membership before reading
 a required stored belief; no absent-value sentinel travels to another component.
+
+## Transactional successor (E06)
+
+| ID | Method | Input/state | Expected | Implemented |
+| --- | --- | --- | --- | --- |
+| TM01 | after/snapshot | New event, successor and old snapshot | Successor learns; original and earlier snapshot unchanged | Yes |
+| TM02 | after/observe | Copied sequence, duplicate, wrong match then retry | No double count; failure consumes nothing | Yes |
+
+Cases map to TransactionalModelTest. Session prepares all bot successors before
+publishing accepted state/statistics, so a rejected game action cannot teach.

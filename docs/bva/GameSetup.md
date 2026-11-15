@@ -28,3 +28,8 @@ Grouped assertions exercise the public getters at the stated boundary; no mutabl
 | GU-23 | create | Largest safe starting stack | Six-stack total conserved after posting blinds | Yes |
 | GU-24 | create | Two matches created by same setup object | Distinct hand/player IDs; previous snapshot unchanged | Yes |
 | GU-25 | create | Same random seed across independent setup instances | Reproducible dealer sequence without fixing production choice | Yes |
+
+Readability follow-up (November 15): create names human-count validation
+and initial betting-progress construction; seat ordering is calculated through
+one SeatOrder collaborator. Existing human-count, blinds, dealer and chip
+conservation cases remain the contract.

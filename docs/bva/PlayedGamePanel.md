@@ -33,3 +33,22 @@ Local TDD: two visibility cases ran before the layout change; the English case
 failed because Call wrapped below the row, while Chinese already fit. After
 using one non-wrapping row with compact button margins and setting labels before
 measuring its height, all 12 played-screen cases pass. No new commit was made.
+
+## Live background bots (E06)
+
+| ID | Methods/controls | State/input | Expected | Implemented |
+| --- | --- | --- | --- | --- |
+| UI01 | start/refresh | Pending bot, three completions, human turn; EN/ZH | Translated thinking status; disable human actions until handoff; cards hidden | Yes |
+| UI02 | retryBot | Timeout, explicit retry, old success/error; EN/ZH | No automatic fallback; retry one job and ignore old callbacks | Yes |
+| UI03 | start/stopBots | Locale change, restart to six humans, new reveal, late result, repeated close | Locale preserves job; restart/close invalidates it without hiding newly revealed cards | Yes |
+| UI04 | start | Invalid restart during pending bot | Keep match and count error; recapture current turn | Yes |
+
+Cases map to GamePanelBotsTest using a controlled scheduler on the Swing event
+thread. Existing presentation tests use UiBotFixtures' passive policy for stable
+message/layout assertions; real threaded application checks are BG01–03.
+
+Readability follow-up (November 15): refresh names seat panels, human
+selector rebuilding and human-control availability; submitAction delegates input
+parsing to requestedAction. Five UI test classes share UiComponents.find for
+explicit, typed component lookup. Existing private-handoff, locale, action,
+layout and background-bot cases are preserved.

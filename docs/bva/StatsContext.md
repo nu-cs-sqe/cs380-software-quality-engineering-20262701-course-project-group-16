@@ -33,3 +33,7 @@ hasThreeBetOpportunity, hasFlopCBetOpportunity and hasFacedFlopCBetOpportunity.
 E04 changes only their visibility so the independent bot model can consume
 accepted engine context; constructor validation and exact PlayStats behavior
 are unchanged. StatsContext and these tests are now measured by JaCoCo/PIT.
+
+Readability follow-up (November 15): constructor validation names
+exclusive flop roles, separate street context and consistent three-bet
+classification. The same context combinations remain accepted/rejected.

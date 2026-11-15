@@ -157,3 +157,10 @@ or a multi-hand sequence. Public constructor and all public methods are covered.
 | PS-Z08 | Constructor, getFoldToFlopCBetPercent() | New instance; denominator is zero | OptionalDouble.empty() | Yes |
 | PS-Z09 | Constructor, getWtsdPercent() | New instance; denominator is zero | OptionalDouble.empty() | Yes |
 | PS-Z10 | Constructor, getWonAtShowdownPercent() | New instance; denominator is zero | OptionalDouble.empty() | Yes |
+
+Readability follow-up (November 15): recording separates participant,
+action-order and c-bet-role checks. Completion prepares checked totals in
+addToLifetimeTotals before commitCompletedHand publishes them and clears the
+pending hand. Postflop action counts and c-bet opportunities have separate named
+operations. Existing PS cases remain unchanged; 39 expected-rate rows now use
+OptionalDouble explicitly instead of nullable expected values.

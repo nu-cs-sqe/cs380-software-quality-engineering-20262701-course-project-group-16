@@ -32,3 +32,7 @@ additional claimed feature RED cycles.
 
 Participant/pot limits use GameConfig.SEAT_COUNT. ER-C05 and ER-C09 continue
 to verify five-opponent and six-pot upper bounds with their adjacent invalid values.
+
+Readability follow-up (November 15): requireHeroEligiblePot names the
+positive awardable-pot invariant and checked sum. Existing eligibility, overflow,
+count and privacy cases retain their expected outcomes.

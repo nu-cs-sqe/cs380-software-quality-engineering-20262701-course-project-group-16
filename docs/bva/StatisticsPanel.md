@@ -16,3 +16,8 @@ StatisticsGamePanelTest.tableHeadersStayVisibleAtTheDefaultWindowSize. Existing 
 privacy, played-result and localization completeness/signature tests remain
 part of the full build. Native operating-system focus delivery and cross-platform
 font checks still need the team's manual walkthrough.
+
+Readability follow-up (November 15): column-width setup is separate
+from row rendering. Numeric versus percentage formatting selects the metric
+name (gap/af), rather than unexplained positional indices. Existing EN/ZH
+statistics/layout assertions cover the same display contract.

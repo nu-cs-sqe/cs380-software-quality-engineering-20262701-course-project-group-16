@@ -35,3 +35,8 @@ parameterized invocations. The constructors have no numeric boundary.
 [Showdown integration](../design/showdown.md) adds two real-component boundary
 fixtures in `ShowdownIntegrationTest` (commit `428b161`). It does not simulate a
 played hand or award main/side pots. Settlement remains a separate operation.
+
+Readability follow-up (November 15): resolve separates readiness,
+eligible contenders and contested winner comparison. The winner/tie comparison
+loop remains cohesive, and settlement stays separate. Existing resolver cases
+retain their expected outputs and rejected-state behavior.

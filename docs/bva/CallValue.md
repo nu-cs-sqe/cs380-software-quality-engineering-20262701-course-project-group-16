@@ -1,8 +1,8 @@
 # CallValue BVA
 
 E05 public call scenario: equity is unrounded, eligible pots exclude refunds and
-pots the hero cannot win. Refund is the guaranteed return of newly called chips
-only. The application owns scenario construction; this class does not settle pots.
+pots the hero cannot win. Refund is the return of newly called chips in the supplied scenario
+only, conditional on its no-further-betting assumption. The application owns scenario construction; this class does not settle pots.
 
 | ID | Methods | Input/state | Expected | Status |
 | --- | --- | --- | --- | --- |

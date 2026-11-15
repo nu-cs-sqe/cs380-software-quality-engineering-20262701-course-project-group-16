@@ -69,8 +69,8 @@ Two integration demonstrations connect real setup/dealing, preflop actions,
 postflop checks/folds and advancement through SHOWDOWN without paying pots.
 Settlement, completed statistics and match continuation are available, with
 full betting/legal options and departure handling integrated from PR #23.
-Varied bot policies and safe worker integration remain E05/E06; profiles are
-developed separately and still need integration. See the
+Varied bot policies and safe worker integration are implemented in E05/E06
+below; profiles are developed separately and still need integration. See the
 [engine BVA](../bva/BettingEngine.md).
 ShowdownResolver supplies winner/tie comparisons; PotSettlement separately
 pays awardable pots and refunds. SetupSession now connects the played betting flow to ShowdownResolver and Swing;
@@ -272,14 +272,14 @@ pot scenarios and a filtered bot view.
 ## Varied decision policy (E05)
 
 E05 is a pure backend policy in bot.policy. It does not start workers or change
-SetupSession.playBotTurns; E06 owns live event wiring, cancellation and stale-state
-rejection. BotPolicy has no mutable fields or random source. It returns an
+SetupSession.playBotTurns; E06 separately supplies live event wiring, cancellation
+and stale-state rejection. BotPolicy has no mutable fields or random source. It returns an
 immutable ActionDistribution; the caller supplies a random quantile in [0,1).
 
 PolicyRequest accepts a filtered GameView, the matching authoritative LegalActions,
 a public CallValue and immutable OpponentBeliefs snapshots. It checks the acting
 bot, basic option/cost/stack correspondence and scenario bounds. Those checks do
-not prove provenance: E06 must bind view, options, estimate and match/hand/revision
+not prove provenance: E06 binds view, options, estimate and match/hand/revision
 to the same captured state. No private opponent cards or physical deck enter the
 policy. Existing Player and profile identities need no policy-specific fields.
 
@@ -287,7 +287,7 @@ policy. Existing Player and profile identities need no policy-specific fields.
 
 The application supplies equity e and the amount P of awardable pots the hero
 can win after calling. P excludes ineligible side pots and uncalled refunds.
-CallValue separately records the guaranteed refund R of newly called chips only;
+CallValue separately records refund R of newly called chips in the supplied scenario;
 it must not credit a refund of an earlier commitment against the new call cost.
 With engine gross calling cost C, newly risked chips are C-R and break-even
 equity is q=(C-R)/P. The zero-pot, zero-cost case is an empty OptionalDouble;
@@ -367,8 +367,100 @@ equity, policy and betting components are exercised together; another flow reach
 settlement after a short-blind refund. Hidden cards and deck order cannot change
 seeded decisions. See per-class BVA and the current quality results.
 
-Live bots still use the temporary check/call application policy. E06 must build
-authoritative public scenarios, wire committed public events with origin/context,
-run simulations off Swing's event thread and reject stale results before action
-submission. Profile integration and the documented departure/terminal-policy
-follow-ups remain separate.
+E06 below connects this policy to live turns. Profile integration and the
+documented departure/terminal-policy follow-ups remain separate.
+
+
+## Live bot application integration (E06)
+
+GamePanel uses an owner-thread BotController and a bounded BotWorker. The worker
+receives BotTurn, an immutable combination of match ID, revision, filtered
+GameView, authoritative LegalActions, public EquityRequest, new-call refund,
+immutable beliefs and seat-based personality. No full GameState, remaining deck,
+opponent hole cards, mutable registry or session crosses into the worker.
+
+### Public scenario and accepted learning
+
+BotTable captures a pure prospective CALL using the engine. PotLayout supplies
+contribution layers, live eligibility and unique-contributor refunds to both the
+preview and real PotSettlement. It does not retain any cards or internal state.
+The estimate assumes immediate settlement after that CALL, with no further
+betting. Future calls/raises can change pots/refunds; these are conditional
+scenario values, not guaranteed future cash flows or full action EV. A refund of
+old committed chips cannot offset the cost of new chips: new-call refund is
+capped at the gross call. Zero-cost checks use current contribution layers.
+
+Only a successfully accepted request publishes the new hand, log, pending exact
+statistics and bot-model successor. BotTable prepares independent OpponentModel
+after snapshots first; failure cannot consume the match sequence or mutate old
+beliefs. Learning context uses pre-action legal choices, street and the shared
+HandPositions response-position method. All bots observe the same match-wide
+sequence; own actions and automatic departure folds do not teach preferences.
+Forced blinds have no strategic decision event. Beliefs carry across hands but
+reset at a new match; they are separate from exact or lifetime PlayStats.
+
+### Background execution and lifecycle
+
+BotComputer combines the existing Monte Carlo estimator, policy and random
+quantile source. Production uses 512 trials, one daemon worker and a queue with
+one waiting job; replacing work discards the previous queued job. A cooperative
+one-second budget is checked before/after computation and between simulation
+trials. The monotonic clock includes queue time. This bounds supplied work and
+avoids blocking Swing; it is not a hard realtime interrupt of arbitrary code.
+
+Worker lifecycle and controller/session calls belong to Swing's event thread.
+A per-job atomic cancellation flag is the cross-thread signal. Completion is
+posted with SwingUtilities.invokeLater, then gated by worker/controller generation.
+The session additionally verifies match, revision, hand and current actor before
+engine validation. Restart, departure, a game action, next hand, settlement and
+window close invalidate pending work. Old output cannot change chips, statistics,
+learning, errors or newly revealed human cards. Closing releases the executor.
+Locale changes conceal cards while allowing the same job to finish.
+
+A timeout/failure makes no fallback game action and creates no automatic retry
+loop. English/Chinese thinking and Retry messages use localization resources.
+The user can explicitly retry; the owner recaptures fresh state. Accepted turns
+continue until a human or result, preserving explicit shared-computer handoffs.
+SetupSession.playBotTurns remains a deterministic passive helper for legacy tests;
+production GamePanel no longer calls it. Presentation tests use an explicit
+passive scheduler; controlled scheduling tests and real-thread integration tests
+verify the new behavior separately.
+
+The BVA index identifies isolated port tests versus real-component integrations.
+Quality and timing results are recorded in the existing quality/weekly documents.
+Native visual/focus verification, profile-branch integration, remote CI, peer
+review and the documented departure/terminal requirement reconciliation remain
+separate acceptance work.
+
+
+## Readability review across current and earlier work — November 15
+
+The active branch was reviewed across setup, state, betting, statistics,
+evaluation/settlement, bot packages, localization and Swing. Refactoring targets
+named invariants and transformations, rather than an arbitrary method length.
+No game rule or public application contract was changed.
+
+| Responsibility | Why it is separate |
+| --- | --- |
+| State validation | Board/hole-card rules, history provenance, actor eligibility and terminal accounting are distinct invariants with existing boundary cases. |
+| Statistics completion | Preparing checked totals before publishing a completed hand makes failure/retry atomicity visible. Action counts and per-hand opportunity flags remain distinct. |
+| Evaluation | Rank counts, suits, multiplicity order and straight detection are separate ranking facts. Category comparison and increasing-index combination traversal remain cohesive algorithms. |
+| Application progression | Accepted-event replay, initial betting target and first-actor selection each express a specific lifecycle step. |
+| Swing rendering | Seat panels, human selection, action parsing and control availability have separate inputs/effects. Localized result text is prepared before replacing an existing display. |
+| Test support | Named component lookup replaces five duplicated nullable searches. Expected unavailable rates use OptionalDouble, matching the production API. |
+
+Longer cohesive operations, such as quoted/nested MessageFormat scanning and
+betting-round bookkeeping, were kept together; descriptive state/index names
+explain their algorithms. Pure accessors and immutable snapshot construction
+were not split into arbitrary wrappers. New private validation helpers are
+exercised through existing public-constructor/lifecycle tests, not implementation-
+mirroring tests. This was a refactoring of a GREEN suite, not a new feature RED
+cycle or fabricated Git history.
+
+The saved feature/player-profiles branch was inspected read-only in the same
+checkout. It predates the main instructor cleanup and still needs its internal
+null guards updated, missing catalog fields validated at the storage boundary,
+and ProfilePanel.render plus profile catalog reading/writing organized by
+responsibility. Those files are absent from this active branch; they were not
+merged, edited or verified as part of the current-branch build. The current
+uncommitted E06 work remains in place for user review/commit first.

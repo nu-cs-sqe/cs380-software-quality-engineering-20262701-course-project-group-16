@@ -11,12 +11,14 @@ with the same chips/statistics. Requests specify the round target; the engine
 calculates deductions. Short all-ins and player-specific cumulative reopening
 are supported by the engine. Swing exposes all five actions in English and
 Chinese, with engine-provided wager limits, private-card handoffs and read-only
-statistics. Live bots use a temporary check/call policy. Adaptive live integration and saved
-profiles remain pending on this branch.
+statistics. Live bots now combine Monte Carlo equity, learned public tendencies
+and varied legal decisions in a cancellable background worker. Saved profiles
+remain on a separate branch.
 
-Equity estimation, opponent learning and the E05 legal decision policy are
-available in `bot`. E06 will connect background decisions to live turns.
-Profile work is separate.
+Bot inputs contain only their own cards and public information. Match/hand/state
+checks reject old results. This is an adaptive heuristic; equity uses uniform
+opponent hands. Profile integration and the documented departure/terminal-policy
+follow-ups remain pending; see [quality](docs/quality.md).
 
 ## Contributors
 
@@ -70,7 +72,8 @@ Test reports appear at `build/reports/tests/test/index.html`.
 With the JDKs configured above, run `bash ./gradlew run` (Windows:
 `.\gradlew.bat run`) on a computer with a desktop display. Enter 1–6 human
 players, select English or Chinese, and choose **Start Game**; bots fill the remaining seats. The highlighted
-seat is the current human actor; bots act automatically. Use the enabled
+seat is the current actor; bots act automatically while a thinking status appears.
+If calculation fails or times out, choose **Retry bot**. Use the enabled
 **Fold**, **Check** or **Call** control, or enter a round total in the wager
 field and choose **Bet** or **Raise**. Then pass the computer to the next human.
 The board and winner/tie result update as rounds finish. Select a human in

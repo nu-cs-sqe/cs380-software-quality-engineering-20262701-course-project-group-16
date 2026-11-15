@@ -8,12 +8,133 @@ no `ignoreFailures`, global suppression or baseline hiding existing warnings. Re
 CI uploads test, coverage, mutation and static-analysis reports even after a
 failed step.
 
+## Readability review of current and earlier work — November 15, 2026
+
+Reviewed the active branch across its 80 production Java source files, including
+previous setup, betting/state, statistics, evaluation, application, bot,
+localization and UI work. The changes preserve rules and public APIs. Required
+BVA notes explain the responsibilities; the [design record](design/README.md#readability-review-across-current-and-earlier-work--november-15)
+distinguishes cohesive algorithms from mixed-purpose methods.
+
+The final `build pitest --warning-mode all` exits 0 on Gradle 9.7.1 / JDK 25
+with Java 11 compilation/tests. This is the latest current-branch measurement;
+the E06 section below retains its earlier checkpoint counters.
+
+| Check | Result |
+| --- | --- |
+| JUnit | **1,308 passing**, zero failures/errors/skips; existing cases retained. |
+| Static checks | Zero Checkstyle main/test/seat-rule errors; zero unexcluded SpotBugs main/test findings or errors. No new filter, suppression or metric exclusion. |
+| Shared scope | Same 56 parent components / 59 reported classes: **2,544/2,545 lines, 1,403/1,404 branches, 1,414/1,415 complexity counters, 12,522/12,527 instructions and 707/707 methods**. |
+| PIT | **1,645/1,659 killed (99.16%)**, same 14 baseline survivors; zero uncovered/error/timeout mutants. Final XML records 12,860 executions; 83 selected test classes. |
+| Existing miss/survivors | The sole JaCoCo miss remains the unreachable GamePhase default, now in GameState.hasBoardSizeForPhase. The equal-count comparator survivor moved from rankFive to ranksByMultiplicity; its stable-sort reasoning is unchanged. Other survivors retain the same methods/rationale. |
+
+State checks now identify card/phase, betting/actor and history invariants.
+Statistics separate action validation, checked aggregate preparation and final
+publication, keeping overflow/retry atomicity explicit. Evaluation separates rank
+facts while preserving category order and the increasing-index combination
+algorithm. UI rendering separates seats, human selection and action parsing;
+metric formatting uses names instead of unexplained indices. Initial setup,
+continuation, accepted-event replay and bot sizing use descriptive steps/units.
+No blanket method-length limit was introduced; longer cohesive parsing and
+betting algorithms remain together with descriptive state names.
+
+Private helpers are exercised through the existing public-API cases. This was
+refactoring from a GREEN suite, not a newly claimed feature RED cycle or synthetic
+Git TDD history. Five duplicated UI-test searches now share an explicit typed
+query; 39 statistics expectation rows use OptionalDouble rather than nullable
+rate values. No original BVA cases were removed. Increased method/mutation counts
+reflect extracted boundaries, not proof of stronger playing ability or full
+basis-path coverage. Survivor acceptance remains a separate review requirement.
+
+The saved feature/player-profiles branch was reviewed read-only without switching,
+merging or creating a checkout. It predates the instructor cleanup: internal
+null guards, missing catalog-field normalization and mixed profile selector/
+roster rendering remain follow-ups. Those absent profile sources were not edited
+or covered by this branch's build. Current E06 work stays uncommitted for user
+review; the profile branch requires its own cleanup/integration afterward.
+No extra report, commit or push was created. Peer review, remote CI, merge,
+native UI checks and known departure/terminal-policy work remain pending.
+
+## E06 live adaptive bots — November 15, 2026
+
+Verified locally on `feature/bot-integration`, based on the user's committed/
+pushed E05 `4e421c6` / `36f9a49`. The original checkout was used throughout;
+no agent commit/push, extra checkout or scratch report was created. The profile
+branch remains separate. The final command was `build pitest --warning-mode all`,
+using Gradle 9.7.1 on JDK 25 with Java 11 compilation/tests, and exited 0.
+
+| Check | Final local result |
+| --- | --- |
+| Full suite | **1,308 passing**, zero failures/errors/skips; 51 additional invocations over committed E05's 1,257. |
+| Static checks | Zero Checkstyle main/test/seat-rule findings and zero unexcluded SpotBugs main/test findings or errors. Production/new-test lines remain within 100 characters; no production null guards were introduced. |
+| Six new executable parents / seven reported classes | **269/269 lines, 68/68 branches, 113/113 complexity counters, 1,171/1,171 instructions, 79/79 methods**; zero missed. Includes PotLayout.Layer. |
+| Shared measurement | **56 parent components / 59 reported classes**: 2,434/2,435 lines, 1,399/1,400 branches, 1,354/1,355 complexity counters, 12,258/12,263 instructions, 649/649 methods. The unchanged GameState enum-default path remains the sole miss. |
+| New-class PIT | **136/136 killed**: BotTurn 8/8, BotTable 25/25, BotComputer 4/4, BotWorker 41/41, BotController 39/39, PotLayout including Layer 19/19. |
+| Shared PIT | **1,581/1,595 killed (99.12%)**, the same 14 documented baseline survivors; zero uncovered/error/timeout mutants. PIT lines 2,430/2,433; 83 selected test classes and 11,797 executions across mutants. |
+| Observed live latency | Three background bot turns reaching the human took **216.011 ms** in the final ordinary suite. This includes scheduling and 512-trial estimates per turn on this machine; it is observational, not a realtime or playing-strength guarantee. |
+
+The extended session, position and transactional model paths have no added miss
+or surviving mutant. No class, operator or test pattern was excluded to obtain
+these results. BotFailure is a data-only enum; BotSession/BotScheduler are ports
+without executable bodies. Shared counters do not independently prove every
+basis path or full-backend grading compliance. Baseline survivor acceptance still
+needs the documented review/instructor assessment.
+
+New behavior was developed through observed API RED/GREEN stages, then five
+controller behavior failures and six Swing invocations failing against unsupported
+implementations before GREEN. Later tests add failure/retry, refund, context,
+coverage and mutation regressions; those are not claimed as initial feature RED
+cycles. No synthetic Git TDD history was created. Required per-class BVA and the
+existing weekly/design records distinguish isolated port tests from integrations.
+
+Real-component integrations verify background computation and Swing callback
+ownership; replacement of a queued job; three adaptive turns reaching a private
+human handoff; a full adaptive hand through accepted actions, learning, payout,
+completed statistics and continuation; and a capped all-in CALL with ineligible
+side pots and an uncalled refund. Controlled clocks exercise exact deadline,
+clock-wrap, cancellation, close and late-callback boundaries. Injected recorder
+failure preserves chips, log, learning and the retryable captured revision.
+Learning tests inspect exact pre-action legal/street/position contexts, including
+free-check previews and automatic departure exclusion.
+
+The first mutation run exposed 30 additional survivors. Meaningful cancellation,
+notification and learned-context assertions close the gaps; redundant checks and
+status resets were simplified. Final raw survivors are only the pre-existing 14.
+SpotBugs concurrency/test findings were corrected in source. One exact new
+GamePanel.bots SE_BAD_FIELD match follows the existing documented live-Swing
+serialization policy: the panel/controller is never serialized, and window close
+releases its executor. It is visible in the exception table for peer review;
+there is no new coverage or mutation exclusion.
+
+Production now uses filtered live decisions rather than the legacy passive
+helper. Calculations are cooperatively bounded/cancellable, and old match/hand/
+revision/actor output is rejected before touching cards, chips, statistics or
+learning. Public pot previews share settlement's contribution algorithm and
+assume no further betting; conditional scenario refunds are not promised across
+future actions. Equity still samples uniform opponent hands; the policy adapts
+public tendencies and varies actions, without claiming GTO or measured win rate.
+
+E06 is verified locally, awaiting user commit/push, peer review, remote CI and
+merge. Native display/focus verification, profile-branch integration, broader
+controlled playing evaluation and known departure/terminal-policy follow-ups
+remain. E06 does not establish whole-backend completion or an A by itself.
+
+Style verification follow-up: worker budget validation and model creation were
+extracted to requireBudget and createModels, keeping constructors/coordinators
+focused. The rerun exposed a timing-sensitive real-thread assertion; BG03 now
+uses controlled randomness and its test driver explicitly retries only timeout
+outcomes, at most twice. Production still waits for user retry, and deterministic
+clock tests retain exact deadline assertions. The final full build/PIT rerun
+passes with the updated counters above. No new static exception was added.
+
 ## E05 varied legal decision policy — November 15, 2026
 
 Verified locally on feature/bot-policy, based on the user's committed instructor
 integration 93ab0fe. Earlier instructor/refactor sections below are dated
 checkpoints; their uncommitted wording describes that earlier verification.
-E05 is uncommitted; profile work remains separate and E06 is not implemented.
+At that checkpoint E05 was uncommitted and E06 was not implemented. The user
+subsequently committed/pushed E05 as 4e421c6 / 36f9a49; see the newer E06 section
+above for the current local integration. Profile work remains separate.
 
 BotPolicy returns reproducible, normalized probabilities over legal choices.
 It uses public call equity, eligible-pot odds with new-call refunds, street
@@ -593,7 +714,7 @@ in these classes still fail. These are not metric exclusions.
 | `GameState.getCommunityCards/getPlayerStates/getRemainingDeck` | `EI_EXPOSE_REP` / 3 | Constructor helpers call `List.copyOf`; callers cannot mutate internal lists. |
 | `GameView.getPlayers/getCommunityCards` | `EI_EXPOSE_REP` / 2 | Players use `Collectors.toUnmodifiableList`; community comes from the immutable state snapshot. |
 | `PlayerView.getHoleCards` | `EI_EXPOSE_REP` / 1 | Constructor uses immutable `PlayerState.getHoleCards()` or `List.of()`. |
-| `GamePanel.session/messages/humanViewers` | `SE_BAD_FIELD` / 3 | `JPanel` inherits serialization, but this live setup screen is never serialized; session/resources are intentional live runtime state. |
+| `GamePanel.session/messages/humanViewers/bots` | `SE_BAD_FIELD` / 4 | `JPanel` inherits serialization, but this live setup screen is never serialized; session/resources/controller are intentional live runtime state. The exact bots field exception was added for E06; closing the window releases its executor. This application does not serialize Swing or save unfinished matches. |
 
 The immutable-collection contracts are also covered by existing state/view tests.
 Revisit these matches if constructors, collection ownership or UI persistence
@@ -601,7 +722,7 @@ change. Shared Checkstyle violations are fixed in source instead of baselined.
 
 ## Scope and interpretation
 
-The current scope has 50 parent components, including betting, state, dealing,
+The current scope has 56 parent components, including betting, state, dealing,
 settlement, completed statistics, continuation and the shared session/view.
 Earlier measurements below are historical and retain their original scopes.
 
@@ -616,7 +737,8 @@ JaCoCo and PIT include `Card`, `Deck`, `PokerHandEvaluator`, `ShowdownResolver`,
 `EquityEstimate`, `UniformDealSampler`, `MonteCarloEquityEstimator`, `DecisionContext`,
 `TendencyEstimate`, `PublicDecision`, `ActionPrediction`, `OpponentBeliefs` and
 `OpponentModel`, `CallValue`, `PolicyRequest`, `ActionDistribution` and
-`BotPolicy`, including nested classes. `SetupView` remains
+`BotPolicy`, `PotLayout`, `BotTurn`, `BotTable`, `BotComputer`, `BotWorker` and
+`BotController`, including nested classes. `SetupView` remains
 in scope because it implements the session's private-card filtering.
 
 PIT selects the domain, application, integration, localization-loader and
