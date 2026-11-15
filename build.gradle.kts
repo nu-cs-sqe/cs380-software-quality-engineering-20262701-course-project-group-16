@@ -97,7 +97,11 @@ val measuredClasses = listOf(
     "bot.learning.ActionPrediction",
     "bot.learning.OpponentBeliefs",
     "bot.learning.OpponentModel",
-    "domain.model.GameSetup"
+    "domain.model.GameSetup",
+    "bot.policy.CallValue",
+    "bot.policy.PolicyRequest",
+    "bot.policy.ActionDistribution",
+    "bot.policy.BotPolicy"
 )
 val measuredClassFiles = measuredClasses.flatMap {
     val path = it.replace('.', '/')
@@ -180,7 +184,7 @@ pitest {
     excludedClasses.set(setOf("domain.model.ShowdownResult\$Status"))
     targetTests.set(setOf(
         "domain.model.*Test", "application.*Test", "integration.*Test",
-        "localization.LocalizationsTest", "bot.*Test", "bot.learning.*Test"
+        "localization.LocalizationsTest", "bot.*Test", "bot.learning.*Test", "bot.policy.*Test"
     ))
     threads.set(2)
     mutators.set(setOf("DEFAULTS"))
