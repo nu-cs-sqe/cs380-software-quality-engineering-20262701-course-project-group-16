@@ -8,6 +8,69 @@ no `ignoreFailures`, global suppression or baseline hiding existing warnings. Re
 CI uploads test, coverage, mutation and static-analysis reports even after a
 failed step.
 
+## E05 varied legal decision policy — November 15, 2026
+
+Verified locally on feature/bot-policy, based on the user's committed instructor
+integration 93ab0fe. Earlier instructor/refactor sections below are dated
+checkpoints; their uncommitted wording describes that earlier verification.
+E05 is uncommitted; profile work remains separate and E06 is not implemented.
+
+BotPolicy returns reproducible, normalized probabilities over legal choices.
+It uses public call equity, eligible-pot odds with new-call refunds, street
+position, stacks, modest personalities and confidence-weighted learned aggression.
+Raise-to sizing consumes LegalActions.Wager full/short-all-in limits. It has no
+live state, private opponent cards, mutable RNG, UI scheduling or accepted-action
+side effects. See the [design contract](design/README.md#varied-decision-policy-e05).
+
+| Check | Final local result |
+| --- | --- |
+| Full suite | 1,257 passing, zero failures/errors/skips; 63 additional invocations over the committed 1,194 baseline. |
+| Static checks | Zero Checkstyle main/test/seat-rule findings; zero unexcluded SpotBugs main/test findings, errors or missing classes. No new suppression or filter. |
+| Four new executable policy classes | 180/180 lines, 126/126 branches, 115/115 complexity counters, 1,020/1,020 instructions, 52/52 methods; zero missed. |
+| Extended OpponentBeliefs | 47/47 lines, 20/20 branches, 25/25 complexity counters, 265/265 instructions, 15/15 methods; zero missed. |
+| Shared measurement | 50 parent components / 52 reported classes: 2,108/2,109 lines, 1,297/1,298 branches, 1,207/1,208 complexity counters, 10,796/10,801 instructions, 553/553 methods. |
+| E05 mutations | CallValue 23/23, PolicyRequest 51/51, ActionDistribution 36/36, BotPolicy 62/62; 172/172 in new classes. Extended OpponentBeliefs kills 25/25. |
+| Shared PIT | 1,402/1,416 killed (99.01%); the same 14 documented baseline survivors, zero uncovered/timeout/error mutants. PIT lines 2,104/2,107; 74 selected test classes, 10,767 executions across mutants. |
+| Policy construction latency | Twelve observed calls across four streets and three personalities: 0.039625–0.107167 ms locally. Excludes equity simulation and application scheduling; observational, not a realtime bound. |
+| Sampling evaluation | 10,000 fixed-seed draws: reproducible sequences and empirical frequencies within .02 of published probabilities. This is action variation/calibration evidence, not playing-strength or win-rate proof. |
+
+The new classes and opponent-query extension introduce no coverage miss or
+surviving mutant. The shared missed enum-default path and 14 existing survivor
+interpretations still require the documented acceptance; scoped counters do not
+independently prove all basis paths or full-backend grading compliance.
+BotPersonality is a data/configuration enum using the course's enum exemption;
+all three configurations are exercised through the policy tests.
+
+The initial feature cycles observed missing APIs before 14 and 22 GREEN cases,
+then 12 behavior failures against the unsupported policy followed by GREEN.
+Fifteen later invocations add integration, coverage and mutation hardening.
+These later tests are not claimed as original feature RED cycles. No synthetic
+Git TDD commits, extra checkout or scratch reports were created. Genuine local
+RED/GREEN evidence does not substitute for the rubric's commit-history review;
+the user retains responsibility for reviewing and committing the work.
+
+The first mutation run found six policy preference/calibration gaps, a redundant
+normalization check and an equivalent strict/non-strict seat comparison.
+Regressions address the meaningful preference boundaries. Normalization now
+rejects nonrepresentable probabilities once; position directly selects the last
+active seat. The rerun kills every new mutant without an operator/class exclusion.
+SpotBugs findings were fixed in source: immutable probabilities are copied at
+field ownership, and the legality integration uses deterministic quantiles.
+Seeded variation remains in its separate evaluation. No new static filter was added.
+
+Real-component checks combine Monte Carlo/evaluator output, policy decisions and
+engine acceptance on all four streets; hidden cards/deck changes preserve seeded
+results. A second flow applies a refundable short-blind CALL, runs out the board
+and settles while conserving 6,000 chips. Target/stack and all-in CALL tests use
+the actual engine. These are separate from claims of live application integration.
+
+Existing README, per-class BVA, design, weekly report and issue #20 are synchronized.
+Peer review, user commit/push, remote CI and merge remain pending. E06 must supply
+authoritative prospective-call scenarios/refunds, committed public events and
+immutable worker inputs with match/hand/revision checks. Live bots still use the
+temporary check/call session policy; departure/terminal-policy findings and profile
+integration remain separate.
+
 ## Instructor cleanup and local integration — November 15, 2026
 
 Local branch `refactor/instructor-null-formatting` combines E03/E04 (`54de9ad`)
@@ -538,7 +601,7 @@ change. Shared Checkstyle violations are fixed in source instead of baselined.
 
 ## Scope and interpretation
 
-The current scope has 46 parent components, including betting, state, dealing,
+The current scope has 50 parent components, including betting, state, dealing,
 settlement, completed statistics, continuation and the shared session/view.
 Earlier measurements below are historical and retain their original scopes.
 
@@ -552,11 +615,12 @@ JaCoCo and PIT include `Card`, `Deck`, `PokerHandEvaluator`, `ShowdownResolver`,
 `StatsContext`, `StatsAction`, `GameSetup`, `EquityPot`, `EquityRequest`,
 `EquityEstimate`, `UniformDealSampler`, `MonteCarloEquityEstimator`, `DecisionContext`,
 `TendencyEstimate`, `PublicDecision`, `ActionPrediction`, `OpponentBeliefs` and
-`OpponentModel`, including nested classes. `SetupView` remains
+`OpponentModel`, `CallValue`, `PolicyRequest`, `ActionDistribution` and
+`BotPolicy`, including nested classes. `SetupView` remains
 in scope because it implements the session's private-card filtering.
 
 PIT selects the domain, application, integration, localization-loader and
-standalone bot/learning suites. The complete JUnit suite also runs, including headless Swing tests.
+standalone bot/learning/policy suites. The complete JUnit suite also runs, including headless Swing tests.
 PIT uses its standard DEFAULTS group, two workers and HTML/XML reports. Its
 executions across mutants are separate from the JUnit case count. Timeout
 permits twice a test's baseline duration plus two seconds.

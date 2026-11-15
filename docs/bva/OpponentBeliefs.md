@@ -13,3 +13,13 @@
 The original all-in-call test was corrected after review: an all-in call cannot invent a legal raise/three-bet opportunity.
 Counts are eligible **decisions**, not PlayStats completed-hand denominators.
 Context queries and old snapshots cannot mutate the model.
+
+## E05 public aggression query
+
+| ID | Methods | Input/state | Expected | Status |
+| --- | --- | --- | --- | --- |
+| AE01 | getAggressionEstimate | Unseen street | Prior .5, zero successes/opportunities/evidence | Implemented, GREEN |
+| AE02 | getAggressionEstimate | BET/CHECK/RAISE with aggressive choices, CALL without one, other street, later updates | Count eligible decisions only; correct per-street posterior; old snapshots unchanged | Implemented, GREEN |
+
+Cases map to AggressionEstimateTest. The query derives counts from immutable
+contextual predictions; it does not introduce another mutable counter registry.

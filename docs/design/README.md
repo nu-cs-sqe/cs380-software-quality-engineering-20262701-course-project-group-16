@@ -267,3 +267,108 @@ full minimum may be unaffordable: a supplied shortAllInTarget is the exact legal
 alternative. Live learning still needs committed event identity/order, explicit
 departure origin and pre-action public context; equity needs engine-owned public
 pot scenarios and a filtered bot view.
+
+
+## Varied decision policy (E05)
+
+E05 is a pure backend policy in bot.policy. It does not start workers or change
+SetupSession.playBotTurns; E06 owns live event wiring, cancellation and stale-state
+rejection. BotPolicy has no mutable fields or random source. It returns an
+immutable ActionDistribution; the caller supplies a random quantile in [0,1).
+
+PolicyRequest accepts a filtered GameView, the matching authoritative LegalActions,
+a public CallValue and immutable OpponentBeliefs snapshots. It checks the acting
+bot, basic option/cost/stack correspondence and scenario bounds. Those checks do
+not prove provenance: E06 must bind view, options, estimate and match/hand/revision
+to the same captured state. No private opponent cards or physical deck enter the
+policy. Existing Player and profile identities need no policy-specific fields.
+
+### Call valuation and public information
+
+The application supplies equity e and the amount P of awardable pots the hero
+can win after calling. P excludes ineligible side pots and uncalled refunds.
+CallValue separately records the guaranteed refund R of newly called chips only;
+it must not credit a refund of an earlier commitment against the new call cost.
+With engine gross calling cost C, newly risked chips are C-R and break-even
+equity is q=(C-R)/P. The zero-pot, zero-cost case is an empty OptionalDouble;
+the policy uses zero required equity only because no new chips are at risk.
+Side-pot construction and refund determination remain application/engine work,
+rather than duplicated betting/settlement rules inside the policy.
+
+For E03 results, use the estimate's equity and the request's eligible pot amount
+from the same prospective-call scenario. This is showdown value under the supplied
+simulation model, not a complete action EV including future bets and folds.
+E03 still samples uniform opponent hands; E05 does not claim learned hand ranges.
+
+### Preferences and probability distributions
+
+Position means last among active responders in this street's public seat order:
+after the big blind preflop, after the dealer postflop. Folded, eliminated,
+departed and all-in seats do not affect response position. All-in contenders do
+remain in the equity calculation and participant count N.
+
+OpponentBeliefs.getAggressionEstimate(street) derives a Beta(1,1) estimate from
+accepted public decisions on that street where BET or RAISE was available.
+Bets/raises are successes; declining by checking/calling/folding is a failure.
+Forced/departure/replayed events were already filtered by E04. Other streets and
+decisions without an aggressive choice provide no such opportunity. This is
+decision-level belief, separate from completed-hand PlayStats percentages.
+
+For each active opponent, pressure is (posterior probability - .5) multiplied
+by its evidence weight. Missing evidence contributes zero. The policy averages
+over active opponents; it does not treat the prior as measured aggression.
+
+| Personality | Equity bias b | Aggression multiplier a | Eligible-pot sizing fraction |
+| --- | --- | --- | --- |
+| CAUTIOUS | -.02 | .8 | .5 |
+| BALANCED | 0 | 1 | .75 |
+| AGGRESSIVE | +.02 | 1.2 | 1 |
+
+Free CHECK has passive weight 1 and never FOLD. A fully refunded CALL also has
+passive weight 1. Paid zero-equity calls fold; certain equity never folds.
+Other paid decisions use:
+
+- edge = e-q + b + .01 if in position, minus .06 × pressure and .02 ×
+  (new chips at risk / available stack).
+- CALL weight = max(0, edge+.05); FOLD weight = max(0, .05-edge).
+
+An aggressive action is considered only when the engine supplies one and e>=q.
+Its strength is e-1/N-.08+b, plus .04 in position, minus .06 × pressure.
+Its weight is max(0,strength) × .5 × a × (1-.4 × newly added wager chips/stack).
+These are explicit project heuristics and calibration parameters. Balanced play
+mixes calls and raises, rather than always raising strong hands. The formula is
+not a GTO strategy, a proof of profitable play or a requirement to win one test.
+
+### Wager sizing and sampling
+
+For a legal short all-in, use its exact supplied target. Otherwise start from
+roundContribution + grossCallCost, add the rounded personality fraction of P
+up to available stack room, then enforce the engine's full minimum. Existing
+round chips are not deducted again. Sizing never constructs its own minimum-raise
+or reopening rules; LegalActions.Wager remains authoritative.
+
+Positive weights are normalized once and copied at the ownership boundary.
+Enum order defines half-open sampling intervals; the last action absorbs floating
+roundoff. There is no display rounding or hard-coded percentage text. Seeding the
+caller's random source makes decisions reproducible while retaining variation.
+
+### Evidence and limits
+
+The initial local RED/GREEN cycles were: missing CallValue/aggression APIs then
+14 passing cases; missing PolicyRequest/distribution APIs then 22 passing cases;
+12 policy behavior failures against the unsupported implementation, then GREEN.
+Integration, coverage and mutation regressions were added afterward, not claimed
+as original feature RED cycles. No Git TDD checkpoint commits were fabricated.
+
+Tests cover legal targets on every street, short/full all-ins, side-pot odds,
+new-call refunds, confidence-weighted learning, position/stack/personality effects,
+fixed-seed sampling frequencies and accounting-offset invariance. Real evaluator,
+equity, policy and betting components are exercised together; another flow reaches
+settlement after a short-blind refund. Hidden cards and deck order cannot change
+seeded decisions. See per-class BVA and the current quality results.
+
+Live bots still use the temporary check/call application policy. E06 must build
+authoritative public scenarios, wire committed public events with origin/context,
+run simulations off Swing's event thread and reject stale results before action
+submission. Profile integration and the documented departure/terminal-policy
+follow-ups remain separate.

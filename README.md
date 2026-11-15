@@ -11,11 +11,12 @@ with the same chips/statistics. Requests specify the round target; the engine
 calculates deductions. Short all-ins and player-specific cumulative reopening
 are supported by the engine. Swing exposes all five actions in English and
 Chinese, with engine-provided wager limits, private-card handoffs and read-only
-statistics. Bots use a temporary check/call policy. Equity bots and saved
-profiles remain future work on this branch.
+statistics. Live bots use a temporary check/call policy. Adaptive live integration and saved
+profiles remain pending on this branch.
 
-Standalone equity estimation and opponent learning are available in `bot`;
-varied bot decision integration follows in E05/E06. Profile work is separate.
+Equity estimation, opponent learning and the E05 legal decision policy are
+available in `bot`. E06 will connect background decisions to live turns.
+Profile work is separate.
 
 ## Contributors
 
@@ -124,7 +125,7 @@ and required status-check enforcement still need verification after push.
 
 Run `bash ./gradlew build` for tests/static checks/coverage and
 `bash ./gradlew pitest` for mutation testing. The team suite and shared static
-checks run across the project; coverage/PIT use 46 documented parent components,
+checks run across the project; coverage/PIT use 50 documented parent components,
 including betting/state, dealing, settlement, continuation, PlayStats and the
 standalone bot components. These are not
 full-game metrics. The build also checks named table-rule constants and
@@ -150,7 +151,7 @@ exceptions. There is no invented metric threshold that hides findings.
 
 ### Code Coverage
 
-Coverage uses the documented 46-component scope, including betting, InitialDeal and the
+Coverage uses the documented 50-component scope, including betting, InitialDeal and the
 shared session/view, statistics collectors and settlement. The rubric targets 100%
 cyclomatic coverage, with View/Main/Enum exemptions. JaCoCo line, branch
 and covered-complexity counters are reported separately; these do not prove
@@ -160,7 +161,7 @@ cover components outside that measurement scope.
 
 ### Mutation Testing
 
-PIT uses the DEFAULTS operator group on the documented 46-component scope. The target
+PIT uses the DEFAULTS operator group on the documented 50-component scope. The target
 is to kill every non-equivalent mutant. Actual raw scores and each surviving
 mutant's reasoning remain visible in [quality.md](docs/quality.md), including
 the unresolved acceptance of a contract-preserving constant hash. Survivor reasoning and acceptance limits are documented alongside the raw score.

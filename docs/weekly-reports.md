@@ -236,7 +236,7 @@ still needs Kevin's K04 revision and implementation.
 | Separate committed branch; review/merge pending | Estella | E01/E02: local profiles, lifetime persistence and desktop account integration | `feature/player-profiles`, latest local commit `e0d6015`; detailed checkpoints in issue #20. Profile sources remain on their separate branch. |
 | Committed/pushed; review/CI/merge pending | Estella | E03: legitimate-information Monte Carlo equity, multiway fractional ties, public side-pot eligibility, bounded/cancellable calculation | `feature/monte-carlo-equity`, commit `2ce09a0`, based on main `c71e9d6`; 51 new cases, full suite 1,084 passing; [BVA](bva/MonteCarloEquityEstimator.md), [design](design/README.md#standalone-equity-e03), [quality](quality.md#e03-standalone-equity--november-10-2026). |
 | Committed/pushed; local integration awaiting review/commit | Estella | E04: smoothed public-decision opponent learning and contextual uncertainty | `feature/opponent-learning`, commit `54de9ad`, based on E03 `2ce09a0`; 49 new cases, 1,133 total tests pass, 138/138 learning and 20/20 StatsContext mutants killed; [BVA](bva/OpponentModel.md), [quality](quality.md#e04-opponent-learning--november-10-2026). |
-| Planned | Estella | E05: varied legal decisions using equity, odds, position, stacks and beliefs | Consume Kevin's authoritative legal-action limits and public pot scenarios. |
+| Verified locally; review/commit/CI/merge pending | Estella | E05: varied legal decisions using equity, odds, position, stacks and beliefs | feature/bot-policy, based on 93ab0fe; 1,257 tests, 172/172 new-class mutants killed; detailed E05 checkpoint below. |
 | Planned | Estella | E06: off-EDT execution, cancellation and stale-decision rejection | Match/hand/state identity must be checked before engine submission. |
 | Merged PR #23; departure follow-up open | Kevin | K01–K06: full betting/reopening, statistics context, quit-as-fold, legal-action contracts and applicable quality scope | Merged to main `bda4954`; integrated locally with E03/E04. Full-betting/static checks pass; departure findings are recorded below. |
 | Pending | Together | I01–I07, M01 and Q01–Q10: real integration flows, bot evaluation, complete quality/process gates | E03 supplies equity-error, privacy and observational latency evidence only; reviews, remote CI and merge remain pending. |
@@ -377,6 +377,48 @@ The merge is resolved but intentionally uncommitted for the user to inspect.
 There is no second checkout, scratch report or agent commit/push. Review/remote
 CI gates remain pending. Next: user review/commit and CI; then implement E05 using
 Kevin's LegalActions/Wager APIs, retaining E06 event-origin and worker contracts.
+
+### E05 policy checkpoint — November 15
+
+**Status:** Implemented and verified locally on feature/bot-policy; awaiting user
+review, commit/push, peer review, remote CI and merge. Base 93ab0fe is the user's
+committed instructor-refactor integration; the earlier instructor checkpoint
+retains its original verification-time wording.
+
+Completed E05's pure decision API: immutable filtered requests and distributions,
+eligible-pot/net-call odds, public street-order position, stack-aware raise-to
+sizing, three modest personalities and confidence-weighted opponent aggression.
+New query counts eligible public decisions by street without changing exact
+PlayStats. No private opponent cards or deck enter the policy.
+
+Local feature RED/GREEN: missing APIs then 14 GREEN cases; missing contracts then
+22 GREEN; 12 behavior failures against the unsupported policy then GREEN.
+Fifteen later invocations strengthen integration, coverage and mutation cases.
+No Git TDD checkpoint commits were fabricated; the rubric still requires review
+of actual commit history and individual contributions.
+
+Final build pitest passes: 1,257 tests, clean Checkstyle/SpotBugs, no new filter.
+All four new executable classes have zero missed JaCoCo counters and kill 172/172
+mutants; extended OpponentBeliefs kills 25/25. Shared scope is now 50 parents /
+52 reported classes: 2,108/2,109 lines and 1,297/1,298 branches. Shared PIT is
+1,402/1,416 (99.01%), with only the same 14 baseline survivors and no uncovered/
+error/timeout mutants. [Full evidence](quality.md#e05-varied-legal-decision-policy--november-15-2026).
+
+Controls verify legal actions/targets across streets and personalities, short/full
+all-ins, true CALL classification, side-pot odds, new-call versus prior refunds,
+position/stack effects, learned-versus-prior preferences, hidden-data invariance,
+and seeded sampling frequencies. Real Monte Carlo/policy/engine checks and a
+short-blind runout/settlement flow conserve chips. Twelve observed policy-only
+construction calls took 0.039625–0.107167 ms; this excludes simulation and UI work
+and is not a latency guarantee or playing-strength claim.
+
+Updated required BVA and existing project records; no extra reports or checkout.
+The E05 issue checkbox stays open until its review/CI/merge gates are complete.
+E06 is next: live accepted-event wiring, authoritative public scenarios, background
+calculation, cancellation and stale-result rejection. Swing still runs the
+temporary check/call policy. Profile integration and known departure/terminal
+policy findings remain open.
+
 
 ## Future weekly report template
 

@@ -126,3 +126,13 @@ Here are 2 formats as references. You can use any of them or a revised version o
 - **TC4: NAME OF THE TEST CASE** ( implemented in TC1 )
     - **State of the system**: abc
     - **Expected output**: abc
+
+## E05 decision policy
+
+- [CallValue](CallValue.md)
+- [PolicyRequest](PolicyRequest.md)
+- [ActionDistribution](ActionDistribution.md)
+- [BotPolicy](BotPolicy.md)
+
+BotPersonality is an enum; its configurations are tested through BotPolicy.
+The aggression query extension is covered in [OpponentBeliefs](OpponentBeliefs.md).
