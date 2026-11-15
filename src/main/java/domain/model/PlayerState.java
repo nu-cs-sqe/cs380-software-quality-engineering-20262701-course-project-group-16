@@ -40,6 +40,9 @@ public final class PlayerState {
             throw new IllegalArgumentException(
                 "An all-in player has zero remaining chips and a commitment.");
         }
+        if (status == PlayerStatus.DEPARTED && (hand != 0 || !cards.isEmpty())) {
+            throw new IllegalArgumentException("A departed seat has no new commitments or cards.");
+        }
         if (status == PlayerStatus.ELIMINATED && (chips != 0 || hand != 0 || !cards.isEmpty())) {
             throw new IllegalArgumentException(
                 "An eliminated seat has no chips, commitments or cards.");
@@ -51,6 +54,10 @@ public final class PlayerState {
     public List<Card> getHoleCards() { return holeCards; }
     public long getRoundContribution() { return roundContribution; }
     public long getHandContribution() { return handContribution; }
+    /** Whether this seat takes part in dealing and assigning hand positions. */
+    public boolean isDealtSeat() {
+        return status != PlayerStatus.ELIMINATED && status != PlayerStatus.DEPARTED;
+    }
     public boolean canAct() { return status == PlayerStatus.ACTIVE; }
     public boolean isParticipating() {
         return status == PlayerStatus.ACTIVE || status == PlayerStatus.ALL_IN;

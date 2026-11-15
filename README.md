@@ -2,14 +2,17 @@
 
 A Java desktop no-limit Texas Hold'em game with six seats for 1–6 humans and bots
 filling the remaining seats. Players share one computer and use virtual chips.
-Seats stay fixed during a match; players can stop the whole game.
-The intended full match ends when one player holds all the chips.
+Seats and chip ownership stay fixed during a match. Humans can leave, and the
+last funded player still in the match wins.
 
-**Status:** The supported fold/check/call flow now reaches real results, pays pots
-and carries chips and player statistics into the next hand. Swing supports
-English and Chinese, explicit private-card handoffs and a read-only statistics
-tab. Bots use a temporary check/call policy. Bets/raises, postflop calls, equity
-bots and saved profiles remain unfinished.
+**Status:** The engine and application session support full bets/raises and
+fold/check/call on every street, real results, pot payouts and continued hands
+with the same chips/statistics. Requests specify the round target; the engine
+calculates deductions. Short all-ins and player-specific cumulative reopening
+are supported by the engine. Swing exposes all five actions in English and
+Chinese, with engine-provided wager limits, private-card handoffs and read-only
+statistics. Bots use a temporary check/call policy. Equity bots and saved
+profiles remain future work on this branch.
 
 ## Contributors
 
@@ -64,7 +67,8 @@ With the JDKs configured above, run `bash ./gradlew run` (Windows:
 `.\gradlew.bat run`) on a computer with a desktop display. Enter 1–6 human
 players, select English or Chinese, and choose **Start Game**; bots fill the remaining seats. The highlighted
 seat is the current human actor; bots act automatically. Use the enabled
-**Fold**, **Check** or **Call** control, then pass the computer to the next human.
+**Fold**, **Check** or **Call** control, or enter a round total in the wager
+field and choose **Bet** or **Raise**. Then pass the computer to the next human.
 The board and winner/tie result update as rounds finish. Select a human in
 **Private hand** and pass the computer
 to that person before choosing **Reveal cards**. Switching humans, restarting
@@ -76,10 +80,11 @@ see [localization](docs/design/localization.md).
 This is shared-computer privacy by handoff, not authentication: anyone using the
 computer can select another human. Actions are enabled only for the current
 human viewer. After a result, choose **Settle hand** to pay pots and update
-statistics, then **Next hand** to keep playing with the same players and stacks.
+statistics, then **Next hand** to continue with eligible seats and their carried
+stacks. Select a human and choose **Leave match** to retire their seat. They fold
+on their turn if still active; an all-in hand stays eligible until payment.
 The **Statistics** tab shows completed-hand totals; N/A means no qualifying
-opportunity. Switching tabs conceals cards. A match finishes when one player
-holds all chips. **Start Game** starts a separate match and resets totals.
+opportunity. Switching tabs conceals cards. **Start Game** resets the match.
 Statistics are kept in memory for this match; closing the game discards them.
 Tests run headlessly, without opening a desktop window.
 
@@ -104,7 +109,7 @@ and required status-check enforcement still need verification after push.
 
 Run `bash ./gradlew build` for tests/static checks/coverage and
 `bash ./gradlew pitest` for mutation testing. The team suite and shared static
-checks run across the project; coverage/PIT use seventeen documented components,
+checks run across the project; coverage/PIT use 34 documented parent components,
 including dealing, settlement, continuation, PlayStats and the shared session. These are not
 full-game metrics.
 [Quality results](docs/quality.md)
@@ -128,18 +133,17 @@ exceptions. There is no invented metric threshold that hides findings.
 
 ### Code Coverage
 
-Coverage uses the documented 17-component scope, including InitialDeal and the
+Coverage uses the documented 34-component scope, including betting, InitialDeal and the
 shared session/view, statistics collectors and settlement. The rubric targets 100%
 cyclomatic coverage, with View/Main/Enum exemptions. JaCoCo line, branch
 and covered-complexity counters are reported separately; these do not prove
 independent basis-path execution. The exact class scope and results are in
-[quality.md](docs/quality.md); the remaining betting/state components
-remain outside this measurement scope,
-while their tests and shared static checks still run.
+[quality.md](docs/quality.md). The complete team suite and static checks also
+cover components outside that measurement scope.
 
 ### Mutation Testing
 
-PIT uses the DEFAULTS operator group on the documented 17-component scope. The target
+PIT uses the DEFAULTS operator group on the documented 34-component scope. The target
 is to kill every non-equivalent mutant. Actual raw scores and each surviving
 mutant's reasoning remain visible in [quality.md](docs/quality.md), including
 the unresolved acceptance of a contract-preserving constant hash. Survivor reasoning and acceptance limits are documented alongside the raw score.

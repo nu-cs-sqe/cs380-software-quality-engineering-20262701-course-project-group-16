@@ -3,8 +3,11 @@ package ui;
 import application.SetupSession;
 import application.SetupView;
 import domain.model.Card;
+import domain.model.GamePhase;
+import domain.model.LegalActions;
 import domain.model.Player;
 import domain.model.PlayerType;
+import domain.model.PlayerStatus;
 import domain.model.ActionRequest;
 import domain.model.ActionType;
 import domain.model.ShowdownResult;
@@ -18,7 +21,6 @@ import java.awt.Insets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -53,6 +55,10 @@ public final class GamePanel extends JPanel {
     private final JButton fold = named(new JButton(), "fold");
     private final JButton check = named(new JButton(), "check");
     private final JButton call = named(new JButton(), "call");
+    private final JButton quit = named(new JButton(), "quit");
+    private final JButton wager = named(new JButton(), "wager");
+    private final JTextField wagerTarget = named(new JTextField(), "wagerTarget");
+    private final JLabel wagerHint = named(new JLabel(" "), "wagerHint");
     private final JButton settle = named(new JButton(), "settle");
     private final JButton nextHand = named(new JButton(), "nextHand");
     private final JTabbedPane sections = named(new JTabbedPane(), "sections");
@@ -96,6 +102,9 @@ public final class GamePanel extends JPanel {
         fold.addActionListener(event -> submitAction(ActionType.FOLD));
         check.addActionListener(event -> submitAction(ActionType.CHECK));
         call.addActionListener(event -> submitAction(ActionType.CALL));
+        quit.addActionListener(event -> advanceHand(this::leaveMatch));
+        wager.addActionListener(event -> submitWager());
+        wagerTarget.addActionListener(event -> submitWager());
         settle.addActionListener(event -> advanceHand(session::settleHand));
         nextHand.addActionListener(event -> advanceHand(this::startNextHand));
         sections.addChangeListener(event -> {
@@ -172,7 +181,11 @@ public final class GamePanel extends JPanel {
         addRow(sidebar, new JLabel(text("botsFill")));
         start.setText(text("start"));
         start.getAccessibleContext().setAccessibleName(text("start"));
-        addRow(sidebar, start);
+        JPanel matchControls = transparent(new GridLayout(1, 2, 5, 0));
+        quit.setText(text("quit"));
+        matchControls.add(start);
+        matchControls.add(quit);
+        addRow(sidebar, matchControls);
         error.setForeground(new Color(159, 34, 34));
         error.setFont(new Font(Font.DIALOG, Font.PLAIN, 12));
         addRow(sidebar, error);
@@ -217,6 +230,12 @@ public final class GamePanel extends JPanel {
         }
         actions.add(fold); actions.add(check); actions.add(call);
         addRow(sidebar, actions);
+        JPanel wagerEntry = transparent(new GridLayout(1, 2, 5, 0));
+        wagerTarget.getAccessibleContext().setAccessibleName(text("wager.target"));
+        wagerEntry.add(wagerTarget);
+        wagerEntry.add(wager);
+        addRow(sidebar, wagerEntry);
+        addRow(sidebar, wagerHint);
     }
 
     private JPanel buildTable() {
@@ -275,6 +294,20 @@ public final class GamePanel extends JPanel {
         refresh();
     }
 
+    private void leaveMatch() {
+        SetupView view = session.getView().orElseThrow();
+        session.quit(view.getPlayers().get(view.getViewerSeat()).getId());
+        wagerTarget.setText("");
+        session.playBotTurns();
+    }
+
+    private void submitWager() {
+        if (wager.isEnabled()) {
+            session.getLegalActions().getWager()
+                    .ifPresent(limits -> submitAction(limits.getType()));
+        }
+    }
+
     private void startNextHand() {
         session.nextHand();
         session.playBotTurns();
@@ -284,6 +317,7 @@ public final class GamePanel extends JPanel {
         session.hideCards();
         try {
             session.start(Integer.parseInt(humanCount.getText().trim()));
+            wagerTarget.setText("");
             session.playBotTurns();
             errorMessage = ErrorMessage.NONE;
         } catch (IllegalArgumentException invalid) {
@@ -300,7 +334,12 @@ public final class GamePanel extends JPanel {
         SetupView view = display.orElseThrow();
         try {
             String actor = view.getPlayers().get(view.getCurrentActorSeat()).getId();
-            session.submitAction(new ActionRequest(actor, type));
+            session.hideCards();
+            ActionRequest request = type == ActionType.BET || type == ActionType.RAISE
+                    ? new ActionRequest(actor, type, Long.parseLong(wagerTarget.getText().trim()))
+                    : new ActionRequest(actor, type);
+            session.submitAction(request);
+            wagerTarget.setText("");
             session.playBotTurns();
             errorMessage = ErrorMessage.NONE;
         } catch (IllegalArgumentException | IllegalStateException
@@ -321,8 +360,10 @@ public final class GamePanel extends JPanel {
             for (int seat = 0; seat < 6; seat++) {
                 seats.add(seatPanel(seat, view));
             }
-            viewers.setEnabled(view.isPresent());
-            reveal.setEnabled(view.isPresent());
+            boolean hasViewer = view.filter(this::hasHumanViewer).isPresent();
+            viewers.setEnabled(hasViewer);
+            reveal.setEnabled(hasViewer);
+            quit.setEnabled(hasViewer);
             if (view.isPresent()) {
                 showMatch(view.orElseThrow());
             } else {
@@ -330,8 +371,7 @@ public final class GamePanel extends JPanel {
             }
             renderActions(view);
             settle.setEnabled(session.getResult().isPresent() && session.getSettlement().isEmpty());
-            nextHand.setEnabled(session.getSettlement().isPresent()
-                    && session.getMatchWinner().isEmpty());
+            nextHand.setEnabled(session.canStartNextHand());
             statistics.render(view.map(SetupView::getPlayers).orElseGet(List::of),
                     session.getStatistics(), messages, selectedLanguage);
             handoff.setMaximumSize(new Dimension(Integer.MAX_VALUE,
@@ -354,9 +394,14 @@ public final class GamePanel extends JPanel {
         }
     }
 
+    private boolean hasHumanViewer(SetupView view) {
+        Player viewer = view.getPlayers().get(view.getViewerSeat());
+        return viewer.getType() == PlayerType.HUMAN && !session.hasDeparted(viewer.getId());
+    }
+
     private void showMatch(SetupView view) {
         for (Player player : view.getPlayers()) {
-            if (player.getType() == PlayerType.HUMAN) {
+            if (player.getType() == PlayerType.HUMAN && !session.hasDeparted(player.getId())) {
                 humanViewers.add(player);
                 viewers.addItem(playerName(player));
             }
@@ -372,8 +417,9 @@ public final class GamePanel extends JPanel {
                 : completionText());
         pot.setText(text("pot", view.getPot()));
         deck.setText(text("deck", view.getRemainingCardCount()));
-        handoff.setText(wrapped(text("handoff",
-                playerName(view.getPlayers().get(view.getViewerSeat())))));
+        handoff.setText(wrapped(hasHumanViewer(view)
+                ? text("handoff", playerName(view.getPlayers().get(view.getViewerSeat())))
+                : text("private.none")));
         showHoleCards(view.getHoleCards());
         showBoardAndResult(view);
     }
@@ -403,21 +449,30 @@ public final class GamePanel extends JPanel {
         int actor = display.map(SetupView::getCurrentActorSeat).orElse(-1);
         boolean mayAct = display.filter(view -> actor >= 0 && view.getViewerSeat() == actor
                 && view.getPlayers().get(actor).getType() == PlayerType.HUMAN).isPresent();
-        Set<ActionType> available = mayAct ? session.getAvailableActions() : Set.of();
-        long toCall = display.filter(view -> actor >= 0)
-                .map(this::amountToCall).orElse(0L);
+        LegalActions options = session.getLegalActions();
         fold.setText(text("fold"));
         check.setText(text("check"));
-        call.setText(text("call", toCall));
-        fold.setEnabled(available.contains(ActionType.FOLD));
-        check.setEnabled(available.contains(ActionType.CHECK));
-        call.setEnabled(available.contains(ActionType.CALL));
+        call.setText(text("call", options.getCallCost()));
+        fold.setEnabled(mayAct && options.getActions().contains(ActionType.FOLD));
+        check.setEnabled(mayAct && options.getActions().contains(ActionType.CHECK));
+        call.setEnabled(mayAct && options.getActions().contains(ActionType.CALL));
+        renderWager(mayAct ? options.getWager() : Optional.empty());
     }
 
-    private long amountToCall(SetupView view) {
-        int actor = view.getCurrentActorSeat();
-        return Math.min(view.getCurrentBet() - view.getRoundContribution(actor),
-                view.getPlayers().get(actor).getChipStack());
+    private void renderWager(Optional<LegalActions.Wager> limits) {
+        wager.setEnabled(limits.isPresent());
+        wagerTarget.setEnabled(limits.isPresent());
+        wager.setText(text(limits.filter(item -> item.getType() == ActionType.RAISE).isPresent()
+                ? "raise" : "bet"));
+        wagerHint.setText(limits.map(this::wagerHintText).orElse(" "));
+    }
+
+    private String wagerHintText(LegalActions.Wager limits) {
+        if (limits.getShortAllInTarget().isPresent()) {
+            return wrapped(text("wager.short", limits.getShortAllInTarget().getAsLong()));
+        }
+        return wrapped(text("wager.range", limits.getMinimumFullTarget().orElseThrow(),
+                limits.getMaximumTarget()));
     }
 
     private String resultText(ShowdownResult comparison, SetupView view) {
@@ -434,8 +489,10 @@ public final class GamePanel extends JPanel {
         if (session.getMatchWinner().isPresent()) {
             return text("match.winner", playerName(session.getMatchWinner().orElseThrow()));
         }
-        return text(session.getSettlement().isPresent() ? "result.paid"
-                : "result.awaitingSettlement");
+        if (session.getSettlement().isEmpty()) {
+            return text("result.awaitingSettlement");
+        }
+        return text(session.canStartNextHand() ? "result.paid" : "match.ended");
     }
 
     private JPanel seatPanel(int seat, Optional<SetupView> view) {
@@ -452,11 +509,25 @@ public final class GamePanel extends JPanel {
         panel.add(named(label(name, 17, INK), "seatName" + seat));
         panel.add(named(new JLabel(stack), "seatStack" + seat));
         panel.add(new JLabel(view.map(match -> seatRole(seat, match)).orElse(" ")));
-        String playerStatus = view.map(match -> text("status." + match.getStatuses().get(seat)
-                .name())).orElse("--");
+        String playerStatus = view.map(match -> text("status." + seatStatus(match, seat).name()))
+                .orElse("--");
         panel.add(named(new JLabel(playerStatus), "seatStatus" + seat));
-        panel.add(named(label(player.isPresent() ? "▧  ▧" : "--", 25, FELT), "seatCards" + seat));
+        String cardBacks = view.filter(match -> wasDealt(match.getStatuses().get(seat)))
+                .isPresent() ? "▧  ▧" : "--";
+        panel.add(named(label(cardBacks, 25, FELT), "seatCards" + seat));
         return panel;
+    }
+
+    private PlayerStatus seatStatus(SetupView view, int seat) {
+        if (view.getPhase() == GamePhase.COMPLETION
+                && session.hasDeparted(view.getPlayers().get(seat).getId())) {
+            return PlayerStatus.DEPARTED;
+        }
+        return view.getStatuses().get(seat);
+    }
+
+    private static boolean wasDealt(PlayerStatus status) {
+        return status != PlayerStatus.ELIMINATED && status != PlayerStatus.DEPARTED;
     }
 
     private void showHoleCards(List<Card> cards) {

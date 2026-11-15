@@ -223,6 +223,67 @@ and combined-source results (970) describe different checkpoints.
 - [x] **Kevin:** Implementation branch merged through PR #13 (`d2a78f3`).
 - [ ] **Together:** CI passed for merged main [run 42232032730](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/actions/runs/42232032730); required review/check enforcement and deliberate failure detection still need separate verification.
 
+## Week 7 (11/09/2026–11/15/2026)
+
+**Goal:** Complete betting rules and application contracts, measure the added
+components, and document integration/localization plans on the project board.
+Carry forward native desktop checks and review workflow verification.
+
+### Planning and progress tracking
+
+| Status | Owner | Task and acceptance criteria | Evidence / checkpoint |
+| --- | --- | --- | --- |
+| Done, engine/session | Kevin | K01: full BET/RAISE, postflop CALL and raised-preflop responses; round targets, engine-owned deductions, turn order and unchanged rejected snapshots. | `feature/week7-betting`, code `fda5bdf`, based on merged main `c71e9d6`; [BVA](bva/FullBetting.md); FullBettingTest and two real-session integration cases. |
+| Done, engine/session | Kevin | K02: short all-in wagers, full/cumulative reopening and individual raise rights; retain BB option/short-blind behavior. | `feature/week7-betting`, code `978a826`; [K02 BVA](bva/ShortAllInBetting.md). Last-decision history stays immutable and resets on new streets/hands. |
+| Done, engine/session | Kevin | K03: preserve exact aggression and opportunity context across short all-ins, reopened decisions and snapshots. | Code `a7c0f14`; [K03 cases](bva/BettingHistory.md#k03-exact-raise-counts-and-all-in-observations). |
+| Done | Kevin | K04: quit-as-fold, all-in eligibility, fixed seats and later-hand participation. | Code `b9ae32b`. [Rules](requirements/game-rules.md) and [departure tests](bva/Departure.md). |
+| Done | Kevin | K05: engine-owned actions, call cost, full wager range and short all-in target. | Code `b9ae32b`. Swing and check/call bots read the same [legal options](bva/LegalActions.md). |
+| Done | Kevin | K06: measure core betting/state classes and address actionable findings. | Code `b9ae32b`. [Quality results](quality.md) record coverage and all surviving mutants. |
+| Planned | Together | Record integration and i18n plans on the board; retain English/Chinese resources, privacy and regression tests. | Existing implementation/design is evidence, not a claim that board discussion is complete. |
+
+**TDD and integration:** All 45 new boundary cases and both real-session tests
+failed before implementation, then passed. Mutation-driven regressions follow
+these checks. The integration uses controlled Random and real dealing, betting,
+evaluation, payouts and statistics; no mock library. A raised hand reaches
+pot 1,480, four tied winners receive 370 each, and the next hand keeps chips/totals.
+Another hand verifies recorded three-bet and actual flop c-bet observations.
+
+**K01 verification (historical):** Backend full wagers on every street; no bet/raise controls. The previous Week6
+checkpoint was merged through main `c71e9d6`; its historical counts stay above.
+Local `build pitest` passes **1,091 tests** and clean Checkstyle/SpotBugs on
+Gradle 9.7.1/JDK 17 with Java 11 compilation/tests. The expanded 21-parent scope
+has zero missed JaCoCo counters (1,034 lines/600 branches/509 complexity counters).
+PIT kills **580/599 (96.83%)**, with 19 reviewed survivors and none uncovered;
+[quality.md](quality.md) preserves exact scope, counters and survivor reasoning.
+Push, new remote CI and peer review remain pending for this branch.
+
+**K02 verification (Nov 11):** Local `build pitest` passes **1,127 tests**, with
+clean Checkstyle/SpotBugs. JaCoCo has no missed counters in the 22-component
+scope; PIT kills **621/635 (97.80%)**, with 14 documented survivors and none
+uncovered. Of the original 20 K02 cases, 15 failed before implementation; all
+passed afterward. Real-session tests verify cumulative reopening through
+side-pot settlement and short all-ins through automatic board runout.
+See [quality results](quality.md) for scope and survivor reasoning.
+
+**K03 verification (Nov 12):** Local `build pitest` passes **1,138 tests**,
+with clean Checkstyle/SpotBugs and no missed JaCoCo counters in the same
+22-component scope. PIT kills **629/643 (97.82%)** with the same 14 reviewed
+survivors. Legal replay verifies different raise labels at the same price;
+settlement verifies short c-bets, capped calls and responses after a raise.
+See [quality results](quality.md). Remote CI and partner review remain pending.
+
+**K04–K06 verification (Nov 13):** Local `build pitest` passes **1,169 tests**,
+with clean Checkstyle and SpotBugs. The 34-component JaCoCo scope covers
+**1,531/1,532 lines** and **1,103/1,104 branches**. The sole missed
+branch is an unreachable enum fallback. PIT reports **1,037/1,051 killed (98.67%)**
+with 14 reviewed survivors and zero uncovered mutants. The
+[quality results](quality.md) record the full counters and remaining hash-code
+acceptance question.
+
+**Next steps:** Push `feature/week7-betting`, request peer review, and verify CI.
+Together, record integration and localization plans on the project board and
+walk through the English/Chinese controls and card handoffs on a desktop.
+
 ## Future weekly report template
 
 ### Week N (MM/DD/YYYY–MM/DD/YYYY)

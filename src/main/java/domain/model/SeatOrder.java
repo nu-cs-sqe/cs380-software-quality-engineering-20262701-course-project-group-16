@@ -28,17 +28,17 @@ public final class SeatOrder {
 
     /**
      * Assigns blinds among remaining players; folded/all-in seats retain their hand positions.
-     * @throws IllegalArgumentException if the dealer seat is invalid or eliminated
+     * @throws IllegalArgumentException if the dealer seat is invalid or inactive for the hand
      * @throws IllegalStateException if fewer than two players remain
      */
     public HandPositions positionsFor(int dealer) {
         requireSeat(dealer);
         long remaining = java.util.Arrays.stream(bySeat)
-                .filter(state -> state.getStatus() != PlayerStatus.ELIMINATED).count();
+                .filter(PlayerState::isDealtSeat).count();
         if (remaining < 2) {
             throw new IllegalStateException("A hand requires at least two remaining players.");
         }
-        if (bySeat[dealer].getStatus() == PlayerStatus.ELIMINATED) {
+        if (!bySeat[dealer].isDealtSeat()) {
             throw new IllegalArgumentException("The dealer must be a remaining player.");
         }
         int smallBlind = remaining == 2 ? dealer : nextDealerAfter(dealer).orElseThrow();
@@ -47,7 +47,7 @@ public final class SeatOrder {
 
     /** Moving-button policy; an empty result means no player remains. */
     public OptionalInt nextDealerAfter(int seat) {
-        return nextAfter(seat, state -> state.getStatus() != PlayerStatus.ELIMINATED);
+        return nextAfter(seat, PlayerState::isDealtSeat);
     }
 
     /** Skips eliminated, folded and all-in players; empty means nobody can act. */

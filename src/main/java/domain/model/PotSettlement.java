@@ -119,6 +119,13 @@ public final class PotSettlement {
         amounts.put(id, Math.addExact(amounts.get(id), amount));
     }
 
+    private static PlayerStatus paidStatus(PlayerState state, long chips) {
+        if (state.getStatus() == PlayerStatus.DEPARTED) {
+            return PlayerStatus.DEPARTED;
+        }
+        return chips == 0 ? PlayerStatus.ELIMINATED : PlayerStatus.ACTIVE;
+    }
+
     private static GameState completedState(GameState before, Map<String, Long> payouts,
             Map<String, Long> refunds) {
         List<PlayerState> players = new ArrayList<>();
@@ -127,8 +134,9 @@ public final class PotSettlement {
             long chips = Math.addExact(old.getChipStack(),
                     Math.addExact(payouts.get(old.getId()), refunds.get(old.getId())));
             Player paid = new Player(old.getId(), old.getSeat(), old.getType(), chips);
-            players.add(new PlayerState(paid, chips == 0 ? PlayerStatus.ELIMINATED
-                    : PlayerStatus.ACTIVE, chips == 0 ? List.of() : state.getHoleCards(), 0, 0));
+            PlayerStatus status = paidStatus(state, chips);
+            players.add(new PlayerState(paid, status,
+                    chips == 0 ? List.of() : state.getHoleCards(), 0, 0));
         }
         return new GameState(before.getConfig(), before.getHandId(), GamePhase.COMPLETION,
                 players, before.getPositions(), null, before.getCommunityCards(),

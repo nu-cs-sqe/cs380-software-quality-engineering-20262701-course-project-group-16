@@ -107,3 +107,14 @@ constructing later snapshots. These cases also cover getBettingHistory.
 | GS-H10-RIVER | GameState(..., BettingHistory); getBettingHistory | RIVER history c-bet 41 but aggressor hand commitment 40 | IllegalArgumentException; inconsistent historic investment | Implemented, GREEN; `historicalCBetRequiresEnoughHandCommitment(RIVER)` |
 
 Tests: [BettingHistoryTest](../../src/test/java/domain/model/BettingHistoryTest.java).
+
+## Week 7 state boundaries
+
+| ID | Input/system state | Expected output | Test in BettingStateBoundaryTest |
+| --- | --- | --- | --- |
+| GS-W7-01 | Incorrect big blind with correct small blind; or unfinished hand with one dealt seat | Reject positions | unfinishedPositionsRequireTwoDealtSeatsAndTheCorrectBigBlind |
+| GS-W7-02 | SHOWDOWN or COMPLETION, no actor, nonempty raise rights | Reject | terminalSnapshotsRejectRaiseRightsEvenWithoutAnActor |
+| GS-W7-03 | Paid uncontested hand ended on turn, four board cards | Accept preserved board | paidTurnUncontestedSnapshotRetainsFourCommunityCards |
+| GS-W7-04 | Turn history with a flop continuation bet and exactly enough committed chips | Accept history | laterStreetCanRetainContinuationBetWithExactlyEnoughCommittedChips |
+| GS-W7-05 | Short nominal blind; postflop, active blind or recorded aggression | Reject those exceptions; allow short all-in blind preflop with no recorded aggression | nominalShortBlindCannotSurvivePostflopOrRecordedAggression |
+| GS-W7-06 | Synthetic completion snapshot with a raise count equal to total chips minus the big blind | Accept the inclusive numeric safety bound. Counts above it are rejected in BettingHistoryTest. | completedSnapshotAcceptsTheInclusiveRaiseCountSafetyBound |

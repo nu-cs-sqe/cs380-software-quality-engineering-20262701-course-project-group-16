@@ -56,6 +56,79 @@ class BettingHistoryTest {
         assertThrows(IllegalArgumentException.class, () -> new BettingHistory(null, amount));
     }
 
+    @ParameterizedTest
+    @CsvSource({"0, 0, 1, OPENING_RAISE, THREE_BET, true",
+        "0, 40, 2, THREE_BET, FOUR_BET, false", "40, 50, 3, FOUR_BET, LATER_RAISE, false"})
+    void exactSnapshotHistoryClassifiesTheNextRaiseAtTheSamePrice(long seat4Target,
+            long seat5Target, long count, PreflopRaiseType finalLabel, PreflopRaiseType expected,
+            boolean opportunity) {
+        BettingResult atSixty = raiseToSixty(seat4Target, seat5Target);
+        assertEquals(finalLabel, atSixty.getAcceptedAction().getStatsContext().getPreflopRaiseType());
+        GameState afterSmallBlind = preflopAction(atSixty.getState(), 0).getState();
+        GameState played = preflopAction(afterSmallBlind, 0).getState();
+        assertEquals(60, played.getCurrentBet());
+        assertEquals(count, played.getBettingHistory().getPreflopRaiseCount());
+        assertEquals("p0", played.getBettingHistory().getFinalPreflopAggressorId().orElseThrow());
+        BettingHistory history = new BettingHistory("p0", 0, count);
+        GameState before = PostflopFixtures.withHistory(played, history);
+        BettingResult raised = new BettingEngine().apply(before,
+                new ActionRequest("p3", ActionType.RAISE, 100));
+        StatsContext context = raised.getAcceptedAction().getStatsContext();
+        assertEquals(expected, context.getPreflopRaiseType());
+        assertEquals(opportunity, context.hasThreeBetOpportunity());
+        assertEquals(count, history.getPreflopRaiseCount());
+        assertEquals(count + 1, raised.getState().getBettingHistory().getPreflopRaiseCount());
+        assertEquals("p3", raised.getState().getBettingHistory()
+                .getFinalPreflopAggressorId().orElseThrow());
+    }
+
+    private static BettingResult raiseToSixty(long seat4Target, long seat5Target) {
+        FoundationFixtures.Fixture fixture = FoundationFixtures.fixture();
+        fixture.deal();
+        fixture.player(1, 990, PlayerStatus.ACTIVE, 10, 10);
+        fixture.player(2, 980, PlayerStatus.ACTIVE, 20, 20);
+        if (seat5Target == 50) {
+            fixture.player(0, 60, PlayerStatus.ACTIVE, 0, 0);
+            fixture.player(4, 2890, PlayerStatus.ACTIVE, 0, 0);
+            fixture.player(5, 50, PlayerStatus.ACTIVE, 0, 0);
+        }
+        fixture.betting = new BettingProgress(20, 20,
+                FoundationFixtures.allIds(), FoundationFixtures.allIds());
+        GameState state = fixture.build();
+        for (long target : new long[]{0, seat4Target, seat5Target}) {
+            state = preflopAction(state, target).getState();
+        }
+        return preflopAction(state, 60);
+    }
+
+    private static BettingResult preflopAction(GameState state, long target) {
+        String actor = state.getCurrentActorId().orElseThrow();
+        ActionRequest request = target == 0 ? new ActionRequest(actor, ActionType.CALL)
+                : new ActionRequest(actor, ActionType.RAISE, target);
+        return new BettingEngine().apply(state, request);
+    }
+
+    @ParameterizedTest
+    @ValueSource(longs = {5981, Long.MAX_VALUE})
+    void snapshotRejectsMoreRaisesThanAvailableChipsAllow(long count) {
+        GameState played = raiseToSixty(0, 0).getState();
+        BettingHistory history = new BettingHistory("p0", 0, count);
+        assertThrows(IllegalArgumentException.class,
+                () -> PostflopFixtures.withHistory(played, history));
+    }
+
+    @ParameterizedTest
+    @CsvSource({"p0,-1", "p0,0", ",1", ",-1"})
+    void anExactRaiseCountRequiresConsistentAggressorHistory(String id, long count) {
+        assertThrows(IllegalArgumentException.class, () -> new BettingHistory(id, 0, count));
+    }
+
+    @Test
+    void emptyExactHistoryAndLegacyHistoryRetainTheirMeaning() {
+        assertEquals(0, new BettingHistory(null, 0, 0).getPreflopRaiseCount());
+        assertEquals(1, new BettingHistory("p0", 20).getPreflopRaiseCount());
+    }
+
     @Test
     @DisplayName("GS-H01: the original GameState constructor supplies empty history")
     void existingStateConstructorRemainsCompatible() {

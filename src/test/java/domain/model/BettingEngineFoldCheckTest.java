@@ -264,9 +264,9 @@ class BettingEngineFoldCheckTest {
         assertEquals(original, snapshot(closed));
     }
 
-    @ParameterizedTest(name = "BE-LIMIT01: raised-round {0} awaits authoritative raise context")
+    @ParameterizedTest(name = "BE-LIMIT01: raised-round response {0}")
     @EnumSource(value = ActionType.class, names = {"FOLD", "CHECK", "CALL"})
-    void raisedRoundsRemainExplicitlyUnsupported(ActionType type) {
+    void raisedRoundsAcceptLegalResponsesAndRejectUnpaidChecks(ActionType type) {
         FoundationFixtures.Fixture fixture = opening();
         fixture.player(0, 940, PlayerStatus.ACTIVE, 60, 60);
         fixture.betting = new BettingProgress(60, 40, Set.of("p1", "p2", "p3", "p4", "p5"),
@@ -274,19 +274,29 @@ class BettingEngineFoldCheckTest {
         GameState before = fixture.build();
         List<Object> original = snapshot(before);
 
-        assertThrows(UnsupportedOperationException.class, () -> act(before, 3, type));
-
+        if (type == ActionType.CHECK) {
+            assertThrows(IllegalArgumentException.class, () -> act(before, 3, type));
+        } else {
+            BettingResult result = act(before, 3, type);
+            assertEquals(type == ActionType.CALL ? 60 : 0, result.getAcceptedAction().getChipsAdded());
+            assertEquals(6000, result.getState().getTotalChips());
+        }
         assertEquals(original, snapshot(before));
     }
 
-    @ParameterizedTest(name = "BE-LIMIT02: {0} is outside the fold/check/call increment")
+    @ParameterizedTest(name = "BE-LIMIT02: preflop wager kind {0}")
     @EnumSource(value = ActionType.class, names = {"BET", "RAISE"})
-    void betsAndRaisesRemainUnsupported(ActionType type) {
+    void preflopUsesRaiseRatherThanBet(ActionType type) {
         GameState before = opening().build();
         List<Object> original = snapshot(before);
 
-        assertThrows(UnsupportedOperationException.class,
-                () -> engine.apply(before, new ActionRequest("p3", type, 60)));
+        if (type == ActionType.BET) {
+            assertThrows(IllegalArgumentException.class,
+                    () -> engine.apply(before, new ActionRequest("p3", type, 60)));
+        } else {
+            assertEquals(60, engine.apply(before, new ActionRequest("p3", type, 60))
+                    .getAcceptedAction().getChipsAdded());
+        }
 
         assertEquals(original, snapshot(before));
     }

@@ -28,9 +28,10 @@ indices. Match participant IDs remain stable across hands; persistent profile ID
 be a separate concern. Every new match gets new participant IDs and a distinct first-hand
 ID. The future engine must assign a new unique hand ID for every subsequent hand.
 
-All six seat records stay in state after elimination. An eliminated player has no chips,
-cards or commitments. A player who has committed all their chips remains `ALL_IN` until
-settlement; they are not eliminated while their hand is live.
+All six seat records stay in state after elimination or departure. An eliminated
+player has no chips, cards or commitments. A departed seat keeps its stack but
+receives no cards or commitments in future hands. An all-in player, including
+one who leaves, remains `ALL_IN` and eligible until settlement.
 
 ## Setup and position selection
 
@@ -45,9 +46,9 @@ At match creation all six seats are occupied; the implementation makes one
 frequency assertions or uncontrolled randomness are needed in tests.
 
 The moving-button policy selects the next remaining seat clockwise after each hand.
-`SeatOrder.nextDealerAfter(previousSeat)` also accepts a dealer who was just eliminated.
-Use `positionsFor(newDealer)` only when at least two players remain. The engine ends the
-match when one player holds all chips rather than starting another hand.
+`SeatOrder.nextDealerAfter(previousSeat)` accepts an eliminated or departed
+previous dealer. Positions skip undealt seats. A paid match starts another
+hand only when at least two funded nondeparted seats remain.
 
 | Remaining players | Small blind | Big blind | First preflop actor | First postflop actor |
 | --- | --- | --- | --- | --- |
@@ -93,13 +94,26 @@ and refunds; the previous hand's positions remain available as historical inform
 Integer chip arithmetic must remain within `long`; invalid constructors throw
 `IllegalArgumentException` without changing an earlier snapshot.
 
-`currentBet` is the highest actual round contribution, not a whole-hand contribution.
-`lastFullRaiseSize` starts at the big blind. `BettingProgress` stores IDs who still need
+`currentBet` is the round target, not a whole-hand contribution. It normally equals
+the highest actual round contribution. A short preflop big blind retains the nominal
+bring-in while at least two players can still act; a lone active player need only
+match an opposing all-in commitment. `lastFullRaiseSize` starts at the big blind. `BettingProgress` stores IDs who still need
 to act and IDs whose raising rights remain open. Both sets contain only active players;
 raising rights need not be a subset of pending actors. The engine updates these explicitly
-after full raises and incomplete all-in raises. For a later short big blind, the engine
-must separately apply the configured preflop bring-in; actual posted chips alone do not
-determine the full amount required to enter betting.
+after full bets/raises. Full wagers restore decisions and raising rights for every
+other ACTIVE player, including players who already checked. Short all-ins create
+responses for players who owe more without automatically restoring their raise rights.
+The engine retains immutable last-decision targets for ACTIVE players. A cumulative
+increase of at least the last full increment reopens that player's rights; an
+intermediate CALL resets only that player's decision level. Forced blinds are not
+voluntary decisions, so the unacted big blind retains its option.
+
+`BettingProgress` keeps its four-argument constructor for legacy snapshots. Its new
+five-argument overload accepts `Map<String, Long> lastDecisionTargets`; it copies the
+map and rejects missing IDs/values or levels outside 0..currentBet. GameState validates
+that recorded players can act. Engine transitions retain/update this provenance;
+callers constructing a mid-round snapshot must supply it to support cumulative
+reopening after prior actions. A new street or hand starts with an empty map.
 
 The old small `GameState` constructor is replaced by the full snapshot constructor.
 `getCurrentActorSeat()` now returns `OptionalInt`; `getCurrentActorId()` returns
@@ -117,9 +131,17 @@ Only `BET` and `RAISE` carry a positive target amount. The target is the player'
 contribution for this round: **raise to**, not **raise by**. The caller never supplies a
 separate chip deduction. With prior contribution 10 and current bet 20, a call adds 10;
 a raise to 60 adds 50. These calculations and minimum-raise/stack/turn checks belong to
-engine operations, not to the request data object. The current `BettingEngine`
-implements unraised preflop FOLD/CHECK/CALL and postflop CHECK/FOLD; BET/RAISE,
-raised preflop decisions and postflop CALL remain later increments.
+engine operations, not to the request data object. `BettingEngine` supports
+FOLD/CHECK/CALL, opening postflop BET and full RAISE on every betting street,
+including responses to raised preflop rounds. A full opening bet is at least the
+big blind. A raise target must exceed the current target by at least the last
+full increment; it cannot exceed the actor's stack plus their round contribution.
+Preflop uses RAISE over the blinds, not BET. An undersized wager is accepted only
+when its target uses the entire remaining stack and the player may raise. It leaves
+the full increment unchanged. An unacted player facing a short opening of 5 must
+raise by at least 20 to 25, not merely complete to 20 (default blinds).
+[K01 BVA](../bva/FullBetting.md) and [K02 BVA](../bva/ShortAllInBetting.md)
+record the boundaries.
 A CALL adds `min(currentBet - roundContribution, remainingStack)`
 when chips are owed. A short or exact-stack call leaves zero chips, sets ALL_IN
 and produces an accepted CALL with `becameAllIn=true`. It removes the caller's
@@ -142,16 +164,36 @@ insufficient backing commitments are rejected. Completed hands may retain
 historical values after payouts/elimination. Callers constructing later snapshots
 must pass the same provenance explicitly; engine operations already do so.
 
-For FLOP CHECK/FOLD, an opening c-bet opportunity requires that actor to be the
-recorded aggressor, unopened betting, betting rights and another ACTIVE player.
+Every accepted preflop raise, including a short all-in raise, increments the
+recorded raise count and replaces the final preflop aggressor. The legacy
+two-argument constructor seeds one raise when an aggressor is present. Use the
+three-argument constructor to supply the exact count when constructing a
+snapshot. Zero requires no aggressor; a positive count requires one. GameState
+rejects counts above total match chips minus the big blind, since every raise
+increases the target by at least one chip.
+
+The prior count determines whether the next raise is an opening raise,
+three-bet, four-bet, or later raise. Reopening determines whether the actor
+may raise again. A three-bet opportunity requires one prior raise and a legal
+raise option, including a short all-in raise.
+
+For FLOP actions, an opening c-bet opportunity requires that actor to be the
+recorded aggressor, unopened betting, betting rights, enough chips to increase
+the wager (including a short all-in) and another ACTIVE player.
 Facing a c-bet requires an explicitly recorded actual c-bet, chips owed and the
 original betting level. A subsequent raise is not a direct fold to the original
 c-bet. Ordinary opening bets and equal-sized turn/river bets create no flop
 opportunity. These facts populate accepted `StatsContext`; action requests do
-not contain caller-supplied statistics flags. Because RAISE/BET are still future
-actions, current unraised integration hands naturally have empty provenance.
-Future implementations must record those accepted events before emitting c-bet
-context; the engine does not infer them from contribution sizes alone.
+not contain caller-supplied statistics flags. An accepted flop BET by that
+aggressor records the actual c-bet target. The engine uses recorded actions,
+not contribution sizes alone. See the [K03 boundary cases](../bva/BettingHistory.md#k03-exact-raise-counts-and-all-in-observations).
+
+`BettingEngine.getLegalActions(state)` publishes read-only current-actor
+options: legal action types, capped call cost and optional BET/RAISE limits.
+The wager's minimum full target is nominal (empty if it overflows a long),
+maximum is the actor's round contribution plus stack, and the short-all-in
+target is present only when the exact stack is the sole legal increase.
+Queries and submissions share wager validation. See [legal options BVA](../bva/LegalActions.md).
 
 There is no generic `ALL_IN` action type. Resolve it to `CALL`, `BET` or `RAISE`.
 Forced blinds use `FORCED_POST`, including a blind that exhausts a stack. They are never
