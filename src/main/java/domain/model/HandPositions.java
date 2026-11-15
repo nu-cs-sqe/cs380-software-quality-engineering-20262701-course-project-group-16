@@ -2,6 +2,9 @@ package domain.model;
 
 import static domain.model.GameConfig.SEAT_COUNT;
 
+import java.util.Comparator;
+import java.util.Set;
+
 /** Immutable positions for one hand. In heads-up play the dealer is also the small blind. */
 public final class HandPositions {
     private final int dealerSeat;
@@ -22,6 +25,24 @@ public final class HandPositions {
                 || bigBlind < 0 || bigBlind >= SEAT_COUNT
                 || bigBlind == smallBlind || bigBlind == dealer) {
             throw new IllegalArgumentException("Invalid six-seat hand positions.");
+        }
+    }
+
+    /** Last active seat in street order; a lone player has no response-position advantage. */
+    public boolean isInPosition(int seat, Set<Integer> activeSeats, boolean preflop) {
+        requireDecisionSeats(seat, activeSeats);
+        if (activeSeats.size() < 2) {
+            return false;
+        }
+        int anchor = preflop ? bigBlindSeat : dealerSeat;
+        return activeSeats.stream().max(Comparator.comparingInt(
+                actor -> Math.floorMod(actor - anchor - 1, SEAT_COUNT))).orElseThrow() == seat;
+    }
+
+    private static void requireDecisionSeats(int seat, Set<Integer> activeSeats) {
+        if (seat < 0 || seat >= SEAT_COUNT
+                || activeSeats.stream().anyMatch(actor -> actor < 0 || actor >= SEAT_COUNT)) {
+            throw new IllegalArgumentException("Decision seats must belong to the table.");
         }
     }
 

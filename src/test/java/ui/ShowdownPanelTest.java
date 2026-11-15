@@ -1,5 +1,7 @@
 package ui;
 
+import static ui.UiComponents.find;
+
 import domain.model.BettingProgress;
 import domain.model.Card;
 import domain.model.GameConfig;
@@ -15,8 +17,6 @@ import domain.model.SeatOrder;
 import domain.model.ShowdownResolver;
 import domain.model.ShowdownResult;
 import domain.model.Suit;
-import java.awt.Component;
-import java.awt.Container;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
@@ -197,17 +197,6 @@ class ShowdownPanelTest {
 
     private static String summary(ShowdownPanel panel) { return find(panel, "resultSummary", JTextArea.class).getText(); }
     private static String label(ShowdownPanel panel, String name) { return find(panel, name, JLabel.class).getText(); }
-
-    private static <T extends Component> T find(Container root, String name, Class<T> type) {
-        for (Component component : root.getComponents()) {
-            if (name.equals(component.getName())) return type.cast(component);
-            if (component instanceof Container) {
-                T nested = find((Container) component, name, type);
-                if (nested != null) return nested;
-            }
-        }
-        return null;
-    }
 
     private static void onEdt(Runnable action) throws InterruptedException, InvocationTargetException {
         try { SwingUtilities.invokeAndWait(action); }

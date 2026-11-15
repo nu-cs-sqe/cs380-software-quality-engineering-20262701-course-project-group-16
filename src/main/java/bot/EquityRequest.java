@@ -28,11 +28,7 @@ public final class EquityRequest {
         requireKnownCards(holeCards, board);
         Set<String> participants = requireParticipants(heroId, opponents);
         requirePots(pots, participants);
-        long eligible = pots.stream().filter(pot -> pot.getEligiblePlayers().contains(heroId))
-                .mapToLong(EquityPot::getAmount).reduce(0L, Math::addExact);
-        if (eligible == 0) {
-            throw new IllegalArgumentException("The bot must be eligible for an awardable pot.");
-        }
+        long eligible = requireHeroEligiblePot(heroId, pots);
         totalPotAmount = pots.stream().mapToLong(EquityPot::getAmount).reduce(0L, Math::addExact);
         this.heroId = heroId;
         this.holeCards = List.copyOf(holeCards);
@@ -41,6 +37,15 @@ public final class EquityRequest {
         this.pots = List.copyOf(pots);
         this.simulations = simulations;
         eligiblePotAmount = eligible;
+    }
+
+    private static long requireHeroEligiblePot(String heroId, List<EquityPot> pots) {
+        long eligible = pots.stream().filter(pot -> pot.getEligiblePlayers().contains(heroId))
+                .mapToLong(EquityPot::getAmount).reduce(0L, Math::addExact);
+        if (eligible == 0) {
+            throw new IllegalArgumentException("The bot must be eligible for an awardable pot.");
+        }
+        return eligible;
     }
 
     private static void requireBounds(List<Card> holes, List<Card> board,

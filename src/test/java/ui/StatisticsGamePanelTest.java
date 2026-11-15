@@ -1,5 +1,7 @@
 package ui;
 
+import static ui.UiComponents.find;
+
 import application.GameInitializer;
 import application.SetupSession;
 import domain.model.GameConfig;
@@ -27,7 +29,7 @@ class StatisticsGamePanelTest {
         SwingUtilities.invokeAndWait(() -> {
             SetupSession session = new SetupSession(new GameInitializer(new GameConfig(),
                     new FirstSeatRandom(), new Random(15)));
-            GamePanel panel = new GamePanel(session);
+            GamePanel panel = UiBotFixtures.passive(session);
             find(panel, "language", JComboBox.class).setSelectedIndex(language);
             assertFalse(find(panel, "settle", JButton.class).isEnabled());
             assertFalse(find(panel, "nextHand", JButton.class).isEnabled());
@@ -75,7 +77,7 @@ class StatisticsGamePanelTest {
     void tableHeadersStayVisibleAtTheDefaultWindowSize(int language)
             throws InterruptedException, InvocationTargetException {
         SwingUtilities.invokeAndWait(() -> {
-            GamePanel panel = new GamePanel(new SetupSession());
+            GamePanel panel = UiBotFixtures.passive(new SetupSession());
             find(panel, "language", JComboBox.class).setSelectedIndex(language);
             find(panel, "sections", JTabbedPane.class).setSelectedIndex(1);
             panel.setSize(1100, 740);
@@ -92,21 +94,6 @@ class StatisticsGamePanelTest {
         for (Component child : container.getComponents()) {
             if (child instanceof Container) layout((Container) child);
         }
-    }
-
-    private static <T extends Component> T find(Container parent, String name, Class<T> type) {
-        for (Component child : parent.getComponents()) {
-            if (name.equals(child.getName()) && type.isInstance(child)) return type.cast(child);
-            if (child instanceof Container) {
-                T found = search((Container) child, name, type);
-                if (found != null) return found;
-            }
-        }
-        throw new AssertionError("Missing " + name);
-    }
-
-    private static <T extends Component> T search(Container parent, String name, Class<T> type) {
-        try { return find(parent, name, type); } catch (AssertionError absent) { return null; }
     }
 
     private static final class FirstSeatRandom extends Random {

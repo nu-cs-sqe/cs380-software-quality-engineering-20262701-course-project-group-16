@@ -36,9 +36,7 @@ public final class GameState {
     private GameState(GameConfig config, String handId, GamePhase phase, List<PlayerState> players,
             HandPositions positions, Optional<String> currentActorId, List<Card> communityCards,
             List<Card> remainingDeck, BettingProgress betting, BettingHistory history) {
-        if (handId.isBlank()) {
-            throw new IllegalArgumentException("Hand identity must not be blank.");
-        }
+        requireHandIdentity(handId);
         this.config = config;
         this.handId = handId;
         this.phase = phase;
@@ -77,35 +75,58 @@ public final class GameState {
         return history;
     }
 
-    private void validateHistory() {
-        // Each raise increases the preflop target by at least one chip above the big blind.
-        if (history.getPreflopRaiseCount() > config.getInitialTotalChips() - config.getBigBlind()) {
-            throw new IllegalArgumentException("Preflop raise count exceeds the match chip limit.");
+    private static void requireHandIdentity(String handId) {
+        if (handId.isBlank()) {
+            throw new IllegalArgumentException("Hand identity must not be blank.");
         }
+    }
+
+    private void validateHistory() {
+        validateRaiseCount();
         Optional<String> aggressorId = history.getFinalPreflopAggressorId();
         if (aggressorId.isEmpty()) {
             return;
         }
+        requireHistoryAfterDealing();
+        PlayerState aggressor = requireAggressorInHand(aggressorId.orElseThrow());
+        validateContinuationBet(aggressor);
+    }
+
+    private void validateRaiseCount() {
+        // Each raise increases the preflop target by at least one chip above the big blind.
+        if (history.getPreflopRaiseCount() > config.getInitialTotalChips() - config.getBigBlind()) {
+            throw new IllegalArgumentException("Preflop raise count exceeds the match chip limit.");
+        }
+    }
+
+    private void requireHistoryAfterDealing() {
         if (phase == GamePhase.SETUP) {
             throw new IllegalArgumentException("Betting history cannot precede dealing.");
         }
+    }
+
+    private PlayerState requireAggressorInHand(String playerId) {
         PlayerState aggressor = players.stream()
-                .filter(player -> player.getPlayer().getId().equals(aggressorId.orElseThrow()))
+                .filter(player -> player.getPlayer().getId().equals(playerId))
                 .findFirst().orElseThrow(() ->
                         new IllegalArgumentException("Unknown preflop aggressor."));
         if (phase != GamePhase.COMPLETION && !aggressor.isDealtSeat()) {
             throw new IllegalArgumentException(
                     "An undealt seat did not participate in this hand.");
         }
-        if (history.getFlopCBetAmount().isPresent()) {
-            long amount = history.getFlopCBetAmount().orElseThrow();
-            if (phase == GamePhase.PREFLOP
-                    || (phase == GamePhase.FLOP && aggressor.getRoundContribution() < amount)
-                    || (phase != GamePhase.COMPLETION
-                    && aggressor.getHandContribution() < amount)) {
-                throw new IllegalArgumentException(
-                        "The recorded flop c-bet is inconsistent with this hand.");
-            }
+        return aggressor;
+    }
+
+    private void validateContinuationBet(PlayerState aggressor) {
+        if (history.getFlopCBetAmount().isEmpty()) {
+            return;
+        }
+        long amount = history.getFlopCBetAmount().orElseThrow();
+        if (phase == GamePhase.PREFLOP
+                || (phase == GamePhase.FLOP && aggressor.getRoundContribution() < amount)
+                || (phase != GamePhase.COMPLETION && aggressor.getHandContribution() < amount)) {
+            throw new IllegalArgumentException(
+                    "The recorded flop c-bet is inconsistent with this hand.");
         }
     }
 
@@ -139,44 +160,52 @@ public final class GameState {
     }
 
     private void validateCards() {
-        int count = communityCards.size();
-        boolean validBoard;
-        switch (phase) {
-            case SETUP:
-            case PREFLOP:
-                validBoard = count == 0;
-                break;
-            case FLOP:
-                validBoard = count == 3;
-                break;
-            case TURN:
-                validBoard = count == 4;
-                break;
-            case RIVER:
-            case SHOWDOWN:
-                validBoard = count == 5;
-                break;
-            case COMPLETION:
-                validBoard = count == 0 || count == 3 || count == 4 || count == 5;
-                break;
-            default:
-                throw new IllegalArgumentException("Unknown phase.");
-        }
-        if (!validBoard) {
-            throw new IllegalArgumentException("Community card count does not match the phase.");
-        }
+        requireBoardSizeForPhase();
         Set<Card> seen = new HashSet<>();
         addDistinct(seen, communityCards);
         addDistinct(seen, remainingDeck);
-        for (PlayerState state : players) {
-            List<Card> cards = state.getHoleCards();
-            if ((phase == GamePhase.SETUP && !cards.isEmpty())
-                    || (phase != GamePhase.SETUP && phase != GamePhase.COMPLETION
-                    && state.isDealtSeat() && cards.size() != 2)) {
-                throw new IllegalArgumentException(
-                    "Hole cards must match setup or dealt-hand status.");
-            }
-            addDistinct(seen, cards);
+        validatePlayerCards(seen);
+    }
+
+    private void requireBoardSizeForPhase() {
+        if (!hasBoardSizeForPhase()) {
+            throw new IllegalArgumentException("Community card count does not match the phase.");
+        }
+    }
+
+    private boolean hasBoardSizeForPhase() {
+        int count = communityCards.size();
+        switch (phase) {
+            case SETUP:
+            case PREFLOP:
+                return count == 0;
+            case FLOP:
+                return count == 3;
+            case TURN:
+                return count == 4;
+            case RIVER:
+            case SHOWDOWN:
+                return count == 5;
+            case COMPLETION:
+                return count == 0 || count == 3 || count == 4 || count == 5;
+            default:
+                throw new IllegalArgumentException("Unknown phase.");
+        }
+    }
+
+    private void validatePlayerCards(Set<Card> seen) {
+        for (PlayerState player : players) {
+            requireHoleCardsForPhase(player);
+            addDistinct(seen, player.getHoleCards());
+        }
+    }
+
+    private void requireHoleCardsForPhase(PlayerState player) {
+        List<Card> cards = player.getHoleCards();
+        if ((phase == GamePhase.SETUP && !cards.isEmpty())
+                || (phase != GamePhase.SETUP && phase != GamePhase.COMPLETION
+                && player.isDealtSeat() && cards.size() != 2)) {
+            throw new IllegalArgumentException("Hole cards must match setup or dealt-hand status.");
         }
     }
 
@@ -190,27 +219,44 @@ public final class GameState {
     }
 
     private void validateBetting() {
+        validateBettingAmounts();
+        validateDecisionPlayers();
+        validateCurrentActor();
+        validateTerminalBetting();
+    }
+
+    private void validateBettingAmounts() {
         long maximum = players.stream().mapToLong(PlayerState::getRoundContribution)
                 .max().orElseThrow();
         if ((betting.getCurrentBet() != maximum && !hasShortBlindTarget(maximum))
                 || betting.getLastFullRaiseSize() < config.getBigBlind()) {
             throw new IllegalArgumentException("Current bet or last full raise is inconsistent.");
         }
-        Set<String> eligible = players.stream().filter(PlayerState::canAct)
+    }
+
+    private void validateDecisionPlayers() {
+        Set<String> active = players.stream().filter(PlayerState::canAct)
                 .map(state -> state.getPlayer().getId()).collect(Collectors.toSet());
-        if (!eligible.containsAll(betting.getPlayersToAct())
-                || !eligible.containsAll(betting.getPlayersAllowedToRaise())
-                || !eligible.containsAll(betting.getLastDecisionTargets().keySet())) {
+        if (!active.containsAll(betting.getPlayersToAct())
+                || !active.containsAll(betting.getPlayersAllowedToRaise())
+                || !active.containsAll(betting.getLastDecisionTargets().keySet())) {
             throw new IllegalArgumentException(
-                "Only active players may have pending decisions or raise rights.");
+                    "Only active players may have pending decisions or raise rights.");
         }
+    }
+
+    private void validateCurrentActor() {
         boolean pending = !betting.getPlayersToAct().isEmpty();
         if (pending != currentActorId.isPresent()
                 || currentActorId.filter(id -> !betting.getPlayersToAct().contains(id))
                         .isPresent()) {
             throw new IllegalArgumentException(
-                "The current actor must be a pending active player.");
+                    "The current actor must be a pending active player.");
         }
+    }
+
+    private void validateTerminalBetting() {
+        boolean pending = !betting.getPlayersToAct().isEmpty();
         if ((phase == GamePhase.SHOWDOWN || phase == GamePhase.COMPLETION)
                 && (pending || !betting.getPlayersAllowedToRaise().isEmpty())) {
             throw new IllegalArgumentException("A terminal phase has no betting decisions.");

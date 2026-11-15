@@ -47,12 +47,16 @@ final class StatisticsPanel extends JPanel {
             rows[index] = row(player, stats.get(player.getId()), messages, language);
         }
         table.setModel(new ReadOnlyModel(rows, columns.toArray()));
+        configureColumnWidths();
+        note.setText(messages.text(language, "stats.note"));
+        table.getAccessibleContext().setAccessibleName(messages.text(language, "stats.title"));
+    }
+
+    private void configureColumnWidths() {
         table.getColumnModel().getColumn(0).setPreferredWidth(130);
         for (int column = 1; column < table.getColumnCount(); column++) {
             table.getColumnModel().getColumn(column).setPreferredWidth(100);
         }
-        note.setText(messages.text(language, "stats.note"));
-        table.getAccessibleContext().setAccessibleName(messages.text(language, "stats.title"));
     }
 
     private static Object[] row(Player player, StatisticsView stats,
@@ -62,18 +66,20 @@ final class StatisticsPanel extends JPanel {
                 player.getSeat() + 1);
         row[1] = messages.text(language, "stats.count", stats.getHandsPlayed());
         for (int index = 0; index < stats.getRates().size(); index++) {
-            row[index + 2] = format(stats.getRates().get(index), index, messages, language);
+            row[index + 2] = format(stats.getRates().get(index), StatisticsView.METRICS.get(index),
+                    messages, language);
         }
         return row;
     }
 
-    private static String format(OptionalDouble rate, int index,
+    private static String format(OptionalDouble rate, String metric,
             Localizations messages, String language) {
         if (rate.isEmpty()) {
             return messages.text(language, "stats.unavailable");
         }
-        return messages.text(language, index == 2 || index == 4 ? "stats.number" : "stats.percent",
-                rate.orElseThrow());
+        String pattern = metric.equals("gap") || metric.equals("af")
+                ? "stats.number" : "stats.percent";
+        return messages.text(language, pattern, rate.orElseThrow());
     }
     private static final class ReadOnlyModel extends DefaultTableModel {
         private static final long serialVersionUID = 1L;

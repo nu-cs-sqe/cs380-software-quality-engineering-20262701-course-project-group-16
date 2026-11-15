@@ -8,7 +8,7 @@ import java.util.Random;
 /** A standard deck that owns the cards not yet dealt. */
 public final class Deck {
 
-    private final List<Card> cards = new ArrayList<>();
+    private final List<Card> cards;
     private final Random random;
 
     /** Creates an unshuffled deck with its own random source. */
@@ -22,11 +22,17 @@ public final class Deck {
      */
     public Deck(Random random) {
         this.random = random;
+        this.cards = standardCards();
+    }
+
+    private static List<Card> standardCards() {
+        List<Card> cards = new ArrayList<>();
         for (Suit suit : Suit.values()) {
             for (Rank rank : Rank.values()) {
                 cards.add(new Card(rank, suit));
             }
         }
+        return cards;
     }
 
     /** Reorders only the cards still in this deck. */

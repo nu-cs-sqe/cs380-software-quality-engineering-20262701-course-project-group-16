@@ -23,24 +23,41 @@ public final class ShowdownResolver {
      * @throws IllegalStateException for an unready/completed hand or no eligible player
      */
     public ShowdownResult resolve(GameState state) {
+        requireDecisionFreeHand(state);
+        List<PlayerState> eligible = eligibleContenders(state);
+        if (eligible.size() == 1) {
+            return new ShowdownResult(state.getHandId(),
+                    List.of(eligible.get(0).getPlayer().getId()), true);
+        }
+        requireShowdownPhase(state);
+        return new ShowdownResult(state.getHandId(), contestedWinnerIds(state, eligible), false);
+    }
+
+    private static void requireDecisionFreeHand(GameState state) {
         if (state.getPhase() == GamePhase.SETUP || state.getPhase() == GamePhase.COMPLETION
                 || !state.getBettingProgress().getPlayersToAct().isEmpty()
                 || !state.getBettingProgress().getPlayersAllowedToRaise().isEmpty()) {
             throw new IllegalStateException(
-                "A result requires a dealt hand with no pending decisions.");
+                    "A result requires a dealt hand with no pending decisions.");
         }
+    }
+
+    private static List<PlayerState> eligibleContenders(GameState state) {
         List<PlayerState> eligible = state.getPlayerStates().stream()
                 .filter(PlayerState::isParticipating).collect(Collectors.toList());
         if (eligible.isEmpty()) {
             throw new IllegalStateException("At least one eligible player is required.");
         }
-        if (eligible.size() == 1) {
-            return new ShowdownResult(state.getHandId(),
-                    List.of(eligible.get(0).getPlayer().getId()), true);
-        }
+        return eligible;
+    }
+
+    private static void requireShowdownPhase(GameState state) {
         if (state.getPhase() != GamePhase.SHOWDOWN) {
             throw new IllegalStateException("Contested comparison requires the SHOWDOWN phase.");
         }
+    }
+
+    private List<String> contestedWinnerIds(GameState state, List<PlayerState> eligible) {
         List<Card> best = holding(state, eligible.get(0));
         List<String> winners = new ArrayList<>();
         winners.add(eligible.get(0).getPlayer().getId());
@@ -56,7 +73,7 @@ public final class ShowdownResolver {
                 winners.add(player.getPlayer().getId());
             }
         }
-        return new ShowdownResult(state.getHandId(), winners, false);
+        return winners;
     }
 
     private static List<Card> holding(GameState state, PlayerState player) {

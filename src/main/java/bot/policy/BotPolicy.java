@@ -29,18 +29,18 @@ public final class BotPolicy {
     private static Map<ActionType, Double> passiveWeights(PolicyRequest request,
             BotPersonality personality, double pressure) {
         Map<ActionType, Double> weights = new EnumMap<>(ActionType.class);
-        long gross = request.getLegalActions().getCallCost();
-        if (gross == 0) {
+        long grossCallCost = request.getLegalActions().getCallCost();
+        if (grossCallCost == 0) {
             weights.put(ActionType.CHECK, 1.0);
-        } else if (request.getCallValue().riskedChips(gross) == 0) {
+        } else if (request.getCallValue().riskedChips(grossCallCost) == 0) {
             weights.put(ActionType.CALL, 1.0);
         } else {
-            payingChoices(request, personality, pressure, weights);
+            addPaidCallOrFoldWeights(request, personality, pressure, weights);
         }
         return weights;
     }
 
-    private static void payingChoices(PolicyRequest request, BotPersonality personality,
+    private static void addPaidCallOrFoldWeights(PolicyRequest request, BotPersonality personality,
             double pressure, Map<ActionType, Double> weights) {
         double equity = request.getCallValue().getEquity();
         if (equity == 0 || equity == 1) {
@@ -57,12 +57,13 @@ public final class BotPolicy {
         long cost = request.getLegalActions().getCallCost();
         double commitment = request.getCallValue().riskedChips(cost)
                 / (double) request.getHero().getChipStack();
-        return request.getCallValue().getEquity() - odds(request) + personality.equityBias()
+        return request.getCallValue().getEquity() - breakEvenCallEquity(request)
+                + personality.equityBias()
                 + (request.isInPosition() ? POSITION_CALL_BONUS : 0)
                 - OPPONENT_PRESSURE * pressure - CALL_COMMITMENT * commitment;
     }
 
-    private static double odds(PolicyRequest request) {
+    private static double breakEvenCallEquity(PolicyRequest request) {
         return request.getCallValue().breakEvenEquity(
                 request.getLegalActions().getCallCost()).orElse(0);
     }
@@ -84,7 +85,7 @@ public final class BotPolicy {
     private static OptionalLong addWager(PolicyRequest request, BotPersonality personality,
             double pressure, Map<ActionType, Double> weights) {
         if (request.getLegalActions().getWager().isEmpty()
-                || request.getCallValue().getEquity() < odds(request)) {
+                || request.getCallValue().getEquity() < breakEvenCallEquity(request)) {
             return OptionalLong.empty();
         }
         LegalActions.Wager limits = request.getLegalActions().getWager().orElseThrow();
@@ -111,12 +112,12 @@ public final class BotPolicy {
         if (limits.getShortAllInTarget().isPresent()) {
             return limits.getShortAllInTarget().getAsLong();
         }
-        long base = request.getHero().getRoundContribution()
+        long calledRoundTotal = request.getHero().getRoundContribution()
                 + request.getLegalActions().getCallCost();
-        long room = limits.getMaximumTarget() - base;
-        long desired = Math.round(request.getCallValue().getEligiblePotAfterCall()
+        long remainingRaiseCapacity = limits.getMaximumTarget() - calledRoundTotal;
+        long desiredWagerChips = Math.round(request.getCallValue().getEligiblePotAfterCall()
                 * personality.potFraction());
-        long target = base + Math.min(room, desired);
+        long target = calledRoundTotal + Math.min(remainingRaiseCapacity, desiredWagerChips);
         return Math.max(limits.getMinimumFullTarget().orElseThrow(), target);
     }
 

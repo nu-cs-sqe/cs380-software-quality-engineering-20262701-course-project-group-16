@@ -1,5 +1,7 @@
 package ui;
 
+import static ui.UiComponents.find;
+
 import application.GameInitializer;
 import application.SetupSession;
 import application.SetupView;
@@ -25,7 +27,7 @@ class PlayedGamePanelTest {
     @Test
     void noActionControlsAreEnabledBeforeStart() throws InterruptedException, InvocationTargetException {
         onEdt(() -> {
-            GamePanel panel = new GamePanel(new SetupSession());
+            GamePanel panel = UiBotFixtures.passive(new SetupSession());
             for (String name : new String[]{"fold", "check", "call"}) {
                 assertFalse(find(panel, name, JButton.class).isEnabled());
             }
@@ -281,7 +283,7 @@ class PlayedGamePanelTest {
     }
 
     private static GamePanel panel(SetupSession session, int language) {
-        GamePanel panel = new GamePanel(session);
+        GamePanel panel = UiBotFixtures.passive(session);
         find(panel, "language", JComboBox.class).setSelectedIndex(language);
         return panel;
     }
@@ -289,28 +291,6 @@ class PlayedGamePanelTest {
     private static void start(GamePanel panel, int humans) {
         find(panel, "humanCount", JTextField.class).setText(Integer.toString(humans));
         find(panel, "start", JButton.class).doClick();
-    }
-
-    private static <T extends Component> T find(Container root, String name, Class<T> type) {
-        for (Component child : root.getComponents()) {
-            if (name.equals(child.getName())) return type.cast(child);
-            if (child instanceof Container) {
-                T found = locate((Container) child, name, type);
-                if (found != null) return found;
-            }
-        }
-        throw new AssertionError("Missing component: " + name);
-    }
-
-    private static <T extends Component> T locate(Container root, String name, Class<T> type) {
-        for (Component child : root.getComponents()) {
-            if (name.equals(child.getName())) return type.cast(child);
-            if (child instanceof Container) {
-                T found = locate((Container) child, name, type);
-                if (found != null) return found;
-            }
-        }
-        return null;
     }
 
     private static void onEdt(Runnable action) throws InterruptedException, InvocationTargetException {

@@ -27,9 +27,10 @@ public final class PotSettlement {
     public Settlement settle(GameState state) {
         requireReady(state);
         Map<String, Long> payouts = zeroAmounts(state);
-        Map<String, Long> refunds = zeroAmounts(state);
+        PotLayout layout = PotLayout.from(state);
+        Map<String, Long> refunds = layout.getRefunds();
         Map<String, Long> contested = zeroAmounts(state);
-        distributeLayers(state, payouts, refunds, contested);
+        distributeLayers(state, layout.getLayers(), payouts, contested);
         return new Settlement(completedState(state, payouts, refunds), payouts, refunds, contested);
     }
 
@@ -51,33 +52,21 @@ public final class PotSettlement {
         return amounts;
     }
 
-    private void distributeLayers(GameState state, Map<String, Long> payouts,
-            Map<String, Long> refunds, Map<String, Long> contested) {
-        List<Long> levels = state.getPlayerStates().stream().map(PlayerState::getHandContribution)
-                .filter(amount -> amount > 0).distinct().sorted().collect(Collectors.toList());
-        long previous = 0;
-        for (long level : levels) {
-            List<PlayerState> contributors = state.getPlayerStates().stream()
-                    .filter(player -> player.getHandContribution() >= level)
+    private void distributeLayers(GameState state, List<PotLayout.Layer> layers,
+            Map<String, Long> payouts, Map<String, Long> contested) {
+        for (PotLayout.Layer layer : layers) {
+            List<PlayerState> eligible = state.getPlayerStates().stream()
+                    .filter(player -> layer.getEligiblePlayers()
+                            .contains(player.getPlayer().getId()))
                     .collect(Collectors.toList());
-            long amount = Math.multiplyExact(level - previous, contributors.size());
-            payLayer(state, contributors, amount, payouts, refunds, contested);
-            previous = level;
+            payLayer(state, eligible, layer.getAmount(), payouts, contested);
         }
     }
 
-    private void payLayer(GameState state, List<PlayerState> contributors, long amount,
-            Map<String, Long> payouts, Map<String, Long> refunds, Map<String, Long> contested) {
-        if (contributors.size() == 1) {
-            add(refunds, contributors.get(0), amount);
-            return;
-        }
-        List<PlayerState> eligible = contributors.stream().filter(PlayerState::isParticipating)
-                .collect(Collectors.toList());
-        if (eligible.isEmpty()) {
-            throw new IllegalStateException("A side pot requires an eligible player.");
-        }
+    private void payLayer(GameState state, List<PlayerState> eligible, long amount,
+            Map<String, Long> payouts, Map<String, Long> contested) {
         List<PlayerState> winners = winners(state, eligible);
+        // Odd chips go clockwise from the seat immediately left of the dealer.
         winners.sort(Comparator.comparingInt(player -> Math.floorMod(
                 player.getPlayer().getSeat() - state.getDealerSeat() - 1, GameConfig.SEAT_COUNT)));
         for (int index = 0; index < winners.size(); index++) {
@@ -126,6 +115,15 @@ public final class PotSettlement {
 
     private static GameState completedState(GameState before, Map<String, Long> payouts,
             Map<String, Long> refunds) {
+        List<PlayerState> players = paidPlayers(before, payouts, refunds);
+        return GameState.create(before.getConfig(), before.getHandId(), GamePhase.COMPLETION,
+                players, before.getPositions(), Optional.empty(), before.getCommunityCards(),
+                before.getRemainingDeck(), new BettingProgress(0, before.getConfig().getBigBlind(),
+                Set.of(), Set.of()), before.getBettingHistory());
+    }
+
+    private static List<PlayerState> paidPlayers(GameState before, Map<String, Long> payouts,
+            Map<String, Long> refunds) {
         List<PlayerState> players = new ArrayList<>();
         for (PlayerState state : before.getPlayerStates()) {
             Player old = state.getPlayer();
@@ -136,9 +134,6 @@ public final class PotSettlement {
             players.add(new PlayerState(paid, status,
                     chips == 0 ? List.of() : state.getHoleCards(), 0, 0));
         }
-        return GameState.create(before.getConfig(), before.getHandId(), GamePhase.COMPLETION,
-                players, before.getPositions(), Optional.empty(), before.getCommunityCards(),
-                before.getRemainingDeck(), new BettingProgress(0, before.getConfig().getBigBlind(),
-                Set.of(), Set.of()), before.getBettingHistory());
+        return players;
     }
 }

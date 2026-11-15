@@ -198,10 +198,10 @@ public final class Localizations {
     private static List<String> formatElements(String pattern) {
         List<String> elements = new ArrayList<>();
         boolean quoted = false;
-        int depth = 0;
-        int start = 0;
-        for (int i = 0; i < pattern.length(); i++) {
-            char character = pattern.charAt(i);
+        int braceDepth = 0;
+        int elementStart = 0;
+        for (int offset = 0; offset < pattern.length(); offset++) {
+            char character = pattern.charAt(offset);
             if (character == '\'') {
                 quoted = !quoted;
                 continue;
@@ -210,14 +210,14 @@ public final class Localizations {
                 continue;
             }
             if (character == '{') {
-                if (depth == 0) {
-                    start = i + 1;
+                if (braceDepth == 0) {
+                    elementStart = offset + 1;
                 }
-                depth++;
-            } else if (character == '}' && depth > 0) {
-                depth--;
-                if (depth == 0) {
-                    elements.add(pattern.substring(start, i));
+                braceDepth++;
+            } else if (character == '}' && braceDepth > 0) {
+                braceDepth--;
+                if (braceDepth == 0) {
+                    elements.add(pattern.substring(elementStart, offset));
                 }
             }
         }

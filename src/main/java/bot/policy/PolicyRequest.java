@@ -3,17 +3,15 @@ package bot.policy;
 import bot.learning.OpponentBeliefs;
 import domain.model.ActionType;
 import domain.model.BettingStreet;
-import domain.model.GameConfig;
 import domain.model.GameView;
 import domain.model.LegalActions;
 import domain.model.PlayerStatus;
 import domain.model.PlayerType;
 import domain.model.PlayerView;
 import java.util.List;
-import java.util.Comparator;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /** One filtered decision and its application-owned public call valuation. */
 public final class PolicyRequest {
@@ -108,15 +106,10 @@ public final class PolicyRequest {
 
     /** Street-order position among players still able to respond; never uses private cards. */
     public boolean isInPosition() {
-        List<PlayerView> active = getActiveOpponents();
-        return !active.isEmpty() && Stream.concat(Stream.of(hero), active.stream())
-                .max(Comparator.comparingInt(player -> position(player.getSeat())))
-                .orElseThrow().getId().equals(hero.getId());
-    }
-
-    private int position(int seat) {
-        int anchor = street == BettingStreet.PREFLOP ? view.getPositions().getBigBlindSeat()
-                : view.getPositions().getDealerSeat();
-        return Math.floorMod(seat - anchor - 1, GameConfig.SEAT_COUNT);
+        Set<Integer> active = view.getPlayers().stream()
+                .filter(player -> player.getStatus() == PlayerStatus.ACTIVE)
+                .map(PlayerView::getSeat).collect(Collectors.toSet());
+        return view.getPositions().isInPosition(hero.getSeat(), active,
+                street == BettingStreet.PREFLOP);
     }
 }

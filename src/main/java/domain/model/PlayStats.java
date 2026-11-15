@@ -75,28 +75,39 @@ public final class PlayStats {
         if (!action.isAccepted()) {
             return;
         }
+        requireDealtParticipant();
+        requireActionAfterPreviousDecision(action);
+        requireConsistentCBetRole(action.getContext());
+        pendingActions.add(action);
+    }
+
+    private void requireDealtParticipant() {
         if (!dealtIn) {
             throw new IllegalArgumentException(
-                "A nonparticipant cannot contribute accepted actions.");
+                    "A nonparticipant cannot contribute accepted actions.");
         }
-        if (!pendingActions.isEmpty()) {
-            StatsAction previous = pendingActions.get(pendingActions.size() - 1);
-            if (previous.getType() == ResolvedActionType.FOLD
-                    || action.getStreet().compareTo(previous.getStreet()) < 0) {
-                throw new IllegalArgumentException(
-                    "Action contradicts the accepted hand lifecycle.");
-            }
+    }
+
+    private void requireActionAfterPreviousDecision(StatsAction action) {
+        if (pendingActions.isEmpty()) {
+            return;
         }
+        StatsAction previous = pendingActions.get(pendingActions.size() - 1);
+        if (previous.getType() == ResolvedActionType.FOLD
+                || action.getStreet().compareTo(previous.getStreet()) < 0) {
+            throw new IllegalArgumentException("Action contradicts the accepted hand lifecycle.");
+        }
+    }
+
+    private void requireConsistentCBetRole(StatsContext next) {
         for (StatsAction previous : pendingActions) {
             StatsContext before = previous.getContext();
-            StatsContext next = action.getContext();
             if ((before.hasFlopCBetOpportunity() && next.hasFacedFlopCBetOpportunity())
                     || (before.hasFacedFlopCBetOpportunity() && next.hasFlopCBetOpportunity())) {
                 throw new IllegalArgumentException(
-                    "A player cannot both open and face a flop c-bet.");
+                        "A player cannot both open and face a flop c-bet.");
             }
         }
-        pendingActions.add(action);
     }
 
     /**
@@ -120,11 +131,19 @@ public final class PlayStats {
         }
         validateCompletion(sawFlop, reachedShowdown, contestedShowdownPayout, uncalledBetRefund);
         long[] delta = summarizeHand(sawFlop, reachedShowdown, contestedShowdownPayout);
+        commitCompletedHand(activeId, addToLifetimeTotals(delta));
+    }
+
+    private long[] addToLifetimeTotals(long[] delta) {
         long[] nextTotals = totals.clone();
         for (int index = 0; index < nextTotals.length; index++) {
             nextTotals[index] = Math.addExact(nextTotals[index], delta[index]);
         }
-        completedHandIds.add(activeId);
+        return nextTotals;
+    }
+
+    private void commitCompletedHand(String handId, long[] nextTotals) {
+        completedHandIds.add(handId);
         totals = nextTotals;
         activeHandId = Optional.empty();
         dealtIn = false;
@@ -193,26 +212,42 @@ public final class PlayStats {
 
     private void validateCompletion(boolean sawFlop, boolean reachedShowdown,
             long contestedShowdownPayout, long uncalledBetRefund) {
-        if (contestedShowdownPayout < 0 || uncalledBetRefund < 0) {
+        requireNonnegativeAwards(contestedShowdownPayout, uncalledBetRefund);
+        requireParticipantOutcome(sawFlop, reachedShowdown, contestedShowdownPayout,
+                uncalledBetRefund);
+        requireShowdownOutcome(sawFlop, reachedShowdown, contestedShowdownPayout);
+        requireActionsMatchOutcome(sawFlop, reachedShowdown);
+    }
+
+    private static void requireNonnegativeAwards(long payout, long refund) {
+        if (payout < 0 || refund < 0) {
             throw new IllegalArgumentException("Payouts and refunds must not be negative.");
         }
-        if (!dealtIn && (sawFlop || reachedShowdown || contestedShowdownPayout != 0
-                || uncalledBetRefund != 0)) {
+    }
+
+    private void requireParticipantOutcome(boolean sawFlop, boolean showdown,
+            long payout, long refund) {
+        if (!dealtIn && (sawFlop || showdown || payout != 0 || refund != 0)) {
             throw new IllegalArgumentException("A nonparticipant cannot have hand outcomes.");
         }
-        if (reachedShowdown && !sawFlop) {
+    }
+
+    private static void requireShowdownOutcome(boolean sawFlop, boolean showdown, long payout) {
+        if (showdown && !sawFlop) {
             throw new IllegalArgumentException("Showdown requires flop participation.");
         }
-        if (contestedShowdownPayout > 0 && !reachedShowdown) {
+        if (payout > 0 && !showdown) {
             throw new IllegalArgumentException("A contested showdown payout requires showdown.");
         }
+    }
+
+    private void requireActionsMatchOutcome(boolean sawFlop, boolean showdown) {
         for (StatsAction action : pendingActions) {
             boolean preflop = action.getStreet() == BettingStreet.PREFLOP;
             if (!preflop && !sawFlop) {
                 throw new IllegalArgumentException("Postflop actions require seeing the flop.");
             }
-            if (action.getType() == ResolvedActionType.FOLD
-                    && (reachedShowdown || (preflop && sawFlop))) {
+            if (action.getType() == ResolvedActionType.FOLD && (showdown || (preflop && sawFlop))) {
                 throw new IllegalArgumentException("Folded-hand facts contradict participation.");
             }
         }
@@ -255,7 +290,13 @@ public final class PlayStats {
     }
 
     private static void summarizePostflopAction(StatsAction action, long[] delta) {
-        switch (action.getType()) {
+        countPostflopAction(action.getType(), delta);
+        markFlopCBetOpportunity(action, delta);
+        markFacedFlopCBet(action, delta);
+    }
+
+    private static void countPostflopAction(ResolvedActionType type, long[] delta) {
+        switch (type) {
             case BET:
                 delta[Counter.POSTFLOP_BETS.ordinal()]++;
                 break;
@@ -271,14 +312,19 @@ public final class PlayStats {
             default:
                 break;
         }
-        StatsContext context = action.getContext();
-        if (context.hasFlopCBetOpportunity()) {
+    }
+
+    private static void markFlopCBetOpportunity(StatsAction action, long[] delta) {
+        if (action.getContext().hasFlopCBetOpportunity()) {
             delta[Counter.FLOP_CBET_OPPORTUNITY.ordinal()] = 1L;
             if (action.getType() == ResolvedActionType.BET) {
                 delta[Counter.FLOP_CBET.ordinal()] = 1L;
             }
         }
-        if (context.hasFacedFlopCBetOpportunity()) {
+    }
+
+    private static void markFacedFlopCBet(StatsAction action, long[] delta) {
+        if (action.getContext().hasFacedFlopCBetOpportunity()) {
             delta[Counter.FACED_CBET.ordinal()] = 1L;
             if (action.getType() == ResolvedActionType.FOLD) {
                 delta[Counter.FOLD_TO_CBET.ordinal()] = 1L;

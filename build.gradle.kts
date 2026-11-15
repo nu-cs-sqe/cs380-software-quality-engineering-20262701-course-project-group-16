@@ -101,7 +101,13 @@ val measuredClasses = listOf(
     "bot.policy.CallValue",
     "bot.policy.PolicyRequest",
     "bot.policy.ActionDistribution",
-    "bot.policy.BotPolicy"
+    "bot.policy.BotPolicy",
+    "domain.model.PotLayout",
+    "application.BotTurn",
+    "application.BotTable",
+    "application.BotComputer",
+    "application.BotWorker",
+    "application.BotController"
 )
 val measuredClassFiles = measuredClasses.flatMap {
     val path = it.replace('.', '/')

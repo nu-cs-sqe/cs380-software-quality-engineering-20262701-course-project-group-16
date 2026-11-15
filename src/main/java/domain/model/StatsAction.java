@@ -24,6 +24,17 @@ public final class StatsAction {
      */
     public StatsAction(boolean accepted, BettingStreet street, ResolvedActionType type,
             long chipsAdded, StatsContext context) {
+        validateChipAmount(type, chipsAdded);
+        validateStreet(street, type);
+        validateContext(street, type, context);
+        this.accepted = accepted;
+        this.street = street;
+        this.type = type;
+        this.chipsAdded = chipsAdded;
+        this.context = context;
+    }
+
+    private static void validateChipAmount(ResolvedActionType type, long chipsAdded) {
         if (chipsAdded < 0) {
             throw new IllegalArgumentException(
                 "Action fields must be present and chips nonnegative.");
@@ -34,14 +45,6 @@ public final class StatsAction {
         if ((addsChips && chipsAdded == 0) || (!addsChips && chipsAdded != 0)) {
             throw new IllegalArgumentException("Chip amount does not match the resolved action.");
         }
-
-        validateStreet(street, type);
-        validateContext(street, type, context);
-        this.accepted = accepted;
-        this.street = street;
-        this.type = type;
-        this.chipsAdded = chipsAdded;
-        this.context = context;
     }
 
     boolean isAccepted() {
@@ -73,36 +76,52 @@ public final class StatsAction {
         if (street != BettingStreet.PREFLOP && type == ResolvedActionType.FORCED_POST) {
             throw new IllegalArgumentException("Forced posts belong to preflop.");
         }
-
     }
 
     private static void validateContext(BettingStreet street, ResolvedActionType type,
             StatsContext context) {
-        boolean preflopRaise = street == BettingStreet.PREFLOP && type == ResolvedActionType.RAISE;
-        if (preflopRaise != (context.getPreflopRaiseType() != PreflopRaiseType.NONE)) {
+        requireMatchingRaiseClassification(street, type, context);
+        requireEligibleThreeBetDecision(street, type, context);
+        requireFlopOpportunityStreet(street, context);
+        requireCBetOpeningDecision(type, context);
+        requireCBetResponseDecision(type, context);
+    }
+
+    private static void requireMatchingRaiseClassification(BettingStreet street,
+            ResolvedActionType type, StatsContext context) {
+        boolean raise = street == BettingStreet.PREFLOP && type == ResolvedActionType.RAISE;
+        if (raise != (context.getPreflopRaiseType() != PreflopRaiseType.NONE)) {
             throw new IllegalArgumentException("Preflop raise context must match the action.");
         }
+    }
 
+    private static void requireEligibleThreeBetDecision(BettingStreet street,
+            ResolvedActionType type, StatsContext context) {
         if (context.hasThreeBetOpportunity() && (street != BettingStreet.PREFLOP
                 || (type != ResolvedActionType.CALL && type != ResolvedActionType.FOLD
                 && type != ResolvedActionType.RAISE))) {
             throw new IllegalArgumentException("Invalid three-bet opportunity context.");
         }
+    }
 
+    private static void requireFlopOpportunityStreet(BettingStreet street, StatsContext context) {
         if ((context.hasFlopCBetOpportunity() || context.hasFacedFlopCBetOpportunity())
                 && street != BettingStreet.FLOP) {
             throw new IllegalArgumentException("Flop opportunity context belongs to the flop.");
         }
+    }
 
+    private static void requireCBetOpeningDecision(ResolvedActionType type, StatsContext context) {
         if (context.hasFlopCBetOpportunity() && type != ResolvedActionType.BET
                 && type != ResolvedActionType.CHECK && type != ResolvedActionType.FOLD) {
             throw new IllegalArgumentException("A c-bet opportunity requires an opening decision.");
         }
+    }
 
+    private static void requireCBetResponseDecision(ResolvedActionType type, StatsContext context) {
         if (context.hasFacedFlopCBetOpportunity() && type != ResolvedActionType.CALL
                 && type != ResolvedActionType.RAISE && type != ResolvedActionType.FOLD) {
             throw new IllegalArgumentException("Facing a c-bet requires a response decision.");
         }
-
     }
 }

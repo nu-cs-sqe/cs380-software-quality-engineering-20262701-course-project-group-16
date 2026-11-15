@@ -33,18 +33,22 @@ public final class ShowdownPanel extends JPanel {
                 BorderFactory.createEmptyBorder(12, 14, 12, 14)));
         title.setName("resultTitle");
         title.setFont(new Font(Font.DIALOG, Font.BOLD, 18));
-        summary.setName("resultSummary");
-        summary.setFont(new Font(Font.DIALOG, Font.PLAIN, 17));
-        summary.setEditable(false);
-        summary.setOpaque(false);
-        summary.setLineWrap(true);
-        summary.setWrapStyleWord(true);
+        configureSummary();
         status.setName("resultStatus");
         status.setFont(new Font(Font.DIALOG, Font.PLAIN, 13));
         add(title, BorderLayout.NORTH);
         add(summary, BorderLayout.CENTER);
         add(status, BorderLayout.SOUTH);
         setVisible(false);
+    }
+
+    private void configureSummary() {
+        summary.setName("resultSummary");
+        summary.setFont(new Font(Font.DIALOG, Font.PLAIN, 17));
+        summary.setEditable(false);
+        summary.setOpaque(false);
+        summary.setLineWrap(true);
+        summary.setWrapStyleWord(true);
     }
 
     /**
@@ -54,23 +58,9 @@ public final class ShowdownPanel extends JPanel {
      *     or unsupported language
      */
     public void showResult(GameView view, ShowdownResult result, String language) {
-        if (!view.getHandId().equals(result.getHandId())) {
-            throw new IllegalArgumentException("The result and view must belong to the same hand.");
-        }
+        requireMatchingHand(view, result);
         Locale locale = MESSAGES.locale(language);
-        List<String> names = new ArrayList<>();
-        for (String winnerId : result.getWinnerIds()) {
-            PlayerView winner = view.getPlayers().stream()
-                    .filter(player -> player.getId().equals(winnerId)).findFirst()
-                    .orElseThrow(() ->
-                            new IllegalArgumentException("A winner is missing from the view."));
-            names.add(MESSAGES.text(language,
-                    winner.getType() == PlayerType.HUMAN ? "human" : "bot", winner.getSeat() + 1));
-        }
-        String key = result.isUncontested() ? "result.uncontested"
-                : names.size() == 1 ? "result.winner" : "result.tie";
-        String message = MESSAGES.text(language, key,
-                String.join(MESSAGES.text(language, "result.separator"), names));
+        String message = winnerMessage(view, result, language);
         String heading = MESSAGES.text(language, "result.title");
         String pending = MESSAGES.text(language, "result.awaitingSettlement");
         // Build and validate all text before replacing an earlier valid display.
@@ -82,6 +72,33 @@ public final class ShowdownPanel extends JPanel {
         setVisible(true);
         revalidate();
         repaint();
+    }
+
+    private static void requireMatchingHand(GameView view, ShowdownResult result) {
+        if (!view.getHandId().equals(result.getHandId())) {
+            throw new IllegalArgumentException("The result and view must belong to the same hand.");
+        }
+    }
+
+    private static String winnerMessage(GameView view, ShowdownResult result, String language) {
+        List<String> names = winnerNames(view, result, language);
+        String key = result.isUncontested() ? "result.uncontested"
+                : names.size() == 1 ? "result.winner" : "result.tie";
+        return MESSAGES.text(language, key,
+                String.join(MESSAGES.text(language, "result.separator"), names));
+    }
+
+    private static List<String> winnerNames(GameView view, ShowdownResult result, String language) {
+        List<String> names = new ArrayList<>();
+        for (String winnerId : result.getWinnerIds()) {
+            PlayerView winner = view.getPlayers().stream()
+                    .filter(player -> player.getId().equals(winnerId)).findFirst()
+                    .orElseThrow(() ->
+                            new IllegalArgumentException("A winner is missing from the view."));
+            names.add(MESSAGES.text(language,
+                    winner.getType() == PlayerType.HUMAN ? "human" : "bot", winner.getSeat() + 1));
+        }
+        return names;
     }
 
     /** Removes an earlier hand's result before starting or displaying another hand. */

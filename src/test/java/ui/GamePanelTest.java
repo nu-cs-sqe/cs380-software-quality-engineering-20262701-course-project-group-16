@@ -1,10 +1,10 @@
 package ui;
 
+import static ui.UiComponents.find;
+
 import application.GameInitializer;
 import application.SetupSession;
 import domain.model.GameConfig;
-import java.awt.Component;
-import java.awt.Container;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Locale;
 import java.util.Random;
@@ -210,7 +210,7 @@ class GamePanelTest {
     }
 
     private static GamePanel panel(SetupSession session) {
-        return new GamePanel(session);
+        return UiBotFixtures.passive(session);
     }
 
     private static SetupSession session() {
@@ -223,23 +223,6 @@ class GamePanelTest {
     private static void start(GamePanel panel, String count) {
         find(panel, "humanCount", JTextField.class).setText(count);
         find(panel, "start", JButton.class).doClick();
-    }
-
-    private static <T extends Component> T find(Container root, String name, Class<T> type) {
-        Component found = locate(root, name);
-        assertTrue(type.isInstance(found), "Missing " + name + " component");
-        return type.cast(found);
-    }
-
-    private static Component locate(Container root, String name) {
-        for (Component c : root.getComponents()) {
-            if (name.equals(c.getName())) return c;
-            if (c instanceof Container) {
-                Component nested = locate((Container)c, name);
-                if (nested != null) return nested;
-            }
-        }
-        return null;
     }
 
     private static void onEdt(Runnable action) throws InterruptedException, InvocationTargetException {

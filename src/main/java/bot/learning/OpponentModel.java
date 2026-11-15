@@ -86,6 +86,14 @@ public final class OpponentModel {
         }
     }
 
+    /** Prepares an independent successor; rejection never changes this model. */
+    public OpponentModel after(PublicDecision decision) {
+        OpponentModel next = new OpponentModel(matchId, observerId, beliefs, update);
+        next.lastSequence = lastSequence;
+        next.observe(decision);
+        return next;
+    }
+
     public OpponentBeliefs snapshot(String opponentId) {
         if (!beliefs.containsKey(opponentId)) {
             throw new IllegalArgumentException("A registered opponent is required.");

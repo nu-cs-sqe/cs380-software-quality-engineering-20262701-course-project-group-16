@@ -1,5 +1,9 @@
 package ui;
 
+import application.BotComputer;
+import application.BotController;
+import application.BotFailure;
+import application.BotWorker;
 import application.SetupSession;
 import application.SetupView;
 import domain.model.Card;
@@ -23,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.function.Function;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -33,6 +38,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.JTabbedPane;
+import javax.swing.SwingUtilities;
 import localization.Localizations;
 
 /** Shared-computer played-hand screen. Construct and use on the Swing event thread. */
@@ -42,6 +48,7 @@ public final class GamePanel extends JPanel {
     private static final Color FELT = new Color(24, 76, 63);
     private static final Color GOLD = new Color(224, 184, 92);
     private final SetupSession session;
+    private final BotController bots;
     private final Localizations messages = Localizations.load();
     private final JComboBox<String> language = named(new JComboBox<>(), "language");
     private String selectedLanguage = messages.defaultLanguage();
@@ -61,6 +68,8 @@ public final class GamePanel extends JPanel {
     private final JTextField wagerTarget = named(new JTextField(), "wagerTarget");
     private final JLabel wagerHint = named(new JLabel(" "), "wagerHint");
     private final JButton settle = named(new JButton(), "settle");
+    private final JLabel botStatus = named(new JLabel(" "), "botStatus");
+    private final JButton retryBot = named(new JButton(), "retryBot");
     private final JButton nextHand = named(new JButton(), "nextHand");
     private final JTabbedPane sections = named(new JTabbedPane(), "sections");
     private final StatisticsPanel statistics = new StatisticsPanel();
@@ -78,20 +87,45 @@ public final class GamePanel extends JPanel {
     private boolean rendering;
 
     public GamePanel(SetupSession session) {
+        this(session, changed -> liveBots(session, changed));
+    }
+
+    GamePanel(SetupSession session, Function<Runnable, BotController> factory) {
         this.session = session;
+        bots = factory.apply(this::refresh);
+        bindSetupControls();
+        bindPrivateControls();
+        bindActionControls();
+        bindProgressionControls();
+        setPreferredSize(new Dimension(1100, 740));
+        buildScreen();
+    }
+
+    private static BotController liveBots(SetupSession session, Runnable changed) {
+        return new BotController(session,
+                BotWorker.background(new BotComputer()::decide, SwingUtilities::invokeLater),
+                changed);
+    }
+
+    private void bindSetupControls() {
         for (String tag : messages.languages()) {
             language.addItem(messages.languageName(tag));
         }
         language.setSelectedIndex(messages.languages().indexOf(selectedLanguage));
-        language.addActionListener(event -> {
-            if (!rendering && language.getSelectedIndex() >= 0) {
-                selectedLanguage = messages.languages().get(language.getSelectedIndex());
-                session.hideCards();
-                buildScreen();
-            }
-        });
+        language.addActionListener(event -> changeLanguage());
         start.addActionListener(event -> startGame());
         humanCount.addActionListener(event -> startGame());
+    }
+
+    private void changeLanguage() {
+        if (!rendering && language.getSelectedIndex() >= 0) {
+            selectedLanguage = messages.languages().get(language.getSelectedIndex());
+            session.hideCards();
+            buildScreen();
+        }
+    }
+
+    private void bindPrivateControls() {
         viewers.addActionListener(event -> {
             if (!rendering && viewers.getSelectedIndex() >= 0) {
                 session.selectViewer(humanViewers.get(viewers.getSelectedIndex()).getId());
@@ -100,21 +134,36 @@ public final class GamePanel extends JPanel {
         });
         reveal.addActionListener(event -> { session.revealCards(); refresh(); });
         hide.addActionListener(event -> hidePrivateCards());
-        fold.addActionListener(event -> submitAction(ActionType.FOLD));
-        check.addActionListener(event -> submitAction(ActionType.CHECK));
-        call.addActionListener(event -> submitAction(ActionType.CALL));
-        quit.addActionListener(event -> advanceHand(this::leaveMatch));
-        wager.addActionListener(event -> submitWager());
-        wagerTarget.addActionListener(event -> submitWager());
-        settle.addActionListener(event -> advanceHand(session::settleHand));
-        nextHand.addActionListener(event -> advanceHand(this::startNextHand));
         sections.addChangeListener(event -> {
             if (!rendering) {
                 hidePrivateCards();
             }
         });
-        setPreferredSize(new Dimension(1100, 740));
-        buildScreen();
+    }
+
+    private void bindActionControls() {
+        fold.addActionListener(event -> submitAction(ActionType.FOLD));
+        check.addActionListener(event -> submitAction(ActionType.CHECK));
+        call.addActionListener(event -> submitAction(ActionType.CALL));
+        wager.addActionListener(event -> submitWager());
+        wagerTarget.addActionListener(event -> submitWager());
+    }
+
+    private void bindProgressionControls() {
+        quit.addActionListener(event -> advanceHand(this::leaveMatch));
+        settle.addActionListener(event -> advanceHand(session::settleHand));
+        nextHand.addActionListener(event -> advanceHand(session::nextHand));
+        retryBot.addActionListener(event -> {
+            session.hideCards();
+            errorMessage = ErrorMessage.NONE;
+            bots.advance();
+            refresh();
+        });
+    }
+
+    /** Cancels pending computation and releases the worker when the window closes. */
+    public void stopBots() {
+        bots.close();
     }
 
     /** Conceals the selected hand, including when the containing window loses focus. */
@@ -154,7 +203,6 @@ public final class GamePanel extends JPanel {
         languageChoice.add(language);
         header.add(languageChoice, BorderLayout.EAST);
         return header;
-
     }
 
     private JPanel buildSidebar() {
@@ -281,10 +329,15 @@ public final class GamePanel extends JPanel {
         nextHand.setText(text("nextHand"));
         controls.add(settle);
         controls.add(nextHand);
+        botStatus.setForeground(Color.WHITE);
+        retryBot.setText(text("bot.retry"));
+        controls.add(botStatus);
+        controls.add(retryBot);
         return controls;
     }
 
     private void advanceHand(Runnable operation) {
+        bots.cancel();
         session.hideCards();
         try {
             operation.run();
@@ -292,6 +345,7 @@ public final class GamePanel extends JPanel {
         } catch (IllegalArgumentException | IllegalStateException invalid) {
             errorMessage = ErrorMessage.INVALID_ACTION;
         }
+        bots.advance();
         refresh();
     }
 
@@ -299,7 +353,6 @@ public final class GamePanel extends JPanel {
         SetupView view = session.getView().orElseThrow();
         session.quit(view.getPlayers().get(view.getViewerSeat()).getId());
         wagerTarget.setText("");
-        session.playBotTurns();
     }
 
     private void submitWager() {
@@ -309,21 +362,17 @@ public final class GamePanel extends JPanel {
         }
     }
 
-    private void startNextHand() {
-        session.nextHand();
-        session.playBotTurns();
-    }
-
     private void startGame() {
+        bots.cancel();
         session.hideCards();
         try {
             session.start(Integer.parseInt(humanCount.getText().trim()));
             wagerTarget.setText("");
-            session.playBotTurns();
             errorMessage = ErrorMessage.NONE;
         } catch (IllegalArgumentException invalid) {
             errorMessage = ErrorMessage.INVALID_COUNT;
         }
+        bots.advance();
         refresh();
     }
 
@@ -333,21 +382,26 @@ public final class GamePanel extends JPanel {
             return;
         }
         SetupView view = display.orElseThrow();
+        bots.cancel();
         try {
             String actor = view.getPlayers().get(view.getCurrentActorSeat()).getId();
             session.hideCards();
-            ActionRequest request = type == ActionType.BET || type == ActionType.RAISE
-                    ? new ActionRequest(actor, type, Long.parseLong(wagerTarget.getText().trim()))
-                    : new ActionRequest(actor, type);
+            ActionRequest request = requestedAction(actor, type);
             session.submitAction(request);
             wagerTarget.setText("");
-            session.playBotTurns();
             errorMessage = ErrorMessage.NONE;
         } catch (IllegalArgumentException | IllegalStateException
                 | UnsupportedOperationException invalid) {
             errorMessage = ErrorMessage.INVALID_ACTION;
         }
+        bots.advance();
         refresh();
+    }
+
+    private ActionRequest requestedAction(String actor, ActionType type) {
+        return type == ActionType.BET || type == ActionType.RAISE
+                ? new ActionRequest(actor, type, Long.parseLong(wagerTarget.getText().trim()))
+                : new ActionRequest(actor, type);
     }
 
     private void refresh() {
@@ -355,22 +409,16 @@ public final class GamePanel extends JPanel {
         try {
             error.setText(errorText());
             Optional<SetupView> view = session.getView();
-            seats.removeAll();
-            viewers.removeAllItems();
-            humanViewers.clear();
-            for (int seat = 0; seat < GameConfig.SEAT_COUNT; seat++) {
-                seats.add(seatPanel(seat, view));
-            }
-            boolean hasViewer = view.filter(this::hasHumanViewer).isPresent();
-            viewers.setEnabled(hasViewer);
-            reveal.setEnabled(hasViewer);
-            quit.setEnabled(hasViewer);
+            rebuildSeatPanels(view);
+            rebuildHumanSelector(view);
+            renderHumanControlAvailability(view);
             if (view.isPresent()) {
                 showMatch(view.orElseThrow());
             } else {
                 showWaitingTable();
             }
             renderActions(view);
+            renderBotStatus();
             settle.setEnabled(session.getResult().isPresent() && session.getSettlement().isEmpty());
             nextHand.setEnabled(session.canStartNextHand());
             statistics.render(view.map(SetupView::getPlayers).orElseGet(List::of),
@@ -384,6 +432,38 @@ public final class GamePanel extends JPanel {
         repaint();
     }
 
+    private void rebuildSeatPanels(Optional<SetupView> view) {
+        seats.removeAll();
+        for (int seat = 0; seat < GameConfig.SEAT_COUNT; seat++) {
+            seats.add(seatPanel(seat, view));
+        }
+    }
+
+    private void rebuildHumanSelector(Optional<SetupView> display) {
+        viewers.removeAllItems();
+        humanViewers.clear();
+        if (display.isEmpty()) {
+            return;
+        }
+        SetupView view = display.orElseThrow();
+        for (Player player : view.getPlayers()) {
+            if (isAvailableHuman(player)) {
+                humanViewers.add(player);
+                viewers.addItem(playerName(player));
+                if (player.getSeat() == view.getViewerSeat()) {
+                    viewers.setSelectedIndex(humanViewers.size() - 1);
+                }
+            }
+        }
+    }
+
+    private void renderHumanControlAvailability(Optional<SetupView> view) {
+        boolean hasViewer = view.filter(this::hasHumanViewer).isPresent();
+        viewers.setEnabled(hasViewer);
+        reveal.setEnabled(hasViewer);
+        quit.setEnabled(hasViewer);
+    }
+
     private String errorText() {
         switch (errorMessage) {
             case INVALID_COUNT:
@@ -391,27 +471,26 @@ public final class GamePanel extends JPanel {
             case INVALID_ACTION:
                 return text("invalidAction");
             default:
-                return " ";
+                return bots.getFailure().map(reason -> text(reason == BotFailure.TIMED_OUT
+                        ? "bot.timeout" : "bot.failed")).orElse(" ");
         }
+    }
+
+    private void renderBotStatus() {
+        botStatus.setText(bots.isThinking() ? text("bot.thinking") : " ");
+        retryBot.setVisible(bots.getFailure().isPresent());
+        retryBot.setEnabled(!bots.isThinking() && bots.getFailure().isPresent());
     }
 
     private boolean hasHumanViewer(SetupView view) {
-        Player viewer = view.getPlayers().get(view.getViewerSeat());
-        return viewer.getType() == PlayerType.HUMAN && !session.hasDeparted(viewer.getId());
+        return isAvailableHuman(view.getPlayers().get(view.getViewerSeat()));
+    }
+
+    private boolean isAvailableHuman(Player player) {
+        return player.getType() == PlayerType.HUMAN && !session.hasDeparted(player.getId());
     }
 
     private void showMatch(SetupView view) {
-        for (Player player : view.getPlayers()) {
-            if (player.getType() == PlayerType.HUMAN && !session.hasDeparted(player.getId())) {
-                humanViewers.add(player);
-                viewers.addItem(playerName(player));
-            }
-        }
-        for (int i = 0; i < humanViewers.size(); i++) {
-            if (humanViewers.get(i).getSeat() == view.getViewerSeat()) {
-                viewers.setSelectedIndex(i);
-            }
-        }
         hide.setEnabled(!view.getHoleCards().isEmpty());
         int actor = view.getCurrentActorSeat();
         status.setText(actor >= 0 ? text("currentActor", playerName(view.getPlayers().get(actor)))

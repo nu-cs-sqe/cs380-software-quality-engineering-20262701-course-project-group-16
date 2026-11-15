@@ -78,6 +78,12 @@
         <Field name="session"/>
         <Bug pattern="SE_BAD_FIELD"/>
     </Match>
+    <!-- Same live-only Swing contract: the worker/controller is closed, never serialized. -->
+    <Match>
+        <Class name="ui.GamePanel"/>
+        <Field name="bots"/>
+        <Bug pattern="SE_BAD_FIELD"/>
+    </Match>
     <Match>
         <Class name="ui.GamePanel"/>
         <Field name="messages"/>
