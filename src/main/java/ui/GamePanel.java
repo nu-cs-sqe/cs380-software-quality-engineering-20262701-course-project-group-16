@@ -4,6 +4,7 @@ import application.SetupSession;
 import application.SetupView;
 import domain.model.Card;
 import domain.model.GamePhase;
+import domain.model.GameConfig;
 import domain.model.LegalActions;
 import domain.model.Player;
 import domain.model.PlayerType;
@@ -77,7 +78,7 @@ public final class GamePanel extends JPanel {
     private boolean rendering;
 
     public GamePanel(SetupSession session) {
-        this.session = java.util.Objects.requireNonNull(session, "session");
+        this.session = session;
         for (String tag : messages.languages()) {
             language.addItem(messages.languageName(tag));
         }
@@ -357,7 +358,7 @@ public final class GamePanel extends JPanel {
             seats.removeAll();
             viewers.removeAllItems();
             humanViewers.clear();
-            for (int seat = 0; seat < 6; seat++) {
+            for (int seat = 0; seat < GameConfig.SEAT_COUNT; seat++) {
                 seats.add(seatPanel(seat, view));
             }
             boolean hasViewer = view.filter(this::hasHumanViewer).isPresent();

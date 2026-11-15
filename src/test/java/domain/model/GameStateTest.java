@@ -35,16 +35,6 @@ class GameStateTest {
     }
 
     @Test
-    void GS_04() {
-        FoundationFixtures.Fixture f=fixture(); f.config=null; assertThrows(IllegalArgumentException.class,f::build);
-    }
-
-    @Test
-    void GS_05() {
-        FoundationFixtures.Fixture f=fixture(); f.hand=null; assertThrows(IllegalArgumentException.class,f::build);
-    }
-
-    @Test
     void GS_06() {
         FoundationFixtures.Fixture f=fixture(); f.hand=""; assertThrows(IllegalArgumentException.class,f::build);
     }
@@ -55,36 +45,6 @@ class GameStateTest {
     }
 
     @Test
-    void GS_08() {
-        FoundationFixtures.Fixture f=fixture(); f.phase=null; assertThrows(IllegalArgumentException.class,f::build);
-    }
-
-    @Test
-    void GS_09() {
-        FoundationFixtures.Fixture f=fixture(); f.players=null; assertThrows(IllegalArgumentException.class,f::build);
-    }
-
-    @Test
-    void GS_10() {
-        FoundationFixtures.Fixture f=fixture(); f.positions=null; assertThrows(IllegalArgumentException.class,f::build);
-    }
-
-    @Test
-    void GS_11() {
-        FoundationFixtures.Fixture f=fixture(); f.community=null; assertThrows(IllegalArgumentException.class,f::build);
-    }
-
-    @Test
-    void GS_12() {
-        FoundationFixtures.Fixture f=fixture(); f.deck=null; assertThrows(IllegalArgumentException.class,f::build);
-    }
-
-    @Test
-    void GS_13() {
-        FoundationFixtures.Fixture f=fixture(); f.betting=null; assertThrows(IllegalArgumentException.class,f::build);
-    }
-
-    @Test
     void GS_14() {
         FoundationFixtures.Fixture f=fixture(); f.players.remove(5); assertThrows(IllegalArgumentException.class,f::build);
     }
@@ -92,11 +52,6 @@ class GameStateTest {
     @Test
     void GS_15() {
         FoundationFixtures.Fixture f=fixture(); f.players.add(f.players.get(0)); assertThrows(IllegalArgumentException.class,f::build);
-    }
-
-    @Test
-    void GS_16() {
-        FoundationFixtures.Fixture f=fixture(); f.players.set(0,null); assertThrows(IllegalArgumentException.class,f::build);
     }
 
     @Test
@@ -166,17 +121,17 @@ class GameStateTest {
 
     @Test
     void GS_30() {
-        FoundationFixtures.Fixture f=fixture(); f.actor="unknown"; assertThrows(IllegalArgumentException.class,f::build);
+        FoundationFixtures.Fixture f=fixture(); f.actor=java.util.Optional.of("unknown"); assertThrows(IllegalArgumentException.class,f::build);
     }
 
     @Test
     void GS_31() {
-        FoundationFixtures.Fixture f=fixture(); f.actor=" "; assertThrows(IllegalArgumentException.class,f::build);
+        FoundationFixtures.Fixture f=fixture(); f.actor=java.util.Optional.of(" "); assertThrows(IllegalArgumentException.class,f::build);
     }
 
     @Test
     void GS_32() {
-        FoundationFixtures.Fixture f=fixture(); f.actor=null; assertThrows(IllegalArgumentException.class,f::build);
+        FoundationFixtures.Fixture f=fixture(); f.actor=java.util.Optional.empty(); assertThrows(IllegalArgumentException.class,f::build);
     }
 
     @Test
@@ -202,7 +157,7 @@ class GameStateTest {
 
     @Test
     void GS_37() {
-        FoundationFixtures.Fixture f=fixture(); f.actor=null; f.betting=new BettingProgress(0,20,Set.of(),Set.of()); GameState s=f.build();
+        FoundationFixtures.Fixture f=fixture(); f.actor=java.util.Optional.empty(); f.betting=new BettingProgress(0,20,Set.of(),Set.of()); GameState s=f.build();
         assertTrue(s.getCurrentActorId().isEmpty()); assertTrue(s.getCurrentActorSeat().isEmpty());
     }
 
@@ -211,7 +166,7 @@ class GameStateTest {
         FoundationFixtures.Fixture f=fixture();
         for(int seat: new int[]{1,2,3,5}) f.player(seat,0,PlayerStatus.ELIMINATED,0,0);
         f.player(0,3000,PlayerStatus.ACTIVE,0,0); f.player(4,3000,PlayerStatus.ACTIVE,0,0);
-        f.positions=new HandPositions(0,0,4); f.actor="p0"; f.betting=new BettingProgress(0,20,Set.of("p0","p4"),Set.of("p0","p4"));
+        f.positions=new HandPositions(0,0,4); f.actor=java.util.Optional.of("p0"); f.betting=new BettingProgress(0,20,Set.of("p0","p4"),Set.of("p0","p4"));
         GameState s=f.build(); assertEquals(6,s.getPlayers().size()); assertEquals(0,s.getSmallBlindSeat()); assertEquals(4,s.getBigBlindSeat()); assertEquals(4,s.getPlayers().get(4).getSeat());
     }
 
@@ -354,16 +309,6 @@ class GameStateTest {
     }
 
     @Test
-    void GS_65() {
-        FoundationFixtures.Fixture f=fixture(); f.board(GamePhase.FLOP,3); f.community.set(0,null); assertThrows(IllegalArgumentException.class,f::build);
-    }
-
-    @Test
-    void GS_66() {
-        FoundationFixtures.Fixture f=fixture(); f.deck=new ArrayList<>(Arrays.asList((Card)null)); assertThrows(IllegalArgumentException.class,f::build);
-    }
-
-    @Test
     void GS_67() {
         FoundationFixtures.Fixture f=fixture(); f.deal(); f.players.set(0,new PlayerState(f.players.get(0).getPlayer(),PlayerStatus.ACTIVE,List.of(),0,0)); assertThrows(IllegalArgumentException.class,f::build);
     }
@@ -375,7 +320,7 @@ class GameStateTest {
 
     @Test
     void GS_69() {
-        FoundationFixtures.Fixture f=fixture(); f.board(GamePhase.SHOWDOWN,5); f.actor="p3"; f.betting=new BettingProgress(0,20,Set.of("p3"),Set.of()); assertThrows(IllegalArgumentException.class,f::build);
+        FoundationFixtures.Fixture f=fixture(); f.board(GamePhase.SHOWDOWN,5); f.actor=java.util.Optional.of("p3"); f.betting=new BettingProgress(0,20,Set.of("p3"),Set.of()); assertThrows(IllegalArgumentException.class,f::build);
     }
 
     @Test
@@ -385,7 +330,7 @@ class GameStateTest {
 
     @Test
     void GS_71() {
-        FoundationFixtures.Fixture f=fixture(); f.phase=GamePhase.COMPLETION; f.actor=null;
+        FoundationFixtures.Fixture f=fixture(); f.phase=GamePhase.COMPLETION; f.actor=java.util.Optional.empty();
         for(int seat=0;seat<6;seat++) f.player(seat,seat==4?6000:0,seat==4?PlayerStatus.ACTIVE:PlayerStatus.ELIMINATED,0,0);
         f.betting=new BettingProgress(0,20,Set.of(),Set.of()); GameState s=f.build(); assertEquals(0,s.getPot()); assertEquals(6000,s.getPlayers().get(4).getChipStack());
     }
@@ -399,7 +344,7 @@ class GameStateTest {
 
     @Test
     void GS_73() {
-        FoundationFixtures.Fixture f=fixture(); f.phase=GamePhase.COMPLETION; f.actor=null;
+        FoundationFixtures.Fixture f=fixture(); f.phase=GamePhase.COMPLETION; f.actor=java.util.Optional.empty();
         f.player(0,0,PlayerStatus.ALL_IN,0,Long.MAX_VALUE);
         f.player(1,0,PlayerStatus.ALL_IN,0,Long.MAX_VALUE);
         f.betting=new BettingProgress(0,20,Set.of(),Set.of());

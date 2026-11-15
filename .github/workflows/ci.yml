@@ -33,7 +33,7 @@ jobs:
           -Porg.gradle.java.installations.fromEnv=JAVA_HOME_11_X64,JAVA_HOME
           clean build
 
-      - name: Mutation testing for Kevin components
+      - name: Mutation testing for measured backend components
         run: >-
           bash ./gradlew --no-daemon
           -Porg.gradle.java.installations.fromEnv=JAVA_HOME_11_X64,JAVA_HOME

@@ -142,7 +142,7 @@ class BettingEngineAllInCallTest {
             for (int caller : new int[]{3, 4, 5, 0}) {
                 fixture.player(caller, 980, PlayerStatus.ACTIVE, 20, 20);
             }
-            fixture.actor = "p1";
+            fixture.actor = java.util.Optional.of("p1");
             fixture.betting = new BettingProgress(20, 20, Set.of("p1", "p2"), Set.of("p1", "p2"));
         } else {
             fixture.betting = new BettingProgress(20, 20, FoundationFixtures.allIds(), FoundationFixtures.allIds());

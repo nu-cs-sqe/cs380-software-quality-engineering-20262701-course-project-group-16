@@ -18,11 +18,10 @@ separate failing-before-implementation cycles.
 
 | ID | Method(s) | System state and input | Expected output | Test / implementation status |
 | --- | --- | --- | --- | --- |
-| SS-B01-0/1/2 | SetupSession(initializer, engine, resolver) | Each collaborator null in turn | IllegalArgumentException | rejectsNullCollaborators; passing |
 | SS-B02 | getAvailableActions; getAcceptedActions; getResult; playBotTurns | No match | Empty query results; bot execution rejects with IllegalStateException | emptySessionHasNoActionsHistoryOrResult; passing |
 | SS-B03-FOLD/CHECK/CALL | submitAction | No match; each action | IllegalStateException, no match created | cannotActWithoutAMatch; passing |
 | SS-B04 | submitAction; getAcceptedActions; getView | Initial seat 3 calls20 | Deduct20 once; pot 50; next actor/viewer 4; cards hidden; one accepted observation; old snapshot unchanged | callUpdatesOneStateAndAppendsExactlyOneObservation; passing |
-| SS-B05-null/unknown/outOfTurn/checkOwing/bet/raise | submitAction | Null request, missing player, wrong actor, checking while owing, preflop BET or below-minimum RAISE to39 | Appropriate rejection, same hand/contributions/actor/history/result; conceal private cards | rejectionDoesNotChangeStateOrHistory; passing |
+| SS-B05-unknown/outOfTurn/checkOwing/bet/raise | submitAction | Missing player, wrong actor, checking while owing, preflop BET or below-minimum RAISE to39 | Appropriate rejection, same hand/contributions/actor/history/result; conceal private cards | rejectionDoesNotChangeStateOrHistory; passing |
 | SS-B06 | getAvailableActions; getAcceptedActions | Initial decision and big blind's final preflop option | FOLD/CALL/RAISE vs FOLD/CHECK/RAISE; immutable set; no committed action from queries | availableActionsUseEngineValidationWithoutCommittingActions; passing |
 | SS-B07 | submitAction; getView | Five calls followed by BB CHECK; pending count1→0 | Retain BB option until CHECK; burn/deal flop; actor 1; round contributions0; hand contributions20; pot 120 | lastPreflopDecisionAdvancesToFlopAndPreservesCommitments; passing |
 | SS-B08 | submitAction; getResult; getAvailableActions; playBotTurns | Five folds leave one participant | Uncontested BB result awaiting settlement; no drawing/payout; no actor/actions | lastFoldResolvesUncontestedWithoutDrawingOrPaying; passing |

@@ -25,26 +25,6 @@ class PlayerStateTest {
     }
 
     @Test
-    void PS_03() {
-        assertThrows(IllegalArgumentException.class, () -> new PlayerState(null, PlayerStatus.ACTIVE, List.of(), 0, 0));
-    }
-
-    @Test
-    void PS_04() {
-        assertThrows(IllegalArgumentException.class, () -> state(1000, null, List.of(), 0, 0));
-    }
-
-    @Test
-    void PS_05() {
-        assertThrows(IllegalArgumentException.class, () -> state(1000, PlayerStatus.ACTIVE, null, 0, 0));
-    }
-
-    @Test
-    void PS_06() {
-        assertThrows(IllegalArgumentException.class, () -> state(1000, PlayerStatus.ACTIVE, Arrays.asList(new Card(Rank.ACE, Suit.SPADES), null), 0, 0));
-    }
-
-    @Test
     void PS_07() {
         assertThrows(IllegalArgumentException.class, () -> state(1000, PlayerStatus.ACTIVE, List.of(new Card(Rank.ACE, Suit.SPADES)), 0, 0));
     }

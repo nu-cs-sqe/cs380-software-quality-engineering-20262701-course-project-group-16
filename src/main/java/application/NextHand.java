@@ -10,6 +10,7 @@ import domain.model.PlayerStatus;
 import domain.model.SeatOrder;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
@@ -65,9 +66,11 @@ final class NextHand {
             currentBet = Math.max(currentBet, previous.getConfig().getBigBlind());
         }
         Set<String> pending = pendingPlayers(players, currentBet);
-        String actor = pending.isEmpty() ? null : players.get(new SeatOrder(players)
-                .firstPreflopActor(positions.getDealerSeat()).orElseThrow()).getPlayer().getId();
-        return new GameState(previous.getConfig(), UUID.randomUUID().toString(), GamePhase.SETUP,
+        Optional<String> actor = pending.isEmpty() ? Optional.empty()
+                : Optional.of(players.get(new SeatOrder(players)
+                        .firstPreflopActor(positions.getDealerSeat()).orElseThrow())
+                        .getPlayer().getId());
+        return GameState.create(previous.getConfig(), UUID.randomUUID().toString(), GamePhase.SETUP,
                 players, positions, actor, List.of(), List.of(),
                 new BettingProgress(currentBet, previous.getConfig().getBigBlind(), pending,
                         pending.size() > 1 ? pending : Set.of()));

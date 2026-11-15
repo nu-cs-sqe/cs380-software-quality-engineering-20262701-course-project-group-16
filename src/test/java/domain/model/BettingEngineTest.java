@@ -111,28 +111,6 @@ class BettingEngineTest {
         assertEquals(40, before.getRemainingDeck().size());
     }
 
-    @Test
-    @DisplayName("BE-INPUT01: reject a null state")
-    void nullStateIsRejected() {
-        GameState before = initialState();
-
-        assertThrows(IllegalArgumentException.class,
-                () -> new BettingEngine().apply(null, callFromSeat(before, 3)));
-    }
-
-    @Test
-    @DisplayName("BE-INPUT02: reject a null request without changing the state")
-    void nullRequestIsRejectedWithoutChangingTheState() {
-        GameState before = initialState();
-
-        assertThrows(IllegalArgumentException.class, () -> new BettingEngine().apply(before, null));
-
-        assertEquals(3, before.getCurrentActorSeat().orElseThrow());
-        assertEquals(1000, before.getPlayers().get(3).getChipStack());
-        assertEquals(30, before.getPot());
-        assertEquals(6000, before.getTotalChips());
-    }
-
     private static GameState initialState() {
         Random dealer = new Random() {
             @Override public int nextInt(int bound) { return 0; }

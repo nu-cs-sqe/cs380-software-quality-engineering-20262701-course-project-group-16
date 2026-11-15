@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Optional;
-import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.Set;
@@ -48,12 +47,10 @@ public final class SetupSession {
         this(new GameInitializer());
     }
 
-    /** @throws IllegalArgumentException if initializer is null */
     public SetupSession(GameInitializer initializer) {
         this(initializer, new BettingEngine(), new ShowdownResolver());
     }
 
-    /** @throws IllegalArgumentException if any collaborator is null */
     public SetupSession(GameInitializer initializer, BettingEngine engine,
             ShowdownResolver resolver) {
         this(initializer, engine, resolver, HandStatistics::start);
@@ -62,10 +59,6 @@ public final class SetupSession {
     // Recorders must reject invalid observations before modifying their pending collection.
     SetupSession(GameInitializer initializer, BettingEngine engine, ShowdownResolver resolver,
             Function<GameState, Consumer<AcceptedAction>> statisticsFactory) {
-        if (initializer == null || engine == null || resolver == null
-                || statisticsFactory == null) {
-            throw new IllegalArgumentException("The session collaborators are required.");
-        }
         this.initializer = initializer;
         this.engine = engine;
         this.resolver = resolver;
@@ -78,15 +71,12 @@ public final class SetupSession {
      * Successful actions enter pending statistics once, after comparison succeeds.
      * @return the one committed action; transitions never invent player actions
      * @throws IllegalStateException before start or after a result
-     * @throws IllegalArgumentException for null, illegal or out-of-turn requests
+     * @throws IllegalArgumentException for illegal or out-of-turn requests
      * @throws UnsupportedOperationException for actions outside the supported engine scope
      */
     public AcceptedAction submitAction(ActionRequest request) {
         hideCards();
         GameState hand = requireOpenHand();
-        if (request == null) {
-            throw new IllegalArgumentException("An action request is required.");
-        }
         if (hasDeparted(request.getPlayerId()) && request.getType() != ActionType.FOLD) {
             throw new IllegalArgumentException("A departed player can only fold.");
         }
@@ -193,8 +183,7 @@ public final class SetupSession {
     public void start(int humanCount) {
         hideCards();
         GameState started = initializer.start(humanCount);
-        Consumer<AcceptedAction> recorder =
-                Objects.requireNonNull(statisticsFactory.apply(started));
+        Consumer<AcceptedAction> recorder = statisticsFactory.apply(started);
         MatchStatistics fresh = MatchStatistics.start(started);
         departed.clear();
         publishStart(started, recorder);
@@ -307,8 +296,7 @@ public final class SetupSession {
         }
         GameState started = advanceClosedRounds(continuation.start(requireMatch(), departed));
         Optional<ShowdownResult> comparison = compareIfFinished(started);
-        Consumer<AcceptedAction> recorder =
-                Objects.requireNonNull(statisticsFactory.apply(started));
+        Consumer<AcceptedAction> recorder = statisticsFactory.apply(started);
         publishStart(started, recorder);
         result = comparison;
         selectActingHuman();

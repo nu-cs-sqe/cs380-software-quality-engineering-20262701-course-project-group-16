@@ -8,6 +8,204 @@ no `ignoreFailures`, global suppression or baseline hiding existing warnings. Re
 CI uploads test, coverage, mutation and static-analysis reports even after a
 failed step.
 
+## Instructor cleanup and local integration — November 15, 2026
+
+Local branch `refactor/instructor-null-formatting` combines E03/E04 (`54de9ad`)
+with main `bda4954`, which merged Kevin's PR #23 (`41c1455`). The merge is resolved
+and deliberately uncommitted. Profile PR #21 remains separate from this code.
+The source of the Week 7 feedback is [instructor PR #22](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/pull/22).
+
+The four requested cleanup areas are implemented locally: focused street and
+validation helpers; shared named table/default constants; a consistent non-null
+caller contract with explicit actor/aggressor absence; and automatic formatting
+checks. The earlier internal-only cleanup was incomplete; this final pass removes
+the repeated manual null guards across production (zero manual null comparisons),
+removes nullable String actor constructors and migrates existing callers/fixtures.
+BettingHistory uses Optional for absence; automatic PublicDecision events use a
+separate overload. The localization loader normalizes a missing JDK resource once;
+external resource validation remains. The final follow-up removes all 11 remaining requireNonNull calls as well,
+including construction and composition-result guards. There are no production
+manual null comparisons or requireNonNull/isNull/nonNull guard calls.
+AGENTS.md records these conventions, focused methods and the 100-character limit
+for future work; method responsibility still requires review, rather than an
+arbitrary numeric method-length claim.
+See the [API contract](design/README.md#instructor-follow-up-november-15).
+
+| Check | Verified result |
+| --- | --- |
+| Full suite | **1,194 passing**, zero failures/errors/skips. Includes Kevin's betting suite, E03/E04 and five explicit-absence business cases; 80 obsolete programmer-null invocations retired from the earlier 1,274 checkpoint (six in this final follow-up). |
+| Checkstyle | Zero main, test and seat-rule findings. The new seat-rule task is part of check/build. |
+| SpotBugs | Zero main/test unexcluded findings, analysis errors or missing classes. Two exact constructor/collaborator exceptions are documented below and remain visible for peer review. |
+| Shared measurement | **46 parent components / 48 reported classes**, including newly measured GameSetup and both standalone bot packages. |
+| JaCoCo | **1,915/1,916 lines; 1,161/1,162 branches; 1,084/1,085 complexity counters; 9,703/9,708 instructions; 498/498 methods; 48/48 classes.** |
+| PIT | **1,223/1,237 killed (98.87%)**; the same 14 documented survivors as Kevin's PR, zero uncovered/timeout/error mutants. PIT lines 1,911/1,914; 68 selected test classes, 9,989 executions across mutants. |
+
+The sole missed JaCoCo path remains GameState's enum-default fallback;
+its rationale and acceptance limits are retained below. The seven original
+survivors and seven betting/state survivors remain visible with their existing
+reasoning. The cleanup introduces no new survivor. This is not an unqualified
+100% cyclomatic/path or all-mutants grading claim; instructor/peer acceptance of
+the remaining interpretations is still required. GameSetup kills 15/15 mutants;
+EquityRequest 45/45 and OpponentModel 24/24.
+No operator, target or exclusion was removed to improve the score.
+
+The retained five OptionalGameStateTest cases were observed RED before the
+factory implementation, then GREEN. They cover actor presence, explicit absence,
+provided history, an unknown actor and pending-decision consistency. New TDD/BVA
+cases follow the user's business-boundary focus. Current business boundaries
+remain covered; retired reference-input cases are
+removed from current BVA tables without renumbering. Historical RED/GREEN evidence
+and dated counts remain intact; no synthetic test-first Git commits were created.
+
+A verification run exposed one additional EquityRequest survivor: the hero-ID
+check overlapped other scenario validation. Participant validation was consolidated
+into one addParticipant helper for hero and opponents. The final rerun kills that
+mutant and retains only the 14 existing survivors. No mutation operator, measured
+class or test-target pattern was dropped. Reduced counters reflect removed guards,
+not measurement exclusions.
+
+Negative Checkstyle verification caught the exact extra blank at StatisticsPanel
+line 85 plus InitialDeal's matching final blank before either was fixed. The
+new production check also caught the existing internal absence propagation
+patterns. A final temporary requireNonNull guard in Card was rejected by the
+strengthened rule, then the original source was restored before final verification. MagicNumber first reported six actual violations in HandPositions and
+GameConfig, then passed after named constants were introduced. Its initial scope
+is explicitly GameConfig, HandPositions, SeatOrder, Player and PotSettlement;
+ordinary production style continues to apply to every main Java source. This is
+not a global magic-number compliance claim. The task uses supported Gradle task
+registration and introduces no Gradle deprecation warning.
+
+No local scratch reports, second checkout, agent commit or push were created.
+Standard Gradle reports remain under build/. Remote CI and peer review for this
+uncommitted integration are pending. Both main and bot test patterns are retained
+in PIT; merging one side did not remove the other team's measurement.
+
+Two functional PR #23 review follow-ups remain separate from this refactor:
+(1) a queued, non-all-in quitter can remain eligible for an uncontested win before
+its turn; (2) retirement currently permits a match winner below 6,000 chips,
+contradicting issue #20's stated terminal requirement. These need a regression/fix
+and explicit policy reconciliation before complete-backend acceptance. E05/E06
+also still need varied decisions and safe live application wiring.
+
+## E04 opponent learning — November 10, 2026
+
+Verified locally on `feature/opponent-learning`, based on the committed/pushed
+E03 checkpoint `2ce09a0`. Profile work remains on its separate branch. Gradle
+9.7.1 runs on JDK 25 with Java 11 compilation/tests. Final `build pitest` exits 0.
+
+| Check | Result |
+| --- | --- |
+| Full suite | **1,133 passing**, zero failures/errors/skips; **49 new E04 invocations** beyond E03's 1,084. |
+| Checkstyle / SpotBugs | Zero main/test violations or unexcluded findings; zero analysis errors/missing classes. No new suppression. |
+| Six new learning classes | **186 lines, 112 branches, 117 complexity counters, 920 instructions, 61 methods**, zero missed. |
+| Newly measured StatsContext | **21 lines, 26 branches, 18 complexity counters, 86 instructions, 5 methods**, zero missed. Only accessor visibility changes; prior constructor behavior is retained. |
+| Shared 29-parent scope | **1,222 lines, 679 branches, 633 complexity counters, 6,301 instructions, 292 methods, 30 reported classes**, zero missed. The extra class is the nested PlayStats counter enum. |
+| New learning PIT | **138/138 killed**; StatsContext **20/20 killed**. No new survivors, uncovered, timeout or error mutants. |
+| Shared PIT | **706/713 killed (99.02%)**; seven unchanged baseline survivors, zero uncovered/error/timeout mutants. PIT lines 1,218/1,218; 37 selected classes, 3,925 test executions across mutants. |
+
+The new measured classes are DecisionContext, TendencyEstimate, PublicDecision,
+ActionPrediction, OpponentBeliefs and OpponentModel; both new enums are exempt.
+StatsContext is now public read-only metadata consumed outside domain.model and
+included in both measurement tools with its existing tests. The shared scope
+still excludes other betting/state components. Covered complexity counters do
+not prove independent basis paths or whole-backend compliance. Baseline survivor
+reasoning and the instructor-acceptance question below remain unresolved.
+
+Local TDD stages observed 13 context/uncertainty RED cases, 9 event/prediction
+RED cases, 13 aggregation/coordinator RED cases, 2 legal-opportunity consistency
+RED cases and 3 context-free automatic-event RED cases, each followed by GREEN.
+One all-in-call fixture was corrected after review to remove an impossible
+three-bet opportunity. Eight real-component/evaluation invocations and one new
+mutation regression were added after the implementation. They are not claimed
+feature RED cases. No agent Git checkpoints, commits or pushes were created.
+
+The first mutation run exposed two gaps: the position getter had only been
+asserted true, and missing prediction context after learning could throw a
+NullPointerException if its boundary guard were removed. Empty-state validation
+alone masked the latter via the prior constructor. The new false-position
+assertion and learned-state invalid-query case kill both. Static test findings
+were fixed by consuming immutable results inside exception assertions and
+removing unused final counter increments; no exclusions were added.
+
+Controlled evaluation trains on 80 folds/10 calls/10 raises, then tests on a
+separate 70/20/10 composition. Learned multiclass Brier error is **0.476199453**,
+compared with **0.666666667** for the uniform, learning-disabled prior. Four seeded
+permutations verify order invariance of this exchangeable count model; they are
+not independent performance trials. The held-out actions never update the
+model. Further evidence changes a raise belief from 11/103 to 91/203 while an
+unseen street retains its zero-data prior. This is prediction/update evidence,
+not poker win rate, calibrated real-player accuracy or proven playing strength.
+
+The API excludes own choices, forced posts, rejected requests and departure
+folds. Match-wide sequence checks prevent replay without retaining an unbounded
+event ledger; failures leave both belief snapshots and the sequence unchanged.
+Real engine integration verifies accepted CALL versus rejected CHECK and keeps
+exact completed-hand PlayStats separate from immediate learning. No hidden
+cards/deck or account credentials enter the model. See [design](design/README.md#opponent-learning-e04)
+and [BVA](bva/OpponentModel.md).
+
+E04 is locally verified, awaiting user commit, peer review, remote CI and merge.
+E05 still supplies the varied legal policy; E06 wires committed events and
+worker/state lifecycles. Sampling remains uniform until a validated hand-range
+likelihood is supplied. I05/I06/M01 and whole-backend quality gates remain open.
+
+## E03 standalone equity — November 10, 2026
+
+Verified locally on `feature/monte-carlo-equity`, based on merged main `c71e9d6`.
+The separate profile branch retains its committed E01/E02/UI work; it is not part
+of this branch's 1,033-test baseline. No profile changes were removed. Gradle
+9.7.1 runs on JDK 25; compilation/tests use the Java 11 toolchain.
+
+| Check | Result |
+| --- | --- |
+| Full JUnit suite | **1,084 passing**, zero failures/errors/skips; 51 new E03 invocations. |
+| Checkstyle / SpotBugs | Zero main/test violations or unexcluded findings; zero analysis errors/missing classes; no new suppression. |
+| Five executable E03 classes | **188 lines, 110 branches, 107 complexity counters, 912 instructions, 52 methods**, zero missed. |
+| Shared 22-parent scope | **1,015 lines, 541 branches, 498 complexity counters, 5,295 instructions, 226 methods, 23 reported classes**, zero missed. The nested PlayStats counter enum accounts for the extra class. |
+| E03 PIT | **108/108 killed**, no survivors or uncovered/error/timeout mutants. |
+| Shared PIT | **548/555 killed (98.74%)**, seven unchanged baseline survivors; no uncovered/error/timeout mutants. PIT line coverage 1,011/1,011; 28 selected classes, 3,518 test executions across mutants. |
+
+Coverage/PIT now include EquityPot, EquityRequest, EquityEstimate,
+UniformDealSampler and MonteCarloEquityEstimator. The two functional ports have
+no executable defaults. Existing unmeasured betting/state components remain
+outside the denominator. These counters do not establish independent basis
+paths or whole-backend compliance; the seven baseline survivor interpretations
+below still require review.
+
+Local TDD observed eight pot-value RED cases, then fifteen request RED cases,
+then seventeen sampler/estimator RED cases, and three filtered-view RED cases,
+each followed by GREEN. The initial combined request attempt had a fixture
+initialization failure while EquityPot was a stub; that attempt is not counted
+as behavioral request RED evidence. Four later boundary/mutation regressions
+and four real-equity integrations are additional checks, not new feature RED
+claims. No Git TDD checkpoints, commits or pushes were created by the agent.
+
+The first PIT run exposed four actionable gaps: invalid opponent identity masked
+by invalid pot membership, unknown pot eligibility masked by missing hero
+eligibility, and a losing hand masking an ineligible-pot error. Focused valid-
+otherwise scenarios now kill all four mutants. No new equivalence claim or
+exclusion was introduced. Isolated estimator tests use controlled sampler and
+evaluator ports; separate integrations use the real evaluator and filtered views.
+
+Exact river equity over all **990** possible opponent holdings is
+**0.869191919**. With 2,048 trials, seeds 7/23/91 returned
+0.870849609 / 0.864257813 / 0.869873047; absolute errors were
+0.001657690 / 0.004934107 / 0.000681128 (all below the fixed 0.06 regression
+tolerance). Observed river calculations took 28.371 / 20.811 / 20.639 ms in the
+final JUnit run. A six-player preflop calculation with 1,000 trials took
+115.856 ms. These are local observations, not latency or general statistical
+accuracy guarantees. A shared royal flush verifies a six-way fractional tie;
+changing actual hidden cards/deck order leaves seeded estimates unchanged.
+Output stays in standard JUnit reports under build/.
+
+E03 supplies a standalone synchronous calculator with between-trial cancellation.
+Engine-owned pot-scenario construction, learned opponent ranges, varied legal
+actions, off-EDT execution and stale-result rejection remain E04–E06/shared
+integration work. CI, peer review and merge for this branch are pending; leave
+E03 unchecked in issue #20 until those gates are met.
+
+## Completed match statistics — November 6, 2026
+
 ## Week 7 departure, legal actions and state measurement (November 13, 2026)
 
 Branch `feature/week7-betting`, code `b9ae32b`. Local `build pitest` passed
@@ -316,13 +514,18 @@ Primary references:
 
 ## Reviewed static-analysis exceptions
 
-The first real main-bytecode run reported 13 SpotBugs findings. Each exception
+The first real main-bytecode run reported 13 SpotBugs findings. Removing the
+last null guards exposed two additional intentional-sharing findings on November
+15: Deck.random and GamePanel.session. The old requireNonNull calls obscured
+these aliases from the analyzer; they were not a real ownership fix. Each exception
 below matches only its exact class, method/field and bug pattern; other findings
 in these classes still fail. These are not metric exclusions.
 
 | Exact location | Pattern / count | Review and reason |
 | --- | --- | --- |
 | `InitialDeal.random`, `GameSetup.dealerRandom` | `EI_EXPOSE_REP2` / 2 | Injected `Random` objects intentionally preserve caller-selected seeded/stub behavior. Copying would destroy the seam; these services are mutable and do not claim immutable/thread-safe ownership. |
+| `Deck.<init>:random` | `EI_EXPOSE_REP2` / 1, November 15 | Same intentional injected Random contract as InitialDeal/GameSetup. Seeded/stub shuffle behavior is tested; copying changes the selected sequence. The filter requires this exact constructor, field and bug type. |
+| `GamePanel.<init>:session` | `EI_EXPOSE_REP2` / 1, November 15 | Mutable application collaborator deliberately shared between actions and rendering on Swing's event thread. It is not immutable snapshot data; copying would disconnect UI actions from the session. Existing UI/session integrations exercise the sharing. The filter requires this exact constructor, field and bug type. |
 | `BettingProgress.getPlayersToAct/getPlayersAllowedToRaise` | `EI_EXPOSE_REP` / 2 | Private helper validates then calls `Set.copyOf`; the returned sets are immutable. |
 | `GameState.getCommunityCards/getPlayerStates/getRemainingDeck` | `EI_EXPOSE_REP` / 3 | Constructor helpers call `List.copyOf`; callers cannot mutate internal lists. |
 | `GameView.getPlayers/getCommunityCards` | `EI_EXPOSE_REP` / 2 | Players use `Collectors.toUnmodifiableList`; community comes from the immutable state snapshot. |
@@ -335,7 +538,7 @@ change. Shared Checkstyle violations are fixed in source instead of baselined.
 
 ## Scope and interpretation
 
-The current scope has 34 parent components, including betting, state, dealing,
+The current scope has 46 parent components, including betting, state, dealing,
 settlement, completed statistics, continuation and the shared session/view.
 Earlier measurements below are historical and retain their original scopes.
 
@@ -346,19 +549,22 @@ JaCoCo and PIT include `Card`, `Deck`, `PokerHandEvaluator`, `ShowdownResolver`,
 `BettingProgress`, `SetupSession`, `SetupView`, `Localizations`, `GameConfig`,
 `GameState`, `Player`, `PlayerState`, `HandPositions`, `SeatOrder`,
 `ActionRequest`, `AcceptedAction`, `BettingResult`, `LegalActions`,
-`StatsContext` and `StatsAction`, including nested classes. `SetupView` remains
+`StatsContext`, `StatsAction`, `GameSetup`, `EquityPot`, `EquityRequest`,
+`EquityEstimate`, `UniformDealSampler`, `MonteCarloEquityEstimator`, `DecisionContext`,
+`TendencyEstimate`, `PublicDecision`, `ActionPrediction`, `OpponentBeliefs` and
+`OpponentModel`, including nested classes. `SetupView` remains
 in scope because it implements the session's private-card filtering.
 
-PIT selects the domain, application, integration and localization-loader
-suites. The complete JUnit suite also runs, including headless Swing tests.
+PIT selects the domain, application, integration, localization-loader and
+standalone bot/learning suites. The complete JUnit suite also runs, including headless Swing tests.
 PIT uses its standard DEFAULTS group, two workers and HTML/XML reports. Its
 executions across mutants are separate from the JUnit case count. Timeout
 permits twice a test's baseline duration plus two seconds.
 
 Excluded from the current metric denominator:
 
-- Shared foundation `GameSetup` and the read-only `GameView`/`PlayerView`
-  projections; the full team suite still tests these.
+- Read-only `GameView`/`PlayerView` projections under the view exemption; the
+  full team suite still tests them. GameSetup is now measured.
 - `HandEvaluator` and enums without hand-written branch behavior, including
   `Rank`, `Suit` and `ShowdownResult.Status`.
 - Swing and launch code under the rubric's UI exemption; headless tests and

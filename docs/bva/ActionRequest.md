@@ -5,11 +5,9 @@ Grouped assertions exercise the public getters at the stated boundary; no mutabl
 
 | ID | Public methods | State/input boundary | Expected result | Implemented |
 | --- | --- | --- | --- | --- |
-| AR-01 | ActionRequest constructors | null player ID | IllegalArgumentException | Yes |
 | AR-02 | ActionRequest constructors | empty player ID | IllegalArgumentException | Yes |
 | AR-03 | ActionRequest constructors | blank player ID | IllegalArgumentException | Yes |
 | AR-04 | ActionRequest constructors | whitespace player ID | IllegalArgumentException | Yes |
-| AR-05 | ActionRequest constructors | Null action type | IllegalArgumentException | Yes |
 | AR-06 | ActionRequest(String,ActionType); getPlayerId(); getType(); getTargetAmount() | CHECK without amount | Retain ID/type; target unavailable | Yes |
 | AR-07 | ActionRequest(String,ActionType); getters | CALL without amount | Retain ID/type; target unavailable | Yes |
 | AR-08 | ActionRequest(String,ActionType); getters | FOLD without amount | Retain ID/type; target unavailable | Yes |

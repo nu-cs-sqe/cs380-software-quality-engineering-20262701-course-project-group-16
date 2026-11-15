@@ -66,8 +66,8 @@ class ShowdownIntegrationTest {
                 .collect(Collectors.toList());
         List<Card> remaining = new ArrayList<>(initial.getRemainingDeck());
         remaining.removeAll(board);
-        return new GameState(initial.getConfig(), initial.getHandId(), GamePhase.SHOWDOWN,
-                players, initial.getPositions(), null, board, remaining,
+        return GameState.create(initial.getConfig(), initial.getHandId(), GamePhase.SHOWDOWN,
+                players, initial.getPositions(), java.util.Optional.empty(), board, remaining,
                 new BettingProgress(0, 20, Set.of(), Set.of()));
     }
 

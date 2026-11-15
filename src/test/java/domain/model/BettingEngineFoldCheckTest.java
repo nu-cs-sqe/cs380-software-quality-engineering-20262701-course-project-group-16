@@ -207,7 +207,7 @@ class BettingEngineFoldCheckTest {
         fixture.player(0, 2990, PlayerStatus.ACTIVE, 10, 10);
         fixture.player(5, 2980, PlayerStatus.ACTIVE, 20, 20);
         fixture.positions = new HandPositions(0, 0, 5);
-        fixture.actor = "p0";
+        fixture.actor = java.util.Optional.of("p0");
         fixture.betting = new BettingProgress(20, 20, Set.of("p0", "p5"), Set.of("p0", "p5"));
         GameState before = fixture.build();
         List<Object> original = snapshot(before);

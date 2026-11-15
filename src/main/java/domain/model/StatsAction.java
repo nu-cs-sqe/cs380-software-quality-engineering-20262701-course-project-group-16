@@ -24,7 +24,7 @@ public final class StatsAction {
      */
     public StatsAction(boolean accepted, BettingStreet street, ResolvedActionType type,
             long chipsAdded, StatsContext context) {
-        if (street == null || type == null || context == null || chipsAdded < 0) {
+        if (chipsAdded < 0) {
             throw new IllegalArgumentException(
                 "Action fields must be present and chips nonnegative.");
         }

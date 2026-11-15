@@ -3,7 +3,6 @@ package domain.model;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.Random;
 
 /** A standard deck that owns the cards not yet dealt. */
@@ -20,10 +19,9 @@ public final class Deck {
     /**
      * Creates an unshuffled deck with a source used by later shuffle calls.
      *
-     * @throws NullPointerException if random is null
      */
     public Deck(Random random) {
-        this.random = Objects.requireNonNull(random, "random");
+        this.random = random;
         for (Suit suit : Suit.values()) {
             for (Rank rank : Rank.values()) {
                 cards.add(new Card(rank, suit));

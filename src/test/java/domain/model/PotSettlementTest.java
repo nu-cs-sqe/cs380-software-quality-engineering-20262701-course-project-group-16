@@ -77,8 +77,6 @@ class PotSettlementTest {
         assertThrows(IllegalStateException.class, () -> service.settle(new GameSetup().create(2)));
         GameState completed = service.settle(table(new long[6], Set.of(0, 1))).getState();
         assertThrows(IllegalStateException.class, () -> service.settle(completed));
-        assertThrows(NullPointerException.class, () -> service.settle(null));
-        assertThrows(NullPointerException.class, () -> new PotSettlement(null));
     }
 
     @Test
@@ -102,8 +100,8 @@ class PotSettlementTest {
                     PlayerStatus.ALL_IN, cards.subList(5 + seat * 2, 7 + seat * 2),
                     0, starting));
         }
-        GameState before = new GameState(config, "large", GamePhase.SHOWDOWN, players,
-                new HandPositions(0, 1, 2), null, cards.subList(0, 5), List.of(),
+        GameState before = GameState.create(config, "large", GamePhase.SHOWDOWN, players,
+                new HandPositions(0, 1, 2), java.util.Optional.empty(), cards.subList(0, 5), List.of(),
                 new BettingProgress(0, 2, Set.of(), Set.of()));
         Settlement paid = new PotSettlement((a, b) -> 0).settle(before);
         assertEquals(starting * 6, paid.getState().getTotalChips());
@@ -140,8 +138,8 @@ class PotSettlementTest {
         for (int kind = 0; kind < 3; kind++) {
             Set<String> pending = kind == 0 ? Set.of("p0") : Set.of();
             Set<String> raising = kind == 1 ? Set.of("p0") : Set.of();
-            GameState invalid = new GameState(base.getConfig(), "early", GamePhase.PREFLOP,
-                    base.getPlayerStates(), base.getPositions(), kind == 0 ? "p0" : null,
+            GameState invalid = GameState.create(base.getConfig(), "early", GamePhase.PREFLOP,
+                    base.getPlayerStates(), base.getPositions(), kind == 0 ? java.util.Optional.of("p0") : java.util.Optional.empty(),
                     List.of(), List.of(), new BettingProgress(0, 20, pending, raising));
             assertThrows(IllegalStateException.class, () -> service.settle(invalid));
         }
@@ -154,9 +152,9 @@ class PotSettlementTest {
     }
 
     private static GameState withDealer(GameState state, int dealer) {
-        return new GameState(state.getConfig(), state.getHandId(), state.getPhase(),
+        return GameState.create(state.getConfig(), state.getHandId(), state.getPhase(),
                 state.getPlayerStates(), new SeatOrder(state.getPlayerStates()).positionsFor(dealer),
-                null, state.getCommunityCards(), List.of(), state.getBettingProgress());
+                java.util.Optional.empty(), state.getCommunityCards(), List.of(), state.getBettingProgress());
     }
 
     static GameState table(long[] contributions, Set<Integer> live) {
@@ -168,8 +166,8 @@ class PotSettlementTest {
                     : PlayerStatus.FOLDED, cards.subList(5 + seat * 2, 7 + seat * 2),
                     0, contributions[seat]));
         }
-        return new GameState(new GameConfig(), "hand", GamePhase.SHOWDOWN, players,
-                new SeatOrder(players).positionsFor(0), null, cards.subList(0, 5), List.of(),
+        return GameState.create(new GameConfig(), "hand", GamePhase.SHOWDOWN, players,
+                new SeatOrder(players).positionsFor(0), java.util.Optional.empty(), cards.subList(0, 5), List.of(),
                 new BettingProgress(0, 20, Set.of(), Set.of()));
     }
 }

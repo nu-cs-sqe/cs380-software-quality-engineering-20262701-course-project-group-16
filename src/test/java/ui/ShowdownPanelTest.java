@@ -29,7 +29,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -153,7 +152,6 @@ class ShowdownPanelTest {
     }
 
     @ParameterizedTest
-    @NullSource
     @ValueSource(strings = {"", "fr-FR"})
     void rejectsUnsupportedLanguageWithoutReplacingTheDisplay(String language) throws InterruptedException, InvocationTargetException {
         onEdt(() -> {
@@ -183,8 +181,8 @@ class ShowdownPanelTest {
         List<Card> board = kind == Kind.UNCONTESTED ? List.of()
                 : cards(kind == Kind.SIX_WAY ? "AC KC QC JC TC" : "2C 3D 4H 8S 9C");
         GamePhase phase = kind == Kind.UNCONTESTED ? GamePhase.PREFLOP : GamePhase.SHOWDOWN;
-        return new GameState(new GameConfig(), handId, phase, players,
-                new SeatOrder(players).positionsFor(0), null, board, List.of(),
+        return GameState.create(new GameConfig(), handId, phase, players,
+                new SeatOrder(players).positionsFor(0), java.util.Optional.empty(), board, List.of(),
                 new BettingProgress(0, 20, Set.of(), Set.of()));
     }
 

@@ -7,11 +7,6 @@ import org.junit.jupiter.api.Test;
 class ActionRequestTest {
 
     @Test
-    void AR_01() {
-        assertThrows(IllegalArgumentException.class, () -> new ActionRequest(null, ActionType.CALL));
-    }
-
-    @Test
     void AR_02() {
         assertThrows(IllegalArgumentException.class, () -> new ActionRequest("", ActionType.CALL));
     }
@@ -24,11 +19,6 @@ class ActionRequestTest {
     @Test
     void AR_04() {
         assertThrows(IllegalArgumentException.class, () -> new ActionRequest("\t\n", ActionType.CALL));
-    }
-
-    @Test
-    void AR_05() {
-        assertThrows(IllegalArgumentException.class, () -> new ActionRequest("p", null));
     }
 
     @Test

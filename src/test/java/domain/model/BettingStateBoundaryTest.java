@@ -32,7 +32,7 @@ class BettingStateBoundaryTest {
         FoundationFixtures.Fixture lone = FoundationFixtures.fixture();
         lone.player(0, 6000, PlayerStatus.ACTIVE, 0, 0);
         for (int seat = 1; seat < 6; seat++) lone.player(seat, 0, PlayerStatus.ELIMINATED, 0, 0);
-        lone.actor = null;
+        lone.actor = java.util.Optional.empty();
         lone.betting = new BettingProgress(0, 20, Set.of(), Set.of());
         assertThrows(IllegalArgumentException.class, lone::build);
     }

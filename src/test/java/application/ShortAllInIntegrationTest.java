@@ -135,8 +135,8 @@ class ShortAllInIntegrationTest {
         }
         java.util.Set<String> pending = new java.util.HashSet<>();
         players.stream().filter(PlayerState::canAct).forEach(p -> pending.add(p.getPlayer().getId()));
-        return new GameState(state.getConfig(), state.getHandId(), state.getPhase(), players,
-                state.getPositions(), state.getCurrentActorId().orElseThrow(), List.of(), List.of(),
+        return GameState.create(state.getConfig(), state.getHandId(), state.getPhase(), players,
+                state.getPositions(), state.getCurrentActorId(), List.of(), List.of(),
                 new BettingProgress(20, 20, pending, pending));
     }
 

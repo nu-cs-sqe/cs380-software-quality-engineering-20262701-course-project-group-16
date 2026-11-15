@@ -15,11 +15,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class SetupSessionIntegrationTest {
     @Test
-    void rejectsNullInitializer() {
-        assertThrows(IllegalArgumentException.class, () -> new SetupSession(null));
-    }
-
-    @Test
     void noMatchHasNoDisplayAndHidingIsSafe() {
         SetupSession session = new SetupSession();
         assertTrue(session.getView().isEmpty());
@@ -112,13 +107,13 @@ class SetupSessionIntegrationTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"null", "blank", "missing", "bot"})
+    @ValueSource(strings = {"blank", "missing", "bot"})
     void rejectsInvalidViewerAndHidesPreviousCards(String value) {
         SetupSession session = session();
         session.start(2);
         session.revealCards();
         SetupView before = view(session);
-        String id = value.equals("null") ? null : value.equals("blank") ? " "
+        String id = value.equals("blank") ? " "
                 : value.equals("bot") ? before.getPlayers().get(2).getId() : "missing";
         assertThrows(IllegalArgumentException.class, () -> session.selectViewer(id));
         assertEquals(0, view(session).getViewerSeat());

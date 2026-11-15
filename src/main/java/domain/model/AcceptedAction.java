@@ -18,7 +18,7 @@ public final class AcceptedAction {
     public AcceptedAction(String handId, String playerId, BettingStreet street,
             ResolvedActionType type, long chipsAdded, long roundContributionAfter,
             boolean becameAllIn, StatsContext context) {
-        if (handId == null || handId.isBlank() || playerId == null || playerId.isBlank()) {
+        if (handId.isBlank() || playerId.isBlank()) {
             throw new IllegalArgumentException("Hand and player IDs are required.");
         }
         if (roundContributionAfter < 0 || chipsAdded > roundContributionAfter

@@ -8,19 +8,10 @@ Grouped assertions exercise the public getters at the stated boundary; no mutabl
 | GS-01 | GameState(...); getConfig(); getHandId(); getPhase(); getPlayers(); getPlayerStates(); getPositions(); getDealerSeat(); getSmallBlindSeat(); getBigBlindSeat(); getCurrentActorId(); getCurrentActorSeat(); getCommunityCards(); getRemainingDeck(); getBettingProgress(); getCurrentBet(); getLastFullRaiseSize(); getPot(); getTotalChips() | Six-seat setup before dealing | Immutable settings/IDs; seat order; expected positions/actor; zero pot and 6000 total | Yes |
 | GS-02 | GameState; getPot; getTotalChips; getCommittedChips | Blinds 10/20 deducted from stacks | Pot=30; total=6000; commitments counted once | Yes |
 | GS-03 | GameState; getPot; getTotalChips | Round contribution 10 already included in hand contribution 30 | Pot=30, not 40; total=6000 | Yes |
-| GS-04 | GameState | null config | IllegalArgumentException | Yes |
-| GS-05 | GameState | null hand ID | IllegalArgumentException | Yes |
 | GS-06 | GameState | empty hand ID | IllegalArgumentException | Yes |
 | GS-07 | GameState | blank hand ID | IllegalArgumentException | Yes |
-| GS-08 | GameState | null phase | IllegalArgumentException | Yes |
-| GS-09 | GameState | null players | IllegalArgumentException | Yes |
-| GS-10 | GameState | null positions | IllegalArgumentException | Yes |
-| GS-11 | GameState | null community | IllegalArgumentException | Yes |
-| GS-12 | GameState | null deck | IllegalArgumentException | Yes |
-| GS-13 | GameState | null betting progress | IllegalArgumentException | Yes |
 | GS-14 | GameState | five player records | IllegalArgumentException | Yes |
 | GS-15 | GameState | seven player records | IllegalArgumentException | Yes |
-| GS-16 | GameState | null player record | IllegalArgumentException | Yes |
 | GS-17 | GameState | duplicate seat | IllegalArgumentException | Yes |
 | GS-18 | GameState | duplicate ID | IllegalArgumentException | Yes |
 | GS-19 | GameState | incorrect clockwise blind assignment | IllegalArgumentException | Yes |
@@ -69,8 +60,6 @@ Grouped assertions exercise the public getters at the stated boundary; no mutabl
 | GS-62 | GameState | same card in board and hole cards | IllegalArgumentException | Yes |
 | GS-63 | GameState | duplicate board card | IllegalArgumentException | Yes |
 | GS-64 | GameState | duplicate deck card | IllegalArgumentException | Yes |
-| GS-65 | GameState | null board element | IllegalArgumentException | Yes |
-| GS-66 | GameState | null deck element | IllegalArgumentException | Yes |
 | GS-67 | GameState | dealt street without all hole cards | IllegalArgumentException | Yes |
 | GS-68 | GameState | setup already contains dealt hole cards | IllegalArgumentException | Yes |
 | GS-69 | GameState | showdown still has actor | IllegalArgumentException | Yes |
@@ -90,21 +79,20 @@ constructing later snapshots. These cases also cover getBettingHistory.
 
 | ID | Public methods | Input/system state | Expected output | Status / JUnit method |
 | --- | --- | --- | --- | --- |
-| GS-H01 | GameState(original constructor); getBettingHistory | Original constructor without explicit history | Empty history; previous constructor behavior preserved | Implemented, GREEN; `existingStateConstructorRemainsCompatible` |
-| GS-H02 | GameState(..., BettingHistory); getBettingHistory | Explicit null history | IllegalArgumentException | Implemented, GREEN; `nullStateHistoryIsRejected` |
-| GS-H03 | GameState(..., BettingHistory); getBettingHistory | History references unknown aggressor | IllegalArgumentException | Implemented, GREEN; `unknownAggressorIsRejected` |
-| GS-H04 | GameState(..., BettingHistory); getBettingHistory | SETUP with recorded preflop aggressor | IllegalArgumentException; no accepted action before dealing | Implemented, GREEN; `setupCannotHaveAnAggressor` |
-| GS-H05 | GameState(..., BettingHistory); getBettingHistory | PREFLOP with aggressor p1 and no c-bet, then with c-bet 20 | First accepted and getter retains p1; latter rejected | Implemented, GREEN; `preflopHistoryCannotAlreadyContainACBet` |
-| GS-H06-19 | GameState(..., BettingHistory); getBettingHistory | FLOP with recorded c-bet 20 and aggressor round contribution 19 | IllegalArgumentException; insufficient actual commitment | Implemented, GREEN; `flopHistoryMustBeBackedByCommittedChips(19)` |
-| GS-H06-20 | GameState(..., BettingHistory); getBettingHistory | FLOP with recorded c-bet 20 and aggressor round contribution 20 | Retain c-bet 20 | Implemented, GREEN; `flopHistoryMustBeBackedByCommittedChips(20)` |
-| GS-H06-21 | GameState(..., BettingHistory); getBettingHistory | FLOP with recorded c-bet 20 and aggressor round contribution 21 | Retain c-bet 20 | Implemented, GREEN; `flopHistoryMustBeBackedByCommittedChips(21)` |
-| GS-H07 | GameState(..., BettingHistory); getBettingHistory | Aggressor seat already ELIMINATED before completion | IllegalArgumentException | Implemented, GREEN; `anEliminatedAggressorIsRejectedBeforeCompletion` |
-| GS-H08 | GameState(..., BettingHistory); getBettingHistory | COMPLETION after historical aggressor eliminated and all chips awarded | Historical aggressor/c-bet retained even though current commitments are zero | Implemented, GREEN; `completedHistoryCanOutlivePlayerElimination` |
-| GS-H09-FLOP | GameState(..., BettingHistory); getBettingHistory; BettingEngine.advanceStreet | Advance closed FLOP with explicit p0/c-bet 20 | New TURN retains both provenance values; old state unchanged | Implemented, GREEN; `advancingDoesNotLoseBettingHistory(FLOP)` |
-| GS-H09-TURN | GameState(..., BettingHistory); getBettingHistory; BettingEngine.advanceStreet | Advance closed TURN with explicit p0/c-bet 20 | New RIVER retains both provenance values; old state unchanged | Implemented, GREEN; `advancingDoesNotLoseBettingHistory(TURN)` |
-| GS-H09-RIVER | GameState(..., BettingHistory); getBettingHistory; BettingEngine.advanceStreet | Advance closed RIVER with explicit p0/c-bet 20 | New SHOWDOWN retains both provenance values; old state unchanged | Implemented, GREEN; `advancingDoesNotLoseBettingHistory(RIVER)` |
-| GS-H10-TURN | GameState(..., BettingHistory); getBettingHistory | TURN history c-bet 41 but aggressor hand commitment 40 | IllegalArgumentException; inconsistent historic investment | Implemented, GREEN; `historicalCBetRequiresEnoughHandCommitment(TURN)` |
-| GS-H10-RIVER | GameState(..., BettingHistory); getBettingHistory | RIVER history c-bet 41 but aggressor hand commitment 40 | IllegalArgumentException; inconsistent historic investment | Implemented, GREEN; `historicalCBetRequiresEnoughHandCommitment(RIVER)` |
+| GS-H01 | GameState.create without explicit history; getBettingHistory | Factory without explicit history | Empty history; original game behavior preserved | Implemented, GREEN; `existingStateConstructorRemainsCompatible` |
+| GS-H03 | GameState.create(..., BettingHistory); getBettingHistory | History references unknown aggressor | IllegalArgumentException | Implemented, GREEN; `unknownAggressorIsRejected` |
+| GS-H04 | GameState.create(..., BettingHistory); getBettingHistory | SETUP with recorded preflop aggressor | IllegalArgumentException; no accepted action before dealing | Implemented, GREEN; `setupCannotHaveAnAggressor` |
+| GS-H05 | GameState.create(..., BettingHistory); getBettingHistory | PREFLOP with aggressor p1 and no c-bet, then with c-bet 20 | First accepted and getter retains p1; latter rejected | Implemented, GREEN; `preflopHistoryCannotAlreadyContainACBet` |
+| GS-H06-19 | GameState.create(..., BettingHistory); getBettingHistory | FLOP with recorded c-bet 20 and aggressor round contribution 19 | IllegalArgumentException; insufficient actual commitment | Implemented, GREEN; `flopHistoryMustBeBackedByCommittedChips(19)` |
+| GS-H06-20 | GameState.create(..., BettingHistory); getBettingHistory | FLOP with recorded c-bet 20 and aggressor round contribution 20 | Retain c-bet 20 | Implemented, GREEN; `flopHistoryMustBeBackedByCommittedChips(20)` |
+| GS-H06-21 | GameState.create(..., BettingHistory); getBettingHistory | FLOP with recorded c-bet 20 and aggressor round contribution 21 | Retain c-bet 20 | Implemented, GREEN; `flopHistoryMustBeBackedByCommittedChips(21)` |
+| GS-H07 | GameState.create(..., BettingHistory); getBettingHistory | Aggressor seat already ELIMINATED before completion | IllegalArgumentException | Implemented, GREEN; `anEliminatedAggressorIsRejectedBeforeCompletion` |
+| GS-H08 | GameState.create(..., BettingHistory); getBettingHistory | COMPLETION after historical aggressor eliminated and all chips awarded | Historical aggressor/c-bet retained even though current commitments are zero | Implemented, GREEN; `completedHistoryCanOutlivePlayerElimination` |
+| GS-H09-FLOP | GameState.create(..., BettingHistory); getBettingHistory; BettingEngine.advanceStreet | Advance closed FLOP with explicit p0/c-bet 20 | New TURN retains both provenance values; old state unchanged | Implemented, GREEN; `advancingDoesNotLoseBettingHistory(FLOP)` |
+| GS-H09-TURN | GameState.create(..., BettingHistory); getBettingHistory; BettingEngine.advanceStreet | Advance closed TURN with explicit p0/c-bet 20 | New RIVER retains both provenance values; old state unchanged | Implemented, GREEN; `advancingDoesNotLoseBettingHistory(TURN)` |
+| GS-H09-RIVER | GameState.create(..., BettingHistory); getBettingHistory; BettingEngine.advanceStreet | Advance closed RIVER with explicit p0/c-bet 20 | New SHOWDOWN retains both provenance values; old state unchanged | Implemented, GREEN; `advancingDoesNotLoseBettingHistory(RIVER)` |
+| GS-H10-TURN | GameState.create(..., BettingHistory); getBettingHistory | TURN history c-bet 41 but aggressor hand commitment 40 | IllegalArgumentException; inconsistent historic investment | Implemented, GREEN; `historicalCBetRequiresEnoughHandCommitment(TURN)` |
+| GS-H10-RIVER | GameState.create(..., BettingHistory); getBettingHistory | RIVER history c-bet 41 but aggressor hand commitment 40 | IllegalArgumentException; inconsistent historic investment | Implemented, GREEN; `historicalCBetRequiresEnoughHandCommitment(RIVER)` |
 
 Tests: [BettingHistoryTest](../../src/test/java/domain/model/BettingHistoryTest.java).
 
@@ -118,3 +106,18 @@ Tests: [BettingHistoryTest](../../src/test/java/domain/model/BettingHistoryTest.
 | GS-W7-04 | Turn history with a flop continuation bet and exactly enough committed chips | Accept history | laterStreetCanRetainContinuationBetWithExactlyEnoughCommittedChips |
 | GS-W7-05 | Short nominal blind; postflop, active blind or recorded aggression | Reject those exceptions; allow short all-in blind preflop with no recorded aggression | nominalShortBlindCannotSurvivePostflopOrRecordedAggression |
 | GS-W7-06 | Synthetic completion snapshot with a raise count equal to total chips minus the big blind | Accept the inclusive numeric safety bound. Counts above it are rejected in BettingHistoryTest. | completedSnapshotAcceptsTheInclusiveRaiseCountSafetyBound |
+
+## Explicit internal absence (Week 7 instructor follow-up)
+
+| ID | Public method | State/input | Expected output | Implemented? |
+| --- | --- | --- | --- | --- |
+| NC-C01 | create without history | Present pending actor | Preserve actor, seats, totals and empty default history | Yes |
+| NC-C02 | create without history | Empty actor and no pending decisions | Explicit absent actor, unchanged 6,000 chips | Yes |
+| NC-C03 | create with history | Explicit supplied history and actor | Preserve both | Yes |
+| NC-C05 | create | Unknown actor | Reject | Yes |
+| NC-C06 | create | Empty actor while decisions remain | Reject | Yes |
+
+Cases map to OptionalGameStateTest. Nullable String actor constructors were
+removed; production callers and tests use create with explicit Optional actors.
+The five retained business cases were observed RED before implementation and GREEN
+afterward. New TDD/BVA additions cover business boundaries and explicit absence.

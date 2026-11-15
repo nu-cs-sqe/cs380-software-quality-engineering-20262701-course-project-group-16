@@ -8,8 +8,8 @@ public final class Card {
     private final Suit suit;
 
     public Card(Rank rank, Suit suit) {
-        this.rank = Objects.requireNonNull(rank, "rank");
-        this.suit = Objects.requireNonNull(suit, "suit");
+        this.rank = rank;
+        this.suit = suit;
     }
 
     public Rank getRank() {

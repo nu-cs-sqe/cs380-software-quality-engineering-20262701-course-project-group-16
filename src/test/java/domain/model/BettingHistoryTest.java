@@ -33,7 +33,7 @@ class BettingHistoryTest {
     @Test
     @DisplayName("BH-03: explicit absence matches the default")
     void explicitNoAggressorIsAllowedWithoutACBet() {
-        BettingHistory history = new BettingHistory(null, 0);
+        BettingHistory history = new BettingHistory(java.util.Optional.empty(), 0);
         assertTrue(history.getFinalPreflopAggressorId().isEmpty());
         assertTrue(history.getFlopCBetAmount().isEmpty());
     }
@@ -53,7 +53,7 @@ class BettingHistoryTest {
     @ParameterizedTest(name = "BH-06-{0}: an actual c-bet requires a preflop aggressor")
     @ValueSource(longs = {1, 20})
     void aCBetCannotExistWithoutItsAggressor(long amount) {
-        assertThrows(IllegalArgumentException.class, () -> new BettingHistory(null, amount));
+        assertThrows(IllegalArgumentException.class, () -> new BettingHistory(java.util.Optional.empty(), amount));
     }
 
     @ParameterizedTest
@@ -118,14 +118,14 @@ class BettingHistoryTest {
     }
 
     @ParameterizedTest
-    @CsvSource({"p0,-1", "p0,0", ",1", ",-1"})
+    @CsvSource({"p0,-1", "p0,0", "absent,1", "absent,-1"})
     void anExactRaiseCountRequiresConsistentAggressorHistory(String id, long count) {
-        assertThrows(IllegalArgumentException.class, () -> new BettingHistory(id, 0, count));
+        assertThrows(IllegalArgumentException.class, () -> new BettingHistory(java.util.Optional.of(id).filter(value -> !value.equals("absent")), 0, count));
     }
 
     @Test
     void emptyExactHistoryAndLegacyHistoryRetainTheirMeaning() {
-        assertEquals(0, new BettingHistory(null, 0, 0).getPreflopRaiseCount());
+        assertEquals(0, new BettingHistory(java.util.Optional.empty(), 0, 0).getPreflopRaiseCount());
         assertEquals(1, new BettingHistory("p0", 20).getPreflopRaiseCount());
     }
 
@@ -135,13 +135,6 @@ class BettingHistoryTest {
         GameState state = FoundationFixtures.fixture().build();
         assertTrue(state.getBettingHistory().getFinalPreflopAggressorId().isEmpty());
         assertTrue(state.getBettingHistory().getFlopCBetAmount().isEmpty());
-    }
-
-    @Test
-    @DisplayName("GS-H02: reject a null history")
-    void nullStateHistoryIsRejected() {
-        GameState before = PostflopFixtures.street(GamePhase.FLOP).build();
-        assertThrows(IllegalArgumentException.class, () -> PostflopFixtures.withHistory(before, null));
     }
 
     @Test
@@ -206,7 +199,7 @@ class BettingHistoryTest {
         fixture.player(4, 0, PlayerStatus.ELIMINATED, 0, 0);
         fixture.player(0, 2000, PlayerStatus.ACTIVE, 0, 0);
         fixture.phase = GamePhase.COMPLETION;
-        fixture.actor = null;
+        fixture.actor = java.util.Optional.empty();
         fixture.betting = new BettingProgress(0, 20, Set.of(), Set.of());
         GameState state = PostflopFixtures.build(fixture, new BettingHistory("p4", 20));
         assertEquals("p4", state.getBettingHistory().getFinalPreflopAggressorId().orElseThrow());

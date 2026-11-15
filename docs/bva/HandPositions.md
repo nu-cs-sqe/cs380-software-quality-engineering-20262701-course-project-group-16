@@ -16,3 +16,10 @@ Grouped assertions exercise the public getters at the stated boundary; no mutabl
 | HP-09 | HandPositions(...); getDealerSeat(); getSmallBlindSeat(); getBigBlindSeat() | dealer/SB/BB = 0/1/2 | Retain normal/wrapped/heads-up roles | Yes |
 | HP-10 | HandPositions; all getters | dealer/SB/BB = 5/0/1 | Retain normal/wrapped/heads-up roles | Yes |
 | HP-11 | HandPositions; all getters | dealer/SB/BB = 0/0/5 | Retain normal/wrapped/heads-up roles | Yes |
+
+## Instructor follow-up — November 15
+
+Bounds use the shared GameConfig.SEAT_COUNT constant, and named validation is
+separate from constructor assignment. Existing first/last/out-of-range seat
+cases retain their expected results. checkstyleSeatRules enforces MagicNumber
+for this class and the shared table-rule classes.

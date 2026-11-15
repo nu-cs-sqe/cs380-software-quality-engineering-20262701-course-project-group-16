@@ -22,8 +22,8 @@ final class InitialDeal {
         deck.shuffle();
         List<List<Card>> hands = dealHoleCards(table, deck);
         List<PlayerState> players = playersWithCards(table, hands);
-        return new GameState(table.getConfig(), table.getHandId(), GamePhase.PREFLOP,
-                players, table.getPositions(), table.getCurrentActorId().orElse(null),
+        return GameState.create(table.getConfig(), table.getHandId(), GamePhase.PREFLOP,
+                players, table.getPositions(), table.getCurrentActorId(),
                 table.getCommunityCards(), deck.deal(deck.remainingCards()),
                 table.getBettingProgress());
     }
@@ -63,5 +63,4 @@ final class InitialDeal {
         }
         return players;
     }
-
 }

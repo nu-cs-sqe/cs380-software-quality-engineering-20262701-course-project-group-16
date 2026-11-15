@@ -22,14 +22,6 @@ import org.junit.jupiter.params.provider.ValueSource;
 import static org.junit.jupiter.api.Assertions.*;
 
 class SessionBettingTest {
-    @ParameterizedTest(name = "SS-B01-{0}: null collaborator")
-    @ValueSource(ints = {0, 1, 2})
-    void rejectsNullCollaborators(int missing) {
-        assertThrows(IllegalArgumentException.class, () -> new SetupSession(
-                missing == 0 ? null : initializer(new GameConfig()),
-                missing == 1 ? null : new BettingEngine(), missing == 2 ? null : new ShowdownResolver()));
-    }
-
     @Test
     void emptySessionHasNoActionsHistoryOrResult() {
         SetupSession session = session(new GameConfig());
@@ -69,13 +61,12 @@ class SessionBettingTest {
     }
 
     @ParameterizedTest(name = "SS-B05-{0}: rejected action preserves the hand")
-    @ValueSource(strings = {"null", "unknown", "outOfTurn", "checkOwing", "bet", "raise"})
+    @ValueSource(strings = {"unknown", "outOfTurn", "checkOwing", "bet", "raise"})
     void rejectionDoesNotChangeStateOrHistory(String kind) {
         SetupSession session = started(new GameConfig(), 6);
         SetupView before = view(session);
         String actor = before.getPlayers().get(3).getId();
-        ActionRequest request = kind.equals("null") ? null
-                : kind.equals("unknown") ? new ActionRequest("missing", ActionType.CALL)
+        ActionRequest request = kind.equals("unknown") ? new ActionRequest("missing", ActionType.CALL)
                 : kind.equals("outOfTurn") ? new ActionRequest(before.getPlayers().get(4).getId(), ActionType.CALL)
                 : kind.equals("bet") ? new ActionRequest(actor, ActionType.BET, 40)
                 : kind.equals("raise") ? new ActionRequest(actor, ActionType.RAISE, 39)

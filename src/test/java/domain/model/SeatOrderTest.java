@@ -183,11 +183,6 @@ class SeatOrderTest {
     }
 
     @Test
-    void SO_28() {
-        assertThrows(IllegalArgumentException.class, () -> { new SeatOrder(null); });
-    }
-
-    @Test
     void SO_29() {
         assertThrows(IllegalArgumentException.class, () -> { new SeatOrder(table(0,1,2,3,4).subList(0,5)); });
     }
@@ -195,11 +190,6 @@ class SeatOrderTest {
     @Test
     void SO_30() {
         assertThrows(IllegalArgumentException.class, () -> { List<PlayerState> p = table(0,1,2,3,4,5); p.add(p.get(0)); new SeatOrder(p); });
-    }
-
-    @Test
-    void SO_31() {
-        assertThrows(IllegalArgumentException.class, () -> { List<PlayerState> p = table(0,1,2,3,4,5); p.set(0, null); new SeatOrder(p); });
     }
 
     @Test

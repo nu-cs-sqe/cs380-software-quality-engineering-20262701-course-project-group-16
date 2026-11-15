@@ -5,6 +5,19 @@ status. Tables map case IDs to JUnit methods (parameterized methods may cover
 several IDs). Enums are excluded under the course rule; view models also have
 privacy and immutability cases.
 
+## Reference contract update — November 15
+
+Required application-owned references and collection elements are non-null caller
+contracts. Current BVA focuses on game/domain boundaries; obsolete programmer-null
+cases and their current table rows have been retired without renumbering the
+remaining case IDs. Historical RED/GREEN and test counts remain dated checkpoints.
+Intentional actor/aggressor absence uses Optional.empty(), hidden cards use empty
+lists, and unavailable statistics use OptionalDouble. Those are still tested.
+Missing or malformed external localization resources remain validated and tested.
+Constructor/composition null checks and their programmer-null cases are also
+retired. Java Object.equals compatibility still includes its required absent-object
+case. No new null-input tests were introduced. See the [shared API contract](../design/README.md#instructor-follow-up-november-15).
+
 | Class | Analysis |
 | --- | --- |
 | `Card` | [Card.md](Card.md) |
@@ -41,6 +54,19 @@ privacy and immutability cases.
 | `GamePanel` / `StatisticsPanel` completion UI | [StatisticsPanel.md](StatisticsPanel.md) |
 | `StatsAction` | [StatsAction.md](StatsAction.md) |
 | `StatsContext` | [StatsContext.md](StatsContext.md) |
+| `EquityPot` | [EquityPot.md](EquityPot.md) |
+| `EquityRequest` | [EquityRequest.md](EquityRequest.md) |
+| `DealSampler` | [DealSampler.md](DealSampler.md) |
+| `UniformDealSampler` | [UniformDealSampler.md](UniformDealSampler.md) |
+| `EquityEstimator` | [EquityEstimator.md](EquityEstimator.md) |
+| `MonteCarloEquityEstimator` | [MonteCarloEquityEstimator.md](MonteCarloEquityEstimator.md) |
+| `EquityEstimate` | [EquityEstimate.md](EquityEstimate.md) |
+| `DecisionContext` | [DecisionContext.md](DecisionContext.md) |
+| `TendencyEstimate` | [TendencyEstimate.md](TendencyEstimate.md) |
+| `PublicDecision` | [PublicDecision.md](PublicDecision.md) |
+| `ActionPrediction` | [ActionPrediction.md](ActionPrediction.md) |
+| `OpponentBeliefs` | [OpponentBeliefs.md](OpponentBeliefs.md) |
+| `OpponentModel` | [OpponentModel.md](OpponentModel.md) |
 
 [Combined setup integration cases](setup-integration.md) cover the card/deck-to-state boundary.
 [Showdown integration](../design/showdown.md) covers the initialized-card-to-result boundary.

@@ -41,16 +41,6 @@ class BettingProgressTest {
     }
 
     @Test
-    void BP_07() {
-        assertThrows(IllegalArgumentException.class, () -> new BettingProgress(20, 20, null, Set.of()));
-    }
-
-    @Test
-    void BP_08() {
-        assertThrows(IllegalArgumentException.class, () -> new BettingProgress(20, 20, new HashSet<>(Arrays.asList((String) null)), Set.of()));
-    }
-
-    @Test
     void BP_09() {
         assertThrows(IllegalArgumentException.class, () -> new BettingProgress(20, 20, Set.of(""), Set.of()));
     }
@@ -58,16 +48,6 @@ class BettingProgressTest {
     @Test
     void BP_10() {
         assertThrows(IllegalArgumentException.class, () -> new BettingProgress(20, 20, Set.of(" "), Set.of()));
-    }
-
-    @Test
-    void BP_11() {
-        assertThrows(IllegalArgumentException.class, () -> new BettingProgress(20, 20, Set.of(), null));
-    }
-
-    @Test
-    void BP_12() {
-        assertThrows(IllegalArgumentException.class, () -> new BettingProgress(20, 20, Set.of(), new HashSet<>(Arrays.asList((String) null))));
     }
 
     @Test

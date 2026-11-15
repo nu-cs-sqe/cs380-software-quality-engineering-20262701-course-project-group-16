@@ -6,11 +6,10 @@ Immutable context supplied by the engine. Raise type is required. A three-bet re
 
 Inputs are `(raiseType, threeBetOpportunity, flopCBetOpportunity, facedFlopCBetOpportunity)`.
 
-All case IDs appear in StatsContextTest. Valid-value observations also exercise package-private accessors used by PlayStats.
+All case IDs appear in StatsContextTest. Valid-value observations also exercise public read-only accessors used by PlayStats and the separate opponent-learning model.
 
 | ID | Methods under test | State / input | Expected output | Implemented? |
 | --- | --- | --- | --- | --- |
-| SC-I01 | Constructor | `null, false, false, false` | IllegalArgumentException | Yes |
 | SC-I02 | Constructor | `PreflopRaiseType.NONE, false, true, true` | IllegalArgumentException | Yes |
 | SC-I03 | Constructor | `PreflopRaiseType.NONE, true, true, false` | IllegalArgumentException | Yes |
 | SC-I04 | Constructor | `PreflopRaiseType.NONE, true, false, true` | IllegalArgumentException | Yes |
@@ -28,3 +27,9 @@ All case IDs appear in StatsContextTest. Valid-value observations also exercise 
 | SC-V06 | Constructor | `PreflopRaiseType.LATER_RAISE, false, false, false` | Constructed; input values retained exactly | Yes |
 | SC-V07 | Constructor | `PreflopRaiseType.NONE, false, true, false` | Constructed; input values retained exactly | Yes |
 | SC-V08 | Constructor | `PreflopRaiseType.NONE, false, false, true` | Constructed; input values retained exactly | Yes |
+
+SC-V01–08 also test every public read method: getPreflopRaiseType,
+hasThreeBetOpportunity, hasFlopCBetOpportunity and hasFacedFlopCBetOpportunity.
+E04 changes only their visibility so the independent bot model can consume
+accepted engine context; constructor validation and exact PlayStats behavior
+are unchanged. StatsContext and these tests are now measured by JaCoCo/PIT.
