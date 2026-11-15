@@ -1,6 +1,7 @@
 package application;
 
 import domain.model.AcceptedAction;
+import domain.model.CompletedStatistics;
 import domain.model.BettingStreet;
 import domain.model.GameState;
 import domain.model.PlayStats;
@@ -67,6 +68,19 @@ final class MatchStatistics {
                     contested && player.isParticipating(), paid.getContestedPayouts().get(id),
                     paid.getRefunds().get(id));
         }
+    }
+
+    MatchStatistics addHand(MatchStatistics hand) {
+        Map<String, PlayStats> next = new LinkedHashMap<>();
+        players.forEach((id, stats) -> next.put(id, PlayStats.fromCompleted(
+                stats.completedSnapshot().addHand(hand.players.get(id).completedSnapshot()))));
+        return new MatchStatistics(next);
+    }
+
+    Map<String, CompletedStatistics> completedSnapshots() {
+        Map<String, CompletedStatistics> snapshots = new LinkedHashMap<>();
+        players.forEach((id, stats) -> snapshots.put(id, stats.completedSnapshot()));
+        return Map.copyOf(snapshots);
     }
 
     Map<String, StatisticsView> snapshot() {
