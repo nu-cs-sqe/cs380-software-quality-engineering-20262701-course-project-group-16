@@ -1,6 +1,6 @@
 # BettingHistory BVA
 
-Immutable engine provenance, separate from action requests and PlayStats. A null
+Immutable engine provenance, separate from action requests and PlayStats. An empty Optional
 aggressor means no preflop aggression. A zero amount means no actual flop c-bet;
 positive amounts record its original round target. The c-bettor is the final
 preflop aggressor, so a positive amount requires that identity. This is an
@@ -17,7 +17,7 @@ strings are not stored here. Whitespace suffixes describe exact input values.
 | BH-02-1 | BettingHistory; getFinalPreflopAggressorId; getFlopCBetAmount | Aggressor p1; recorded c-bet amount 1 | Aggressor retained; amount retained exactly | Implemented, GREEN; `explicitHistoryRetainsIdentityAndOptionalAmount(1)` |
 | BH-02-20 | BettingHistory; getFinalPreflopAggressorId; getFlopCBetAmount | Aggressor p1; recorded c-bet amount 20 | Aggressor retained; amount retained exactly | Implemented, GREEN; `explicitHistoryRetainsIdentityAndOptionalAmount(20)` |
 | BH-02-9223372036854775807 | BettingHistory; getFinalPreflopAggressorId; getFlopCBetAmount | Aggressor p1; recorded c-bet amount 9223372036854775807 | Aggressor retained; amount retained exactly | Implemented, GREEN; `explicitHistoryRetainsIdentityAndOptionalAmount(9223372036854775807)` |
-| BH-03 | BettingHistory; getFinalPreflopAggressorId; getFlopCBetAmount | Explicit null aggressor, amount 0 | Both optionals empty | Implemented, GREEN; `explicitNoAggressorIsAllowedWithoutACBet` |
+| BH-03 | BettingHistory; getFinalPreflopAggressorId; getFlopCBetAmount | Explicit Optional.empty() aggressor, amount 0 | Both optionals empty | Implemented, GREEN; `explicitNoAggressorIsAllowedWithoutACBet` |
 | BH-04-empty | BettingHistory | Aggressor empty string, amount 0 | IllegalArgumentException | Implemented, GREEN; `blankAggressorsAreRejected(empty)` |
 | BH-04-space | BettingHistory | Aggressor one space, amount 0 | IllegalArgumentException | Implemented, GREEN; `blankAggressorsAreRejected(space)` |
 | BH-04-tab | BettingHistory | Aggressor tab, amount 0 | IllegalArgumentException | Implemented, GREEN; `blankAggressorsAreRejected(tab)` |
@@ -49,3 +49,10 @@ After exposing the signature, all four inconsistent count cases failed until
 validation was added. Both impossible-count cases also failed before adding the
 GameState bound. The live-play integration cases verify existing behavior
 through settlement and were already green in that intermediate run.
+
+## Instructor follow-up — November 15
+
+Aggressor absence is stored as Optional. Default construction and accepted
+action transitions use that representation directly; Optional constructors represent absence directly; String constructors require a
+known identity. All K03 raise-count and continuation-bet
+semantics are retained and covered by the existing behavioral cases.

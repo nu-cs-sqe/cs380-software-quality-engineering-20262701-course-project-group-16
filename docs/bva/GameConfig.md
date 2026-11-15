@@ -26,3 +26,9 @@ Grouped assertions exercise the public getters at the stated boundary; no mutabl
 | GC-19 | GameConfig(long,long,long); getBigBlind | Big blind one above small blind: 10/11 | Accept | Yes |
 | GC-20 | GameConfig(long,long,long); getBigBlind | Big blind equals starting stack | Accept | Yes |
 | GC-21 | GameConfig(long,long,long); getters | Custom config does not alter another default config | Independent immutable values | Yes |
+
+## Instructor follow-up — November 15
+
+SEAT_COUNT is the shared table-size constant. The agreed starting stack and
+blinds have named defaults; their values remain 1,000 and 10/20. Existing numeric
+boundary cases cover these unchanged rules. checkstyleSeatRules checks this class.

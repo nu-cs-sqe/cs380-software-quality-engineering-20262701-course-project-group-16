@@ -13,7 +13,7 @@ public final class BettingProgress {
     /**
      * Raise eligibility need not be a subset of pending actors: another full raise may create
      * a new decision. GameState checks that both sets refer to players who can act.
-     * @throws IllegalArgumentException for invalid amounts, null sets or blank IDs
+     * @throws IllegalArgumentException for invalid amounts or blank IDs
      */
     public BettingProgress(long currentBet, long lastFullRaiseSize,
             Set<String> pending, Set<String> raise) {
@@ -40,16 +40,15 @@ public final class BettingProgress {
     }
 
     private static Set<String> copyIds(Set<String> ids) {
-        if (ids == null || ids.stream().anyMatch(id -> id == null || id.isBlank())) {
+        if (ids.stream().anyMatch(String::isBlank)) {
             throw new IllegalArgumentException("Bookkeeping requires nonblank player IDs.");
         }
         return Set.copyOf(ids);
     }
 
     private static void validateDecisionTargets(Map<String, Long> targets, long current) {
-        if (targets == null || targets.entrySet().stream().anyMatch(entry ->
-                entry.getKey() == null || entry.getKey().isBlank() || entry.getValue() == null
-                || entry.getValue() < 0 || entry.getValue() > current)) {
+        if (targets.entrySet().stream().anyMatch(entry ->
+                entry.getKey().isBlank() || entry.getValue() < 0 || entry.getValue() > current)) {
             throw new IllegalArgumentException(
                     "Decision levels must name players and fit the round.");
         }

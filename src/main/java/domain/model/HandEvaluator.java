@@ -16,7 +16,6 @@ public interface HandEvaluator {
      *
      * @return a positive value if firstCards is stronger, zero for a tie,
      *         or a negative value if secondCards is stronger
-     * @throws NullPointerException if a list or one of its cards is null
      * @throws IllegalArgumentException if either list has a size other than
      *         seven or contains duplicate card values
      */

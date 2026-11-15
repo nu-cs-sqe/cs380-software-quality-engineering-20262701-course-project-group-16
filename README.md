@@ -13,6 +13,9 @@ and individual reopening eligibility. Swing exposes the five actions in English
 and Chinese, private-card handoffs, local password accounts and lifetime statistics.
 Bots use a temporary check/call policy; adaptive bots remain on their separate branch.
 
+Standalone equity estimation and opponent learning are available in `bot`;
+varied bot decision integration follows in E05/E06. Profile work is separate.
+
 ## Contributors
 
 - Kevin Wang (Member A)
@@ -122,6 +125,17 @@ and match totals. Unfinished matches are never saved. The desktop Profiles tab
 uses these APIs; account/password work runs off Swing's event thread. The optional
 `cs380.profileDirectory` JVM property selects another local data directory.
 See [account design](docs/design/README.md#local-password-accounts).
+## Standalone equity API
+
+Create an `EquityRequest` from a filtered `GameView`, engine-supplied `EquityPot`
+scenarios and 1–10,000 trials, then call `MonteCarloEquityEstimator.estimate`.
+The result provides per-pot expected shares, eligible-pot equity and expected
+payout. It handles multiway ties and side-pot eligibility without receiving the
+real deck or opponents' cards. Uniform unknown hands are the initial model;
+opponent learning is available separately in `bot.learning`, while varied action
+selection and asynchronous session integration follow in E05–E06. See
+[equity design](docs/design/README.md#standalone-equity-e03) and
+[opponent learning](docs/design/README.md#opponent-learning-e04).
 
 ## Continuous integration
 
@@ -136,6 +150,11 @@ Run `bash ./gradlew build` for tests/static checks/coverage and
 checks run across the project; coverage/PIT use 44 documented parent components,
 including betting/state, dealing, settlement, continuation, PlayStats, local account
 storage/password services and the shared session. These are not full-game metrics.
+checks run across the project; coverage/PIT use 46 documented parent components,
+including betting/state, dealing, settlement, continuation, PlayStats and the
+standalone bot components. These are not
+full-game metrics. The build also checks named table-rule constants and
+production formatting; see the quality scope below.
 [Quality results](docs/quality.md)
 list exact scope, report paths, adapted Checkstyle rules and reviewed SpotBugs
 exceptions. There is no invented metric threshold that hides findings.
@@ -160,6 +179,9 @@ exceptions. There is no invented metric threshold that hides findings.
 Coverage uses the documented 44-component scope, including betting/state,
 shared session/view, statistics, settlement and local accounts. The rubric targets
 100% cyclomatic coverage, with View/Main/Enum exemptions. JaCoCo line, branch
+Coverage uses the documented 46-component scope, including betting, InitialDeal and the
+shared session/view, statistics collectors and settlement. The rubric targets 100%
+cyclomatic coverage, with View/Main/Enum exemptions. JaCoCo line, branch
 and covered-complexity counters are reported separately; these do not prove
 independent basis-path execution. The exact class scope and results are in
 [quality.md](docs/quality.md). The complete team suite and static checks also
@@ -167,7 +189,7 @@ cover components outside that measurement scope.
 
 ### Mutation Testing
 
-PIT uses the DEFAULTS operator group on the documented 44-component scope. The target
+PIT uses the DEFAULTS operator group on the documented 46-component scope. The target
 is to kill every non-equivalent mutant. Actual raw scores and each surviving
 mutant's reasoning remain visible in [quality.md](docs/quality.md), including
 the unresolved acceptance of a contract-preserving constant hash. Survivor reasoning and acceptance limits are documented alongside the raw score.

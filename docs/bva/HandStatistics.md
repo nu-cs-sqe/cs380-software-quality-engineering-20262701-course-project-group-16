@@ -38,7 +38,7 @@ recovery before mutation. These are integration tests, not isolated unit tests.
 | SS-S01 | package constructor | Missing statistics factory | IllegalArgumentException | Yes; rejectsAMissingStatisticsFactory |
 | SS-S02 | start; queries; viewer controls; playBotTurns | Blinds, repeated queries, reveal/hide/handoff and zero bot actions | Six pending collectors, no accepted observation | Yes; blindsQueriesAndViewerChangesDoNotRecordActions |
 | SS-S03 | submitAction | First human calls 20 | One identical event in collector/log, pot 50, lifetime totals unchanged | Yes; acceptedHumanActionIsDeliveredOnceWithoutAggregatingAPendingHand |
-| SS-S04-null/unknown/outOfTurn/checkOwing/bet/raise | submitAction | Six invalid requests after one valid call | Reject, preserve state/log/collector; hide private cards | Yes; rejectedRequestsDoNotReachTheCollectors |
+| SS-S04-unknown/outOfTurn/checkOwing/bet/raise | submitAction | Five invalid requests after one valid call | Reject, preserve state/log/collector; hide private cards | Yes; rejectedRequestsDoNotReachTheCollectors |
 | SS-S05 | submitAction; playBotTurns | Five all-in calls, board runout and later action attempt | Exactly five CALL events; no fake CHECK/blind/result events or aggregation | Yes; allInRunoutRecordsOnlyTheFiveRealCallsAndRejectsFurtherActions |
 | SS-S06 | submitAction | Five folds, uncontested result | Exactly five fold events; no completed-hand aggregation | Yes; uncontestedResultRecordsEachFoldOnceAndDoesNotCompleteStatistics |
 | SS-S07 | playBotTurns | One human, three initial bot calls, repeat pump | Record each real bot once and stop at the human | Yes; botsDeliverRealActionsOnceAndStopRecordingAtTheHuman |

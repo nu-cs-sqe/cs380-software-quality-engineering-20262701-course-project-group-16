@@ -18,7 +18,7 @@ public final class ActionRequest {
     }
 
     private ActionRequest(String playerId, ActionType type, OptionalLong targetAmount) {
-        if (playerId == null || playerId.isBlank() || type == null) {
+        if (playerId.isBlank()) {
             throw new IllegalArgumentException("A player ID and action type are required.");
         }
         boolean needsAmount = type == ActionType.BET || type == ActionType.RAISE;

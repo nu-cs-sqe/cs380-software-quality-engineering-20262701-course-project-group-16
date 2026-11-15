@@ -120,11 +120,6 @@ class DeckTest {
     }
 
     @Test
-    void rejectsNullRandomSource() {
-        assertThrows(NullPointerException.class, () -> new Deck(null));
-    }
-
-    @Test
     void shuffleUsesProvidedRandom() {
         List<Card> unshuffled = new Deck().deal(52);
         Deck first = new Deck(new Random(7));

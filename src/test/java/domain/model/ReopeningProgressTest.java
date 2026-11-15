@@ -6,7 +6,7 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.EmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -35,21 +35,11 @@ class ReopeningProgressTest {
     }
 
     @ParameterizedTest
-    @NullAndEmptySource
+    @EmptySource
     @ValueSource(strings = {" "})
     void decisionLevelsMustNameAPlayer(String id) {
         Map<String, Long> targets = new HashMap<>();
         targets.put(id, 0L);
-        assertThrows(IllegalArgumentException.class,
-                () -> new BettingProgress(0, 20, Set.of(), Set.of(), targets));
-    }
-
-    @Test
-    void nullDecisionMapsAndValuesAreRejectedAtTheSnapshotBoundary() {
-        assertThrows(IllegalArgumentException.class,
-                () -> new BettingProgress(0, 20, Set.of(), Set.of(), null));
-        Map<String, Long> targets = new HashMap<>();
-        targets.put("p1", null);
         assertThrows(IllegalArgumentException.class,
                 () -> new BettingProgress(0, 20, Set.of(), Set.of(), targets));
     }

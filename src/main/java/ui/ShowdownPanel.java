@@ -10,7 +10,6 @@ import java.awt.Font;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 import javax.swing.BorderFactory;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -51,13 +50,10 @@ public final class ShowdownPanel extends JPanel {
     /**
      * Renders using public identity/seat information only; no live game model is retained.
      * Call again with the selected language after a language change.
-     * @throws NullPointerException if view or result is null
      * @throws IllegalArgumentException for a different hand, unknown winner,
      *     or unsupported language
      */
     public void showResult(GameView view, ShowdownResult result, String language) {
-        Objects.requireNonNull(view, "view");
-        Objects.requireNonNull(result, "result");
         if (!view.getHandId().equals(result.getHandId())) {
             throw new IllegalArgumentException("The result and view must belong to the same hand.");
         }

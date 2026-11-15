@@ -20,7 +20,6 @@ class StatsContextTest {
 
     static Stream<Arguments> invalidContexts() {
         return Stream.of(
-                Arguments.of("SC-I01", null, false, false, false),
                 Arguments.of("SC-I02", PreflopRaiseType.NONE, false, true, true),
                 Arguments.of("SC-I03", PreflopRaiseType.NONE, true, true, false),
                 Arguments.of("SC-I04", PreflopRaiseType.NONE, true, false, true),

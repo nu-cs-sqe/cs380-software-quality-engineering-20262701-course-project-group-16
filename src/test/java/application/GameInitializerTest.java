@@ -78,12 +78,6 @@ class GameInitializerTest {
         assertSame(failure, assertThrows(IllegalStateException.class, () -> initializer.start(2)));
     }
 
-    @Test
-    void injectedOperationsMustBePresent() {
-        assertThrows(NullPointerException.class, () -> new GameInitializer(null, state -> state));
-        assertThrows(NullPointerException.class, () -> new GameInitializer(count -> table("table"), null));
-    }
-
     // Immutable values only: no GameSetup, Deck or random source runs in these tests.
     private static GameState table(String id) {
         List<PlayerState> players = new ArrayList<>();
@@ -91,8 +85,8 @@ class GameInitializerTest {
             Player player = new Player(id + seat, seat, PlayerType.HUMAN, 1000);
             players.add(new PlayerState(player, PlayerStatus.ACTIVE, List.of(), 0, 0));
         }
-        return new GameState(new GameConfig(), id, GamePhase.SETUP, players,
-                new HandPositions(0, 1, 2), id + "0", List.of(), List.of(),
+        return GameState.create(new GameConfig(), id, GamePhase.SETUP, players,
+                new HandPositions(0, 1, 2), java.util.Optional.of(id + "0"), List.of(), List.of(),
                 new BettingProgress(0, 20, Set.of(id + "0"), Set.of(id + "0")));
     }
 }

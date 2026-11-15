@@ -10,9 +10,6 @@ All case IDs appear in StatsActionTest. Valid-value observations also exercise p
 
 | ID | Methods under test | State / input | Expected output | Implemented? |
 | --- | --- | --- | --- | --- |
-| SA-I01 | Constructor | `null, ResolvedActionType.CHECK, 0L, none` | IllegalArgumentException | Yes |
-| SA-I02 | Constructor | `BettingStreet.PREFLOP, null, 0L, none` | IllegalArgumentException | Yes |
-| SA-I03 | Constructor | `BettingStreet.PREFLOP, ResolvedActionType.CHECK, 0L, null` | IllegalArgumentException | Yes |
 | SA-I04 | Constructor | `BettingStreet.PREFLOP, ResolvedActionType.CALL, Long.MIN_VALUE, none` | IllegalArgumentException | Yes |
 | SA-I05 | Constructor | `BettingStreet.PREFLOP, ResolvedActionType.CALL, -1L, none` | IllegalArgumentException | Yes |
 | SA-I06 | Constructor | `BettingStreet.PREFLOP, ResolvedActionType.CHECK, 1L, none` | IllegalArgumentException | Yes |

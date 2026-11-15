@@ -11,7 +11,7 @@ final class FoundationFixtures {
         GamePhase phase = GamePhase.SETUP;
         List<PlayerState> players = new ArrayList<>();
         HandPositions positions = new HandPositions(0, 1, 2);
-        String actor = "p3";
+        Optional<String> actor = Optional.of("p3");
         List<Card> community = new ArrayList<>();
         List<Card> deck = new ArrayList<>();
         BettingProgress betting = new BettingProgress(0, 20, allIds(), allIds());
@@ -42,11 +42,11 @@ final class FoundationFixtures {
             community = new ArrayList<>(deck.subList(0, size));
             deck = new ArrayList<>(deck.subList(size, deck.size()));
             if (target == GamePhase.SHOWDOWN || target == GamePhase.COMPLETION) {
-                actor = null; betting = new BettingProgress(0,20,Set.of(),Set.of());
+                actor = Optional.empty(); betting = new BettingProgress(0,20,Set.of(),Set.of());
             }
         }
         GameState build() {
-            return new GameState(config, hand, phase, players, positions, actor, community, deck, betting);
+            return GameState.create(config, hand, phase, players, positions, actor, community, deck, betting);
         }
     }
     static Fixture fixture() { return new Fixture(); }

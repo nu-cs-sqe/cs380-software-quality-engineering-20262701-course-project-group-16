@@ -12,6 +12,21 @@
         <Field name="dealerRandom"/>
         <Bug pattern="EI_EXPOSE_REP2"/>
     </Match>
+    <Match>
+        <Class name="domain.model.Deck"/>
+        <Method name="&lt;init&gt;"/>
+        <Field name="random"/>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+    </Match>
+    <!-- The UI deliberately controls and observes the same injected live session.
+         Copying it would disconnect actions from application state. It is confined
+         to Swing's event thread; this is a collaborator, not an immutable value. -->
+    <Match>
+        <Class name="ui.GamePanel"/>
+        <Method name="&lt;init&gt;"/>
+        <Field name="session"/>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+    </Match>
     <!-- These fields are defensively copied by helper methods. SpotBugs does not
          follow those helpers far enough; collection immutability has unit tests. -->
     <Match>

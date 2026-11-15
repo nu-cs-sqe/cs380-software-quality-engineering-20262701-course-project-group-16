@@ -5,7 +5,7 @@
 - `Deck()` starts with all 52 different rank/suit combinations, unshuffled.
 - `remainingCards()` returns the current remaining count, including zero.
 - `deal(int count)` returns an immutable, independent list and removes those cards. Zero is allowed. Negative counts and counts above the remaining size must throw `IllegalArgumentException` before changing state.
-- `Deck(Random random)` creates the same unshuffled deck with a supplied random source; null must throw `NullPointerException`.
+- `Deck(Random random)` creates the same unshuffled deck with a required random source under the non-null caller contract.
 - `shuffle()` reorders only remaining cards, preserving count and membership. Default and injected random sources are supported.
 
 ## Constructor and remainingCards()
@@ -75,7 +75,6 @@ The seed is a test fixture, not a game setting. Equal fixed seeds must give repe
 
 | ID | Method(s) | State/input | Expected result | Test implemented? |
 |---|---|---|---|---|
-| RANDOM-01 | Deck(Random) | null source | NullPointerException | Yes - `DeckTest.rejectsNullRandomSource` (passing) |
 | RANDOM-02 | Deck(Random), shuffle | Two sources seeded 7 and another seeded 8 | Same seed repeats the order; fixed different fixtures differ from each other and the unshuffled deck | Yes - `DeckTest.shuffleUsesProvidedRandom` (passing) |
 | RANDOM-03 | Deck(Random), shuffle | Two cards remaining; stub returns 0 (lowest valid choice) | The two remaining cards exchange positions; no cards lost | Yes - `DeckTest.shuffleUsesBoundaryRandomChoices(false)` |
 | RANDOM-04 | Deck(Random), shuffle | Two cards remaining; stub returns bound - 1 (highest valid choice) | The two remaining cards retain their order; no cards lost | Yes - `DeckTest.shuffleUsesBoundaryRandomChoices(true)` |

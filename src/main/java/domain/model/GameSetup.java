@@ -2,6 +2,7 @@ package domain.model;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
@@ -18,9 +19,6 @@ public final class GameSetup {
 
     /** Inject a seeded/random test source to control the uniform occupied-seat selection. */
     public GameSetup(GameConfig config, Random random) {
-        if (config == null || random == null) {
-            throw new IllegalArgumentException("Settings and a dealer random source are required.");
-        }
         this.config = config;
         this.dealerRandom = random;
     }
@@ -45,8 +43,9 @@ public final class GameSetup {
         int actorSeat = new SeatOrder(players).firstPreflopActor(dealer).orElseThrow();
         BettingProgress betting = new BettingProgress(config.getBigBlind(),
                 config.getBigBlind(), active, active);
-        return new GameState(config, matchId + ":hand:1", GamePhase.SETUP, players, positions,
-                players.get(actorSeat).getPlayer().getId(), List.of(), List.of(), betting);
+        return GameState.create(config, matchId + ":hand:1", GamePhase.SETUP, players, positions,
+                Optional.of(players.get(actorSeat).getPlayer().getId()),
+                List.of(), List.of(), betting);
     }
 
     private List<PlayerState> createPlayers(String matchId, int humanCount) {

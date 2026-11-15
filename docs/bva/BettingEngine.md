@@ -9,7 +9,7 @@ original TDD history; their unsupported-wager scope is superseded by K01.
 `domain.model.BettingEngine.apply(GameState before, ActionRequest request)` returns
 a `BettingResult` containing a new immutable state and one accepted engine action.
 The engine does not own or update `PlayStats`; the application records an accepted
-result after successful validation. Null inputs, an out-of-turn request, a
+result after successful validation. An out-of-turn request, a
 CHECK while chips are owed or a zero-cost CALL throw `IllegalArgumentException`. Unsupported behavior throws
 `UnsupportedOperationException`. Neither failure produces a result or changes
 the input state.
@@ -24,7 +24,7 @@ participant remains. Full wagers and raised-round responses are now supported;
 short all-in wager exceptions remain K02. The explicit `advanceStreet` operation supports closed
 round transitions through SHOWDOWN; see the fourth increment below. Payouts,
 short all-in wagers and numeric Swing controls remain later increments. The six original cases below verify the initial CALL and
-out-of-turn/null-input rejection; the later tables extend the action boundaries.
+out-of-turn rejection; the later tables extend the action boundaries.
 
 ## Shared state
 
@@ -44,8 +44,6 @@ An application or bot policy supplies the request using that player's actual ID.
 | BE-CALL02 | BettingEngine(); apply; BettingResult.getState | Same call at the first decision | Pot 50; actor advances to seat 4; seat 3 removed from pending actors; current bet/full-raise size remain 20; total 6,000 | Implemented, GREEN; `callAdvancesTheActorAndConservesAllChips` |
 | BE-CALL03 | BettingEngine(); apply; BettingResult.getAcceptedAction | Same accepted call | Matching hand/player IDs, PREFLOP/CALL, 20 new chips, contribution after=20, not all-in; no raise/three-bet/c-bet context; accepted statistics observation | Implemented, GREEN; `callProducesAnAcceptedObservationWithActualChipDelta` |
 | BE-REJECT01 | BettingEngine(); apply | Seat 4 submits CALL while seat 3 must act | IllegalArgumentException; stacks, contributions, pot, actor, pending actors and cards remain unchanged | Implemented, GREEN; `outOfTurnCallIsRejectedWithoutChangingTheState` |
-| BE-INPUT01 | BettingEngine(); apply | Null state and otherwise valid CALL request | IllegalArgumentException; no result | Implemented, GREEN; `nullStateIsRejected` |
-| BE-INPUT02 | BettingEngine(); apply | Valid dealt state and null request | IllegalArgumentException; input state unchanged; no result | Implemented, GREEN; `nullRequestIsRejectedWithoutChangingTheState` |
 
 Tests are in [BettingEngineTest](../../src/test/java/domain/model/BettingEngineTest.java).
 The six tests were committed in the RED checkpoint before the production
@@ -151,7 +149,7 @@ street is produced. Case IDs are included in JUnit display names.
 
 Unit tests: [BettingEngineAllInCallTest](../../src/test/java/domain/model/BettingEngineAllInCallTest.java).
 Integration tests: [AllInCallIntegrationTest](../../src/test/java/integration/AllInCallIntegrationTest.java).
-These cases extend the existing turn, null-input and zero-cost CALL rejection
+These cases extend the existing turn and zero-cost CALL rejection
 cases; those tests remain regression checks. RED/GREEN snapshots and logs are
 retained without automatic commits. Coverage/mutation adequacy and side-pot
 settlement remain separate verification and implementation work.
@@ -219,7 +217,6 @@ pot and total chips. No user-interface or bot implementation is involved.
 | BE-SA11-SETUP | Undealt SETUP snapshot | UnsupportedOperationException; unchanged | Implemented, GREEN; `setupAndTerminalPhasesCannotAdvance(SETUP)` |
 | BE-SA11-SHOWDOWN | SHOWDOWN snapshot | UnsupportedOperationException; cannot skip settlement | Implemented, GREEN; `setupAndTerminalPhasesCannotAdvance(SHOWDOWN)` |
 | BE-SA11-COMPLETION | COMPLETION snapshot | UnsupportedOperationException; no new hand started | Implemented, GREEN; `setupAndTerminalPhasesCannotAdvance(COMPLETION)` |
-| BE-SA12 | Null state | IllegalArgumentException; no result | Implemented, GREEN; `nullStateIsRejected` |
 | BE-SA13 | Dealer 0; seat 1 FOLDED, 2 ALL_IN, 3 ELIMINATED, 0/4/5 ACTIVE | FLOP actor 4; pending/raise IDs 0/4/5; all six seats and statuses retained; every round contribution 0 including folded/all-in; hand commitments/pot 300 retained; total 6,000 | Implemented, GREEN; `postflopActorsExcludeIneligibleSeats` |
 | BE-SA14 | Heads-up: dealer/SB 0 and BB 5; other seats eliminated | FLOP actor 5; pending/raise IDs 0/5; pot 120, total 6,000 | Implemented, GREEN; `headsUpActionStartsWithTheNonDealer` |
 | BE-SA15-0 | Six ALL_IN participants; no ACTIVE player; total 120 | FLOP with no actor/pending/raise rights; all six remain participants; pot/total 120 | Implemented, GREEN; `allInRunoutDoesNotCreateUnnecessaryChecks(0)` |
@@ -320,3 +317,11 @@ BVA cases are written before production behavior. RED/GREEN logs and ordered
 patches are retained without automatic commits; actual Git-history evidence
 requires the team's later commits. Coverage and mutation adequacy remain
 separate measured requirements.
+
+## Instructor follow-up — November 15
+
+Street advancement now orchestrates named helpers for card availability, pending
+actors, actor selection and board dealing. Closed-round validation delegates
+to one named check per condition. Internal actor selection returns Optional;
+existing street/short-blind/all-in tests retain their behavioral expectations.
+No additional programmer-error input cases were added.

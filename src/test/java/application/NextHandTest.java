@@ -74,8 +74,8 @@ class NextHandTest {
                     stacks[seat] == 0 ? PlayerStatus.ELIMINATED : PlayerStatus.ACTIVE,
                     List.of(), 0, 0));
         }
-        return new GameState(new GameConfig(), "old", GamePhase.COMPLETION, players,
-                new HandPositions(0, 1, 2), null, List.of(), List.of(),
+        return GameState.create(new GameConfig(), "old", GamePhase.COMPLETION, players,
+                new HandPositions(0, 1, 2), java.util.Optional.empty(), List.of(), List.of(),
                 new BettingProgress(0, 20, Set.of(), Set.of()));
     }
 }

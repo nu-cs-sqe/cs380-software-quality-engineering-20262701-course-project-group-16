@@ -5,7 +5,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -16,14 +16,13 @@ public final class PotSettlement {
     public PotSettlement() { this(new PokerHandEvaluator()); }
 
     public PotSettlement(HandEvaluator evaluator) {
-        this.evaluator = Objects.requireNonNull(evaluator, "evaluator");
+        this.evaluator = evaluator;
     }
 
     /**
      * Pays a decision-free showdown or uncontested hand, returning a completed snapshot.
      * Tied pots give odd chips clockwise after the dealer. The input is never modified.
      * @throws IllegalStateException unless the hand is ready and all pots have eligible winners
-     * @throws NullPointerException if state is null
      */
     public Settlement settle(GameState state) {
         requireReady(state);
@@ -35,7 +34,6 @@ public final class PotSettlement {
     }
 
     private static void requireReady(GameState state) {
-        Objects.requireNonNull(state, "state");
         long live = state.getPlayerStates().stream().filter(PlayerState::isParticipating).count();
         if (state.getPhase() == GamePhase.SETUP || state.getPhase() == GamePhase.COMPLETION
                 || state.getCurrentActorId().isPresent()
@@ -81,7 +79,7 @@ public final class PotSettlement {
         }
         List<PlayerState> winners = winners(state, eligible);
         winners.sort(Comparator.comparingInt(player -> Math.floorMod(
-                player.getPlayer().getSeat() - state.getDealerSeat() - 1, 6)));
+                player.getPlayer().getSeat() - state.getDealerSeat() - 1, GameConfig.SEAT_COUNT)));
         for (int index = 0; index < winners.size(); index++) {
             long share = amount / winners.size() + (index < amount % winners.size() ? 1 : 0);
             add(payouts, winners.get(index), share);
@@ -138,8 +136,8 @@ public final class PotSettlement {
             players.add(new PlayerState(paid, status,
                     chips == 0 ? List.of() : state.getHoleCards(), 0, 0));
         }
-        return new GameState(before.getConfig(), before.getHandId(), GamePhase.COMPLETION,
-                players, before.getPositions(), null, before.getCommunityCards(),
+        return GameState.create(before.getConfig(), before.getHandId(), GamePhase.COMPLETION,
+                players, before.getPositions(), Optional.empty(), before.getCommunityCards(),
                 before.getRemainingDeck(), new BettingProgress(0, before.getConfig().getBigBlind(),
                 Set.of(), Set.of()), before.getBettingHistory());
     }

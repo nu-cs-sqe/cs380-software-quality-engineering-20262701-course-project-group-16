@@ -37,8 +37,8 @@ class ShortBlindIntegrationTest {
                     seat == 0 ? 5940 : seat == 1 ? 15 : 0), status,
                     seat < 3 ? cards.subList(3 + seat * 2, 5 + seat * 2) : List.of(), 0, contribution));
         }
-        GameState before = new GameState(new GameConfig(), "short", GamePhase.FLOP, players,
-                new HandPositions(0, 1, 2), "p1", cards.subList(0, 3), cards.subList(9, 52),
+        GameState before = GameState.create(new GameConfig(), "short", GamePhase.FLOP, players,
+                new HandPositions(0, 1, 2), java.util.Optional.of("p1"), cards.subList(0, 3), cards.subList(9, 52),
                 new BettingProgress(0, 20, Set.of("p0", "p1"), Set.of("p0", "p1")));
         BettingEngine engine = new BettingEngine();
         GameState after = engine.apply(before, new ActionRequest("p1", ActionType.FOLD)).getState();
@@ -52,8 +52,8 @@ class ShortBlindIntegrationTest {
         for (int seat = 0; seat < 6; seat++) players.add(new PlayerState(
                 new Player("p" + seat, seat, PlayerType.HUMAN, stacks[seat]),
                 stacks[seat] == 0 ? PlayerStatus.ELIMINATED : PlayerStatus.ACTIVE, List.of(), 0, 0));
-        return new GameState(new GameConfig(), "old", GamePhase.COMPLETION, players,
-                new HandPositions(dealer, (dealer + 1) % 6, (dealer + 2) % 6), null,
+        return GameState.create(new GameConfig(), "old", GamePhase.COMPLETION, players,
+                new HandPositions(dealer, (dealer + 1) % 6, (dealer + 2) % 6), java.util.Optional.empty(),
                 List.of(), List.of(), new BettingProgress(0, 20, Set.of(), Set.of()));
     }
 }

@@ -59,7 +59,6 @@ class LegalActionsTest {
         assertEquals(Set.of(ActionType.FOLD, ActionType.CALL),
                 engine.getLegalActions(preflop(1000, 20, false)).getActions());
         assertTrue(engine.getLegalActions(FoundationFixtures.fixture().build()).getActions().isEmpty());
-        assertThrows(IllegalArgumentException.class, () -> engine.getLegalActions(null));
     }
 
     @Test
@@ -86,7 +85,7 @@ class LegalActionsTest {
         fixture.deal();
         assertEquals(Set.of(ActionType.CHECK, ActionType.FOLD),
                 engine.getLegalActions(fixture.build()).getActions());
-        fixture.actor = null;
+        fixture.actor = java.util.Optional.empty();
         fixture.betting = new BettingProgress(0, 20, Set.of(), Set.of());
         assertTrue(engine.getLegalActions(fixture.build()).getActions().isEmpty());
     }

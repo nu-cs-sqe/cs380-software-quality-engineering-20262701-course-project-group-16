@@ -95,7 +95,19 @@ val measuredClasses = listOf(
     "domain.model.StatsAction",
     "application.SetupSession",
     "application.SetupView",
-    "localization.Localizations"
+    "localization.Localizations",
+    "bot.EquityPot",
+    "bot.EquityRequest",
+    "bot.EquityEstimate",
+    "bot.UniformDealSampler",
+    "bot.MonteCarloEquityEstimator",
+    "bot.learning.DecisionContext",
+    "bot.learning.TendencyEstimate",
+    "bot.learning.PublicDecision",
+    "bot.learning.ActionPrediction",
+    "bot.learning.OpponentBeliefs",
+    "bot.learning.OpponentModel",
+    "domain.model.GameSetup"
 )
 val measuredClassFiles = measuredClasses.flatMap {
     val path = it.replace('.', '/')
@@ -136,6 +148,21 @@ tasks.withType<Checkstyle>().configureEach {
     }
 }
 
+// Initially enforce named rule constants in the shared table/configuration boundary.
+val checkstyleSeatRules = tasks.register<Checkstyle>("checkstyleSeatRules") {
+    configFile = file("config/checkstyle/checkstyle-seat-rules.xml")
+    source(fileTree("src/main/java") {
+        include("domain/model/HandPositions.java", "domain/model/GameConfig.java",
+                "domain/model/SeatOrder.java", "domain/model/Player.java",
+                "domain/model/PotSettlement.java")
+    })
+    classpath = files()
+    reports {
+        html.outputLocation.set(layout.buildDirectory.file("reports/checkstyle/seat-rules.html"))
+        xml.outputLocation.set(layout.buildDirectory.file("reports/checkstyle/seat-rules.xml"))
+    }
+}
+
 tasks.named<Checkstyle>("checkstyleTest") {
     configFile = file("config/checkstyle/checkstyle-test.xml")
 }
@@ -165,6 +192,7 @@ pitest {
         "domain.model.*Test", "application.*Test", "integration.*Test",
         "persistence.*Test", "security.*Test",
         "localization.LocalizationsTest"
+        "localization.LocalizationsTest", "bot.*Test", "bot.learning.*Test"
     ))
     threads.set(2)
     mutators.set(setOf("DEFAULTS"))
@@ -177,5 +205,5 @@ pitest {
 }
 
 tasks.check {
-    dependsOn(tasks.jacocoTestReport)
+    dependsOn(tasks.jacocoTestReport, checkstyleSeatRules)
 }

@@ -1,7 +1,8 @@
 # SetupSession BVA
 
 The Week 6 played-hand extension is covered in [SessionBetting.md](SessionBetting.md).
-The 20 original setup/privacy cases below remain in the suite.
+The original setup/privacy cases remain except two retired programmer-null
+inputs; see the reference-contract update in the BVA index.
 
 The application session owns the internal GameState. SetupView is an immutable
 read model containing public player records and only the selected human's cards
@@ -10,7 +11,6 @@ before starting/restarting, selecting a viewer, or reporting invalid input.
 
 | ID | Method(s) | State/input | Expected output | Status / test |
 | --- | --- | --- | --- | --- |
-| SS-C01 | SetupSession(GameInitializer) | Null initializer | IllegalArgumentException | Passing: rejectsNullInitializer |
 | SS-C02 | SetupSession(); getView; hideCards | No match | Empty view; hiding is safe | Passing: noMatchHasNoDisplayAndHidingIsSafe |
 | SS-N01 | revealCards | No match | IllegalStateException | Passing: cannotRevealBeforeStarting |
 | SS-N02 | selectViewer | No match | IllegalStateException | Passing: cannotSelectBeforeStarting |
@@ -25,7 +25,6 @@ before starting/restarting, selecting a viewer, or reporting invalid input.
 | SS-P01 | selectViewer; revealCards; hideCards; getView | Two-human match, reveal seat1 then hide | Correct seat1 cards only; correct public positions/actor; immutable snapshots; hidden view after hide | Passing: revealShowsOnlySelectedHumanCardsAndHideClearsThem |
 | SS-P02 | selectViewer; getView | Same human after reveal | Cards hidden until a new reveal | Passing: everyViewerSelectionRequiresANewReveal |
 | SS-P03 | selectViewer; getView | Another human after reveal | Cards hidden until a new reveal | Passing: everyViewerSelectionRequiresANewReveal |
-| SS-P04 | selectViewer; getView | Null viewer ID | IllegalArgumentException; selected human unchanged, cards hidden | Passing: rejectsInvalidViewerAndHidesPreviousCards |
 | SS-P05 | selectViewer; getView | Blank viewer ID | IllegalArgumentException; selected human unchanged, cards hidden | Passing: rejectsInvalidViewerAndHidesPreviousCards |
 | SS-P06 | selectViewer; getView | Missing viewer ID | IllegalArgumentException; selected human unchanged, cards hidden | Passing: rejectsInvalidViewerAndHidesPreviousCards |
 | SS-P07 | selectViewer; getView | Bot viewer ID | IllegalArgumentException; selected human unchanged, cards hidden | Passing: rejectsInvalidViewerAndHidesPreviousCards |

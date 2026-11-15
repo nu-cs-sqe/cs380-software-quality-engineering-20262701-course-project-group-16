@@ -43,7 +43,7 @@ result text contains public player names only.
 | UI-R08 | showResult; different hand IDs | IllegalArgumentException; keep previous valid display | rejectsResultFromAnotherHandWithoutReplacingTheDisplay; GREEN |
 | UI-R09 | showResult; winner absent from supplied view | IllegalArgumentException; do not show an unrelated player/raw ID | rejectsWinnerIdsMissingFromTheSuppliedPublicView; GREEN |
 | UI-R10a–b | showResult; null view/result | NullPointerException; keep previous valid display | rejectsNullViewOrResult; GREEN |
-| UI-R11a–c | showResult; null/empty/unconfigured locale | IllegalArgumentException; keep previous valid display | rejectsUnsupportedLanguageWithoutReplacingTheDisplay; GREEN |
+| UI-R11b–c | showResult; empty/unconfigured locale | IllegalArgumentException; keep previous valid display | rejectsUnsupportedLanguageWithoutReplacingTheDisplay; GREEN |
 
 Observed RED `2493bf3`: 18 invocations, 17 expected assertion failures, one
 initial-state pass, zero errors/skips. GREEN: all 18 cases pass; full project

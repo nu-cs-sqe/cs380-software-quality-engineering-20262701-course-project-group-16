@@ -85,7 +85,6 @@ or a multi-hand sequence. Public constructor and all public methods are covered.
 | PS-I12 | completeHand(), all getters | Populated two-hand seed; pending hand inputs=true, actions(post(BettingStreet.FLOP, ResolvedActionType.CHECK, 0)), false, false, 0L, 0L | IllegalArgumentException; all existing totals unchanged; corrected completion succeeds once | Yes |
 | PS-I13 | completeHand(), all getters | Populated two-hand seed; pending hand inputs=true, actions(pre(ResolvedActionType.FOLD, 0)), true, false, 0L, 0L | IllegalArgumentException; all existing totals unchanged; corrected completion succeeds once | Yes |
 | PS-I14 | completeHand(), all getters | Populated two-hand seed; pending hand inputs=true, actions(post(BettingStreet.FLOP, ResolvedActionType.FOLD, 0)), true, true, 0L, 0L | IllegalArgumentException; all existing totals unchanged; corrected completion succeeds once | Yes |
-| PS-I15 | completeHand(), all getters | Populated two-hand seed; pending hand inputs=(String) null | IllegalArgumentException; all existing totals unchanged; corrected completion succeeds once | Yes |
 | PS-I16 | completeHand(), all getters | Populated two-hand seed; pending hand inputs="" | IllegalArgumentException; all existing totals unchanged; corrected completion succeeds once | Yes |
 | PS-I17 | completeHand(), all getters | Populated two-hand seed; pending hand inputs="another-hand" | IllegalArgumentException; all existing totals unchanged; corrected completion succeeds once | Yes |
 | PS-L01 | Constructor, getHandsPlayed() | New instance | 0 completed hands | Yes |
@@ -98,12 +97,10 @@ or a multi-hand sequence. Public constructor and all public methods are covered.
 | PS-L08 | completeHand() | Active ID differs from supplied completion ID | IllegalArgumentException; old totals/active hand preserved | Yes |
 | PS-L09 | completeHand(), all getters | Complete a hand, then complete it again | IllegalStateException; all totals unchanged | Yes |
 | PS-L10 | beginHand(), all getters | Begin an already completed ID | IllegalStateException; all totals unchanged | Yes |
-| PS-L11 | beginHand(), getHandsPlayed() | (String) null | IllegalArgumentException; hands played remains 0 | Yes |
 | PS-L12 | beginHand(), getHandsPlayed() | "" | IllegalArgumentException; hands played remains 0 | Yes |
 | PS-L13 | beginHand(), getHandsPlayed() | " " | IllegalArgumentException; hands played remains 0 | Yes |
 | PS-L14 | beginHand(), getHandsPlayed() | "\t" | IllegalArgumentException; hands played remains 0 | Yes |
 | PS-L15 | beginHand(), getHandsPlayed() | "\u2003" | IllegalArgumentException; hands played remains 0 | Yes |
-| PS-L16 | recordAction(), completeHand() | Active hand; null action | IllegalArgumentException; hand remains completable | Yes |
 | PS-L17 | beginHand(), completeHand(), getHandsPlayed() | Complete match-1/hand-1 and match-2/hand-1 | Hands played=2 | Yes |
 | PS-S01 | recordAction(), completeHand(), getHandsPlayed(), getWtsdPercent(), getWonAtShowdownPercent() | "folding after seeing the flop is not showdown", actions(post(BettingStreet.FLOP, ResolvedActionType.FOLD, 0)), true, false, 0L, 0L, 0.0, null | Hands=1; WTSD=0.0%; W$SD=unavailable | Yes |
 | PS-S02 | recordAction(), completeHand(), getHandsPlayed(), getWtsdPercent(), getWonAtShowdownPercent() | "showdown without payout", actions(check), true, true, 0L, 0L, 100.0, 0.0 | Hands=1; WTSD=100.0%; W$SD=0.0% | Yes |

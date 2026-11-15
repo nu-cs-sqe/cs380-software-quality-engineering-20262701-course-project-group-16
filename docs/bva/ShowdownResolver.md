@@ -8,8 +8,6 @@ not used for contested winner expectations.
 
 | ID | Method | Input / system state | Expected output | Implemented / status |
 | --- | --- | --- | --- | --- |
-| SR-C01 | injected constructor | Null evaluator | NullPointerException | Yes, GREEN: SR_C01_rejectsNullEvaluator |
-| SR-N01 | resolve | Null state | NullPointerException | Yes, GREEN: SR_N01_rejectsNullState |
 | SR-V01 | default constructor; resolve | Six active players, closed SHOWDOWN, p0 pair of aces strongest | Only p0; same hand ID; AWAITING_SETTLEMENT; immutable winners; no chip/state change | Yes, GREEN: SR_V01_realEvaluatorFindsWinnerWithoutSettling |
 | SR-V02 | resolve | Strongest hand folded; p1 ALL_IN; p2 ELIMINATED | Only p1; folded/eliminated excluded | Yes, GREEN: SR_V02_includesAllInButNotFoldedOrEliminated |
 | SR-V03 | resolve | Royal flush shared board, all six eligible | Six tied IDs in seat order | Yes, GREEN: SR_V03_sharedBoardCanTieAllSixPlayers |

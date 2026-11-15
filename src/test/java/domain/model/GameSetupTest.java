@@ -22,16 +22,6 @@ class GameSetupTest {
     }
 
     @Test
-    void GU_02() {
-        assertThrows(IllegalArgumentException.class,()->new GameSetup(null,new Random(1)));
-    }
-
-    @Test
-    void GU_03() {
-        assertThrows(IllegalArgumentException.class,()->new GameSetup(new GameConfig(),null));
-    }
-
-    @Test
     void GU_04() {
         DealerRandom random=new DealerRandom(0); GameSetup setup=new GameSetup(new GameConfig(),random);
         assertThrows(IllegalArgumentException.class,()->setup.create(-1)); assertEquals(0,random.calls);

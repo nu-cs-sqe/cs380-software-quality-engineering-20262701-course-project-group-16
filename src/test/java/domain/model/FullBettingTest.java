@@ -211,7 +211,7 @@ class FullBettingTest {
         GameState matched = PostflopFixtures.build(fixture, new BettingHistory("p0", 20));
         assertFalse(engine.apply(matched, request(matched, ActionType.CHECK))
                 .getAcceptedAction().getStatsContext().hasFacedFlopCBetOpportunity());
-        fixture.actor = "p0";
+        fixture.actor = java.util.Optional.of("p0");
         GameState aggressor = PostflopFixtures.build(fixture, new BettingHistory("p0", 20));
         assertFalse(engine.apply(aggressor, request(aggressor, ActionType.CHECK))
                 .getAcceptedAction().getStatsContext().hasFacedFlopCBetOpportunity());

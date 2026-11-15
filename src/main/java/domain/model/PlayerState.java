@@ -14,12 +14,11 @@ public final class PlayerState {
     /** @throws IllegalArgumentException for inconsistent status, cards or chip amounts */
     public PlayerState(Player player, PlayerStatus status, List<Card> cards,
             long round, long hand) {
-        if (player == null || status == null || round < 0 || hand < round
+        if (round < 0 || hand < round
                 || player.getChipStack() > Long.MAX_VALUE - hand) {
             throw new IllegalArgumentException("Invalid player, status or contribution.");
         }
-        if (cards == null || (cards.size() != 0 && cards.size() != 2)
-                || cards.stream().anyMatch(card -> card == null)
+        if ((cards.size() != 0 && cards.size() != 2)
                 || new HashSet<>(cards).size() != cards.size()) {
             throw new IllegalArgumentException("Hole cards must be empty or two distinct cards.");
         }

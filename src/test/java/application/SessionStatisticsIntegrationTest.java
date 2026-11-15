@@ -25,12 +25,6 @@ import static org.junit.jupiter.api.Assertions.*;
 /** Real initialization, engine, adapter and collectors; captures only observation delivery. */
 class SessionStatisticsIntegrationTest {
     @Test
-    void rejectsAMissingStatisticsFactory() {
-        assertThrows(IllegalArgumentException.class, () -> new SetupSession(
-                initializer(new GameConfig()), new BettingEngine(), new ShowdownResolver(), null));
-    }
-
-    @Test
     void blindsQueriesAndViewerChangesDoNotRecordActions() {
         RecordingStatistics statistics = new RecordingStatistics();
         SetupSession session = session(new GameConfig(), new ShowdownResolver(), statistics);
@@ -63,7 +57,7 @@ class SessionStatisticsIntegrationTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"null", "unknown", "outOfTurn", "checkOwing", "bet", "raise"})
+    @ValueSource(strings = {"unknown", "outOfTurn", "checkOwing", "bet", "raise"})
     void rejectedRequestsDoNotReachTheCollectors(String invalid) {
         RecordingStatistics statistics = new RecordingStatistics();
         SetupSession session = session(new GameConfig(), new ShowdownResolver(), statistics);
@@ -225,7 +219,6 @@ class SessionStatisticsIntegrationTest {
 
     private static ActionRequest invalidRequest(String kind, String actor, SetupView before) {
         switch (kind) {
-            case "null": return null;
             case "unknown": return new ActionRequest("unknown", ActionType.CALL);
             case "outOfTurn": return new ActionRequest(before.getPlayers().get(0).getId(), ActionType.CALL);
             case "checkOwing": return new ActionRequest(actor, ActionType.CHECK);

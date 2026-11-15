@@ -61,15 +61,15 @@ public final class PlayStats {
      *
      * @param handId nonblank, globally unique across matches for this instance
      * @param dealtIn whether this player was actually dealt into the hand
-     * @throws IllegalArgumentException if the ID is null or blank
+     * @throws IllegalArgumentException if the ID is blank
      * @throws IllegalStateException if another hand is active or the ID was completed
      */
     public void beginHand(String handId, boolean dealtIn) {
         if (activeHandId.isPresent()) {
             throw new IllegalStateException("A hand is already active.");
         }
-        if (handId == null || handId.isBlank()) {
-            throw new IllegalArgumentException("Hand ID must not be null or blank.");
+        if (handId.isBlank()) {
+            throw new IllegalArgumentException("Hand ID must not be blank.");
         }
         if (completedHandIds.contains(handId)) {
             throw new IllegalStateException("This hand has already been completed.");
@@ -87,9 +87,6 @@ public final class PlayStats {
      */
     public void recordAction(StatsAction action) {
         requireActiveHand();
-        if (action == null) {
-            throw new IllegalArgumentException("Action must not be null.");
-        }
         if (!action.isAccepted()) {
             return;
         }

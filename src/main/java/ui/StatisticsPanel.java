@@ -109,5 +109,4 @@ final class StatisticsPanel extends JPanel {
 
         @Override public boolean isCellEditable(int row, int column) { return false; }
     }
-
 }

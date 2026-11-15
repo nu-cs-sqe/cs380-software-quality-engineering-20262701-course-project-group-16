@@ -156,7 +156,7 @@ class PostflopActionsTest {
     @DisplayName("BE-PF08: skip folded/all-in/eliminated and already-acted seats")
     void actorSelectionUsesOnlyPendingActivePlayers() {
         FoundationFixtures.Fixture fixture = PostflopFixtures.street(GamePhase.FLOP);
-        fixture.actor = "p0";
+        fixture.actor = java.util.Optional.of("p0");
         fixture.player(1, 960, PlayerStatus.FOLDED, 0, 40);
         fixture.player(2, 0, PlayerStatus.ALL_IN, 0, 40);
         fixture.player(3, 0, PlayerStatus.ELIMINATED, 0, 0);

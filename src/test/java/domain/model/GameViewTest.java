@@ -29,11 +29,6 @@ class GameViewTest {
     }
 
     @Test
-    void GV_04() {
-        assertThrows(IllegalArgumentException.class,()->FoundationFixtures.fixture().build().viewFor(null));
-    }
-
-    @Test
     void GV_05() {
         assertThrows(IllegalArgumentException.class,()->FoundationFixtures.fixture().build().viewFor(""));
     }

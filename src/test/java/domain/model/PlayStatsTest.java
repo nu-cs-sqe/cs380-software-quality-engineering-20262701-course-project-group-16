@@ -109,7 +109,7 @@ class PlayStatsTest {
     void rejectsActionWithoutAnActiveHand() {
         PlayStats stats = new PlayStats();
 
-        assertThrows(IllegalStateException.class, () -> stats.recordAction(null));
+        assertThrows(IllegalStateException.class, () -> stats.recordAction(pre(ResolvedActionType.CHECK, 0)));
 
         assertEquals(0L, stats.getHandsPlayed());
     }
@@ -170,25 +170,10 @@ class PlayStatsTest {
 
     static Stream<Arguments> invalidHandIds() {
         return Stream.of(
-                Arguments.of("PS-L11", (String) null),
                 Arguments.of("PS-L12", ""),
                 Arguments.of("PS-L13", " "),
                 Arguments.of("PS-L14", "\t"),
                 Arguments.of("PS-L15", "\u2003"));
-    }
-
-    @Test
-    @DisplayName("PS-L16: a null action does not corrupt the active hand")
-    void rejectsANullActionDuringAnActiveHand() {
-        PlayStats stats = new PlayStats();
-        stats.beginHand("match-1/hand-1", true);
-        List<Object> before = snapshot(stats);
-
-        assertThrows(IllegalArgumentException.class, () -> stats.recordAction(null));
-
-        assertEquals(before, snapshot(stats));
-        stats.completeHand("match-1/hand-1", false, false, 0L, 0L);
-        assertEquals(1L, stats.getHandsPlayed());
     }
 
     @Test
@@ -658,7 +643,6 @@ class PlayStatsTest {
 
     static Stream<Arguments> invalidCompletionIds() {
         return Stream.of(
-                Arguments.of("PS-I15", (String) null),
                 Arguments.of("PS-I16", ""),
                 Arguments.of("PS-I17", "another-hand"));
     }
