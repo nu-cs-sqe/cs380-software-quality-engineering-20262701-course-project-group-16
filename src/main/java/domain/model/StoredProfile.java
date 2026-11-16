@@ -12,17 +12,9 @@ public final class StoredProfile {
 
     public StoredProfile(PlayerProfile profile, PasswordHash passwordHash,
             CompletedStatistics statistics) {
-        requireRecord(profile, passwordHash, statistics);
         this.profile = profile;
         this.passwordHash = passwordHash;
         this.statistics = statistics;
-    }
-
-    private static void requireRecord(PlayerProfile profile, PasswordHash passwordHash,
-            CompletedStatistics statistics) {
-        if (profile == null || passwordHash == null || statistics == null) {
-            throw new IllegalArgumentException("Identity, credential and statistics are required.");
-        }
     }
 
     public PlayerProfile getProfile() { return profile; }

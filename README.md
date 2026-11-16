@@ -147,7 +147,7 @@ and required status-check enforcement still need verification after push.
 
 Run `bash ./gradlew build` for tests/static checks/coverage and
 `bash ./gradlew pitest` for mutation testing. The team suite and shared static
-checks run across the project; coverage/PIT use 44 documented parent components,
+checks run across the project; coverage/PIT use 56 documented parent components,
 including betting/state, dealing, settlement, continuation, PlayStats, local account
 storage/password services and the shared session. These are not full-game metrics.
 checks run across the project; coverage/PIT use 46 documented parent components,
@@ -176,7 +176,7 @@ exceptions. There is no invented metric threshold that hides findings.
 
 ### Code Coverage
 
-Coverage uses the documented 44-component scope, including betting/state,
+Coverage uses the documented 56-component scope, including betting/state,
 shared session/view, statistics, settlement and local accounts. The rubric targets
 100% cyclomatic coverage, with View/Main/Enum exemptions. JaCoCo line, branch
 Coverage uses the documented 46-component scope, including betting, InitialDeal and the

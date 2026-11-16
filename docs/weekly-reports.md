@@ -229,14 +229,39 @@ and combined-source results (970) describe different checkpoints.
 
 [Plan and live checklist: issue #20](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/issues/20).
 
-**Status:** In progress: E01/E02 backends verified locally November 9; desktop
-profile integration verified locally November 10, against main `c71e9d6` plus
-account commit `e1a96f4`. Kevin is Member A
-(betting/departure/contracts); Estella is Member B (profiles/adaptive bots).
-The checklist IDs below match issue #20. Update both locations as work is
-verified; record local/in-review work accurately without checking it as merged Done.
+**Status at November 16:** PR #21 profiles, PR #22's instructor document and
+PR #24's refactor/equity/learning foundations have merged into main c05a306.
+A local fix/main-integration branch repairs the combined build and null-flow
+regressions. Kevin owns betting/departure/contracts; Estella owns profiles/bots.
+E05/E06 policy/live-worker code remains on the separate bot-integration branch.
+The checklist IDs below match issue #20; older checkpoints retain their own
+measurements and dates. Local fixes do not complete review/remote-CI/merge gates.
 
-### PR #21 conflict resolution — November 15
+### Main integration repair — November 16 (Week 7 follow-up)
+
+The initial combined build failed on the duplicated localization-test selector
+and a dangling Objects.requireNonNull call. After those compile fixes, the team
+tests passed but Checkstyle rejected 19 remaining profile null guards. The repair
+removes those guards, retains the instructor's strict rules and puts missing
+saved-property validation at the storage boundary. Missing bound-hand deltas are
+rejected before saving. Existing transaction, failure/retry and conservation
+checks remain. Fifteen null-only invocations are retired; their BVA history stays
+visible. Twenty-four new catalog-field cases plus retained corruption/missing-
+delta cases exposed 13 RED failures during cleanup, then all 65 focused cases
+passed with the boundary fixes. New helpers name schema, value, history and
+publication responsibilities; no broad helper or metric exclusion was added.
+
+Final build pitest passes in 7m20s: **1,396 tests**, clean main/test/seat
+Checkstyle and SpotBugs, 2,265/2,266 scoped lines, and **1,400/1,414 mutants killed**.
+All 14 survivors are the same baseline cases; there are no uncovered/timeout/error
+mutants. Measurement retains 56 parent components / 57 reported classes; the one
+unreachable GamePhase default and survivor acceptance remain visible in quality.md.
+No commit, push, extra checkout or scratch report was created. E05/E06, native UI
+work, the password-character policy and existing departure/terminal-policy findings
+remain separate follow-ups. User commit/push, new remote CI and peer review remain
+pending, so no completion checkbox is newly checked.
+
+### PR #21 conflict resolution — November 15 (historical)
 
 The original checkout is on feature/player-profiles. An uncommitted merge of
 origin/main bda4954 into profile head e0d6015 resolves README, build configuration,

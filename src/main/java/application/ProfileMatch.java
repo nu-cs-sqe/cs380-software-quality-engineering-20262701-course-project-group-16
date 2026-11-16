@@ -1,6 +1,7 @@
 package application;
 
 import domain.model.GameState;
+import domain.model.GameConfig;
 import domain.model.Player;
 import domain.model.PlayerType;
 import java.io.IOException;
@@ -18,7 +19,7 @@ final class ProfileMatch {
     private final Map<String, AuthenticatedProfile> accounts;
 
     static void requireAccounts(ProfileService profiles, List<AuthenticatedProfile> humans) {
-        if (profiles == null || humans == null || humans.isEmpty() || humans.size() > 6) {
+        if (humans.isEmpty() || humans.size() > GameConfig.SEAT_COUNT) {
             throw new IllegalArgumentException("Choose one to six authenticated human accounts.");
         }
         Set<String> ids = new HashSet<>();

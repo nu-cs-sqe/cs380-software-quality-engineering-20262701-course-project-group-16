@@ -82,7 +82,6 @@ class ProfilePersistenceIntegrationTest {
     void rejectsInvalidPasswordsWithoutSavingAnAccount() throws IOException {
         ProfileService service = new ProfileService(new FileProfileRepository(directory));
 
-        assertThrows(IllegalArgumentException.class, () -> service.create("Player", null));
         assertThrows(IllegalArgumentException.class,
                 () -> service.create("Player", "a".repeat(5).toCharArray()));
 

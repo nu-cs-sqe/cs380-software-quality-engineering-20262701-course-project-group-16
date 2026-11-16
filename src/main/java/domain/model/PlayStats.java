@@ -45,9 +45,6 @@ public final class PlayStats {
 
     /** Restores totals and deduplication history without restoring an unfinished hand. */
     public static PlayStats fromCompleted(CompletedStatistics completed) {
-        if (completed == null) {
-            throw new IllegalArgumentException("Completed statistics are required.");
-        }
         PlayStats restored = new PlayStats();
         restored.completedHandIds.addAll(completed.getCompletedHandIds());
         for (Statistic counter : Statistic.values()) {

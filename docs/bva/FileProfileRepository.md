@@ -13,8 +13,8 @@ Profile IDs are values, never path segments; names and IDs retain exact text.
 
 load() returns an immutable list in catalog order; an absent catalog is empty.
 Invalid schema/version/counts/values/duplicate IDs or malformed encoding produces
-IOException without resetting the file. save(profiles) rejects null collections,
-null elements and duplicate IDs before file access. It writes a temporary file in
+IOException without resetting the file. save(profiles) rejects duplicate IDs before
+file access; directory, collection and record references are non-null caller contracts. It writes a temporary file in
 the same directory, closes it, then requests atomic replacement. Unsupported atomic
 replacement fails rather than falling back to an unprotected overwrite. Cleanup
 removes the temporary file on success or failure. Access is serialized by the
@@ -30,7 +30,7 @@ All filesystem cases use JUnit-owned temporary directories.
 | FP-C02 | save; load | Empty catalog, count zero | File written; new repository loads empty list | Yes - locally passing |
 | FP-C03 | save; load | Opaque path-like ID, Unicode/padded/punctuation names | Exact round trip in order; immutable result; no ID-derived path | Yes - locally passing |
 | FP-C04 | save; load | Save one profile, then replace with two | New complete snapshot; no temporary files | Yes - locally passing |
-| FP-C05 | save | Existing catalog; null list, null element or duplicate IDs | IllegalArgumentException; bytes unchanged | Yes - locally passing |
+| FP-C05 | save | Existing catalog; duplicate IDs | IllegalArgumentException; bytes unchanged | Yes - locally passing |
 | FP-C06 | load | Empty existing file | IOException; file unchanged | Yes - locally passing |
 | FP-C07 | load | Unsupported version 99 | Same failure | Yes - locally passing |
 | FP-C08 | load | Count -1 | Same failure | Yes - locally passing |
@@ -50,7 +50,7 @@ All filesystem cases use JUnit-owned temporary directories.
 | FP-C22 | load | Catalog path is a nonempty directory | IOException; contents retained | Yes - locally passing |
 | FP-C23 | save | Storage directory path is an ordinary file | IOException; contents retained | Yes - locally passing |
 | FP-C24 | save | Existing nonempty catalog directory prevents replacement | IOException; target retained; temporary file cleaned | Yes - locally passing |
-| FP-C25 | constructor | Null directory | IllegalArgumentException | Yes - locally passing |
+| FP-C25 | constructor | Null directory | Non-null caller contract; no runtime null guarantee | Retired November 16, 2026 |
 | PI-C01 | save; load | Create and reopen real service/repository instances | Stable IDs/Unicode names and password verification survive reload; independent salts; no plaintext password | Yes - locally passing |
 | PI-C02 | load via service create | Existing corrupt catalog | Creation fails without overwrite | Yes - locally passing |
 | PI-C03 | save; load via services | Second instance adds profile after first snapshot | Original data/snapshot retained; fresh reads see both | Yes - locally passing |
@@ -59,7 +59,7 @@ All filesystem cases use JUnit-owned temporary directories.
 | FP-C28 | load | Invalid Base64 salt | Same failure | Yes - locally passing |
 | FP-C29 | load | Hash decodes to 31 bytes | Same failure | Yes - locally passing |
 | FP-C30 | load | Old metadata-only version 1 | Unsupported version rejected; no silent migration | Yes - locally passing |
-| PI-C04 | create via service | Null or 5-character password | No account or catalog created | Yes - locally passing |
+| PI-C04 | create via service | 5-character password | No account or catalog created | Yes - locally passing |
 
 ## Mapping and lifecycle
 
@@ -76,3 +76,13 @@ Profile selection UI remains later work.
 See [service TDD observations](ProfileService.md#tdd-status) and the latest
 [quality results](../quality.md#local-password-accounts--november-9-2026).
 Regression cases FP-C26–30 were added after implementation; no new RED cycle is claimed.
+
+## Required catalog values — November 16, 2026
+
+requiredProperty normalizes only Java Properties.getProperty's nullable external
+result using Optional.ofNullable. Missing fields become IllegalArgumentException,
+wrapped as IOException by load; the file is never rewritten on a rejected read.
+Both identity and statistics decoders use this boundary. ST-C06 independently
+removes each of the 24 mandatory V3 fields, checks the typed storage error and
+verifies the damaged bytes remain unchanged. FP-C25 and null-only save cases are
+retired; duplicate replacement, malformed encodings and failed-write cases remain.

@@ -107,12 +107,8 @@ class ProfiledMatchIntegrationTest {
         assertTrue(session.getView().orElseThrow().getHoleCards().isEmpty());
         assertThrows(IllegalArgumentException.class,
                 () -> session.startProfiles(profiles, List.of(account, account)));
-        assertThrows(IllegalArgumentException.class, () -> session.startProfiles(null, List.of(account)));
-        assertThrows(IllegalArgumentException.class, () -> session.startProfiles(profiles, null));
         assertThrows(IllegalArgumentException.class, () -> session.startProfiles(profiles,
                 java.util.Collections.nCopies(7, account)));
-        assertThrows(IllegalArgumentException.class, () -> session.startProfiles(profiles,
-                java.util.Arrays.asList((AuthenticatedProfile) null)));
         assertThrows(IllegalArgumentException.class,
                 () -> session.startProfiles(new ProfileService(new FileProfileRepository(directory)), List.of(account)));
         assertEquals(before, session.getProfileIds());

@@ -8,6 +8,64 @@ no `ignoreFailures`, global suppression or baseline hiding existing warnings. Re
 CI uploads test, coverage, mutation and static-analysis reports even after a
 failed step.
 
+## Main/profile integration repair — November 16, 2026
+
+Branch fix/main-integration starts from merged main c05a306, in the original
+checkout. PR #21, #22 and #24 are present; E05/E06 still belong to the separate
+feature/bot-integration branch. The initial build pitest failed while compiling
+build.gradle.kts: a duplicated localization selector lacked a comma. After fixing
+that and the dangling Objects call, the team tests passed but Checkstyle reported
+19 production null-flow violations across ten profile-related classes.
+
+The repair retains the union of all configured class/test scopes. It removes
+internal null guards under the instructor's non-null reference/element contract.
+Required catalog strings are normalized using Optional.ofNullable only at Java
+Properties.getProperty, before model construction. Missing bound-player deltas
+are validated by key presence before any profile save. Blank/range, foreign and
+unknown identities, duplicates, statistics consistency, overflow, malformed
+encoding, corrupt catalogs and storage failures remain business rejections.
+
+Focused storage/lifetime verification first exposed 13 behavioral failures after
+removing the guards: missing fields and hand deltas had reached models as null.
+The boundary fixes pass all 65 focused invocations, including 24 new ST-C06 cases
+that each remove a required catalog field and verify the damaged file is retained.
+This is an observed local regression RED/GREEN sequence, not fabricated Git TDD
+commits. Fifteen null-only invocations are retired; null-only assertions in mixed
+cases are also removed. Required business assertions remain. BVA preserves the
+retired IDs and historical measurements; it does not reuse them for new cases.
+
+CompletedStatistics names separate counter-shape, nonnegative-counter and ID-text
+validations. StatisticsProperties separates counter decoding from completion-ID
+decoding. ProfileService separates bound-delta validation, local record preparation
+and atomic publication. These helpers name distinct responsibilities. New source
+and test lines remain within 100 characters. Checkstyle's null-flow, formatting
+and scoped magic-number rules are unchanged; no new SpotBugs filter, suppression
+or measurement exclusion was added. The README now states the actual 56-parent
+measurement scope rather than the earlier 44-parent profile checkpoint.
+
+Final build pitest exits 0 in 7m20s on the final source (JDK 25 for Gradle,
+Java 11 compilation/tests). No source/test/configuration changes followed that run.
+
+| Check | Final local result |
+| --- | --- |
+| JUnit | **1,396 passing**, zero failures/errors/skips: 24 catalog-field invocations added and 15 null-only invocations retired from the merged baseline. |
+| Checkstyle | Zero main/test/seat-rule findings; rules unchanged. |
+| SpotBugs | Zero unexcluded main/test findings, analysis errors or missing classes; filters unchanged. |
+| Scope | **56 parent components / 57 reported classes**, retaining all prior targets and test patterns. |
+| JaCoCo | **2,265/2,266 lines**, 1,279/1,280 branches, 1,236/1,237 complexity counters, 11,288/11,293 instructions, 591/591 methods and 57/57 classes. |
+| PIT | **1,400/1,414 killed**, 14 identical baseline survivors, zero uncovered/timeout/error mutants; 81 selected test classes, 10,552 executions across mutants. |
+
+The only JaCoCo miss is the existing unreachable GamePhase default in
+GameState.validateCards. All mutations in the repaired profile/storage components
+are killed; the survivors belong to unchanged baseline engine/evaluator/hash
+cases described below. Their equivalence/course acceptance remains a review gate.
+These scoped counters do not establish independent basis-path or full-backend
+completion. Historical measurements retain their original scopes and dates.
+
+Commit/push, new remote CI and peer review remain pending. This repair does not
+claim E05/E06 live-bot integration, the queued-departure/6,000-chip policy fixes,
+password-character policy changes or full-backend completion.
+
 ## PR #21 profile verification — November 15, 2026 (historical)
 
 This run combined `feature/player-profiles` (`e0d6015`) with main (`bda4954`).

@@ -15,7 +15,9 @@ public final class CompletedStatistics {
     }
 
     public CompletedStatistics(Map<Statistic, Long> counts, Set<String> completedHandIds) {
-        requireCollections(counts, completedHandIds);
+        requireAllCounters(counts);
+        requireNonnegativeCounts(counts);
+        requireCompletedIds(completedHandIds);
         requireConsistentCounts(counts, completedHandIds.size());
         this.counts = Map.copyOf(counts);
         this.completedHandIds = Set.copyOf(completedHandIds);
@@ -29,18 +31,23 @@ public final class CompletedStatistics {
         return counts;
     }
 
-    private static void requireCollections(Map<Statistic, Long> counts, Set<String> ids) {
-        if (counts == null || ids == null || counts.size() != Statistic.values().length) {
-            throw new IllegalArgumentException("All counters and completed IDs are required.");
+    private static void requireAllCounters(Map<Statistic, Long> counts) {
+        if (counts.size() != Statistic.values().length) {
+            throw new IllegalArgumentException("All counters are required.");
         }
-        for (Statistic counter : Statistic.values()) {
-            Long count = counts.get(counter);
-            if (count == null || count < 0) {
-                throw new IllegalArgumentException("Counters must be present and nonnegative.");
+    }
+
+    private static void requireNonnegativeCounts(Map<Statistic, Long> counts) {
+        for (long count : counts.values()) {
+            if (count < 0) {
+                throw new IllegalArgumentException("Counters must be nonnegative.");
             }
         }
+    }
+
+    private static void requireCompletedIds(Set<String> ids) {
         for (String id : ids) {
-            if (id == null || id.isBlank()) {
+            if (id.isBlank()) {
                 throw new IllegalArgumentException("Completed hand IDs must be nonblank.");
             }
         }
@@ -90,7 +97,7 @@ public final class CompletedStatistics {
 
     /** Adds one authoritative completed hand; repeated delivery has no effect. */
     public CompletedStatistics addHand(CompletedStatistics hand) {
-        if (hand == null || hand.completedHandIds.size() != 1) {
+        if (hand.completedHandIds.size() != 1) {
             throw new IllegalArgumentException("Supply exactly one completed hand.");
         }
         String id = hand.completedHandIds.iterator().next();

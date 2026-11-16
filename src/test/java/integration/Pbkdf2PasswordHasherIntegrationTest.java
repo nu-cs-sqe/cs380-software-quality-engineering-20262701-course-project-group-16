@@ -26,7 +26,6 @@ class Pbkdf2PasswordHasherIntegrationTest {
         assertEquals(HASH, hash.getHashBase64());
         assertTrue(hasher.matches(password, hash));
         assertFalse(hasher.matches("PokerPlayer124".toCharArray(), hash));
-        assertFalse(hasher.matches(null, hash));
         assertFalse(hasher.matches(new char[0], hash));
         assertArrayEquals(original, password);
     }
@@ -75,16 +74,6 @@ class Pbkdf2PasswordHasherIntegrationTest {
         assertNotEquals(first.getHashBase64(), second.getHashBase64());
         assertTrue(hasher.matches(password, first));
         assertTrue(hasher.matches(password, second));
-    }
-
-    @Test
-    @DisplayName("PW-C06: validates null input and credential dependencies")
-    void validatesNullInputs() {
-        Pbkdf2PasswordHasher hasher = fixedSalt();
-        assertThrows(IllegalArgumentException.class, () -> hasher.hash(null));
-        assertThrows(IllegalArgumentException.class,
-                () -> hasher.matches("a".repeat(15).toCharArray(), null));
-        assertThrows(IllegalArgumentException.class, () -> new Pbkdf2PasswordHasher(null));
     }
 
     @Test

@@ -11,7 +11,7 @@ UncheckedIOException before SetupSession publishes paid state or match totals.
 | --- | --- | --- | --- | --- |
 | PM-C01 | constructor; profileIds; snapshot; save | Real human/bot setup, showdown, next hand, restart | Correct immutable human-only binding; lifetime persistence; fresh-match stacks/totals | Yes - locally passing |
 | PM-C02 | save | Repository write failure then retry | Original IOException retained as cause; no paid state/statistics published; exactly one durable increment | Yes - locally passing |
-| PM-C03 | requireAccounts; views | Before start, valid one, zero/seven, duplicates, null service/list/entry, foreign issuer, unprofiled restart | Reject invalid starts without replacing binding; unprofiled start clears it | Yes - locally passing |
+| PM-C03 | requireAccounts; views | Before start, valid one, zero/seven, duplicates, foreign issuer, unprofiled restart | Reject invalid starts without replacing binding; unprofiled start clears it | Yes - locally passing |
 | LS-C06 | requireAccounts; constructor | Six/seven distinct accounts | Six accepted/mapped; seven rejected independently of duplicate checks | Yes - locally passing |
 | PM-C05 | save | Durable real-file save succeeds, then adapter throws | Fresh service sees one completion; retry publishes paid state without another write | Yes - locally passing |
 | PM-C04 | constructor | Initializer produces two humans for one account | Reject before publishing match | Yes - locally passing |

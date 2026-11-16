@@ -13,22 +13,35 @@ import java.util.Set;
 /** Encodes raw completed counters/history without serializing pending game state. */
 final class StatisticsProperties {
     CompletedStatistics read(Properties properties, String prefix) {
+        return new CompletedStatistics(readCounters(properties, prefix),
+                readCompletedIds(properties, prefix));
+    }
+
+    private static Map<Statistic, Long> readCounters(Properties properties, String prefix) {
         Map<Statistic, Long> counts = new EnumMap<>(Statistic.class);
         for (Statistic counter : Statistic.values()) {
-            String encoded = properties.getProperty(prefix + ".stats." + counter);
+            String encoded = FileProfileRepository.requiredProperty(properties,
+                    prefix + ".stats." + counter);
             counts.put(counter, Long.parseLong(encoded));
         }
-        int count = Integer.parseInt(properties.getProperty(prefix + ".completedCount"));
+        return counts;
+    }
+
+    private static Set<String> readCompletedIds(Properties properties, String prefix) {
+        int count = Integer.parseInt(FileProfileRepository.requiredProperty(properties,
+                prefix + ".completedCount"));
         if (count < 0) {
             throw new IllegalArgumentException("Invalid completed-history size.");
         }
         Set<String> ids = new HashSet<>();
         for (int index = 0; index < count; index++) {
-            if (!ids.add(properties.getProperty(prefix + ".completed." + index))) {
+            String id = FileProfileRepository.requiredProperty(properties,
+                    prefix + ".completed." + index);
+            if (!ids.add(id)) {
                 throw new IllegalArgumentException("Duplicate completed hand ID.");
             }
         }
-        return new CompletedStatistics(counts, ids);
+        return ids;
     }
 
     void write(Properties properties, String prefix, CompletedStatistics statistics) {

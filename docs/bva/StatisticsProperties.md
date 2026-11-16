@@ -27,3 +27,11 @@ Latest verification: full build 1,196 passing tests; Checkstyle/SpotBugs clean;
 new/modified E02 component mutants all killed. See the existing
 [quality record](../quality.md#completed-lifetime-statistics--november-9-2026).
 These are local results; commit/CI/review/merge gates are not marked complete.
+
+## Main integration repair — November 16, 2026
+
+read composes readCounters and readCompletedIds. The two loops describe different
+parts of the persisted schema. Both use FileProfileRepository.requiredProperty so
+missing external fields never reach internal models as null. ST-C06 covers every
+counter/history field; existing duplicate, negative, malformed and round-trip
+cases remain. No file schema, hash parameters or statistics formulas changed.

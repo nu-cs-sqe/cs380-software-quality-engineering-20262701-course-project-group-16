@@ -14,7 +14,7 @@ public final class PlayerProfile {
      *
      * @param profileId existing nonblank identifier, supplied by creation or loading
      * @param displayName nonblank human-readable name in any supported script
-     * @throws IllegalArgumentException if either input is null or blank
+     * @throws IllegalArgumentException if either input is blank
      */
     public PlayerProfile(String profileId, String displayName) {
         this.profileId = requireNonBlank(profileId, "Profile ID");
@@ -22,7 +22,7 @@ public final class PlayerProfile {
     }
 
     private static String requireNonBlank(String value, String label) {
-        if (value == null || value.isBlank()) {
+        if (value.isBlank()) {
             throw new IllegalArgumentException(label + " must contain a non-whitespace character.");
         }
         return value;

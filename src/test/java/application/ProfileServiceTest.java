@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -80,7 +79,6 @@ class ProfileServiceTest {
 
     static Stream<Arguments> invalidNames() {
         return Stream.of(
-                Arguments.of("PS-C04", (String) null),
                 Arguments.of("PS-C05", ""),
                 Arguments.of("PS-C06", " "),
                 Arguments.of("PS-C07", "\t"),
@@ -101,7 +99,6 @@ class ProfileServiceTest {
 
     static Stream<Arguments> invalidGeneratedIds() {
         return Stream.of(
-                Arguments.of("PS-C10", (String) null),
                 Arguments.of("PS-C11", ""),
                 Arguments.of("PS-C12", " "));
     }
@@ -147,7 +144,6 @@ class ProfileServiceTest {
 
     static Stream<Arguments> invalidLookupIds() {
         return Stream.of(
-                Arguments.of("PS-C15", (String) null),
                 Arguments.of("PS-C16", ""),
                 Arguments.of("PS-C17", " "),
                 Arguments.of("PS-C18", "\t"),
@@ -192,18 +188,6 @@ class ProfileServiceTest {
     }
 
     @Test
-    @DisplayName("PS-C23: requires a repository and ID source")
-    void requiresCollaborators() {
-        MemoryRepository repository = new MemoryRepository();
-        Supplier<String> ids = () -> "id";
-
-        assertThrows(IllegalArgumentException.class, () -> new ProfileService(null));
-        assertThrows(IllegalArgumentException.class, () -> new ProfileService(null, new FakeHasher(), ids));
-        assertThrows(IllegalArgumentException.class, () -> new ProfileService(repository, new FakeHasher(), null));
-    }
-
-
-    @Test
     @DisplayName("PS-A01: authenticates only the selected identity with its password")
     void authenticatesOnlyMatchingCredentials() throws IOException, GeneralSecurityException {
         MemoryRepository repository = new MemoryRepository();
@@ -214,7 +198,6 @@ class ProfileServiceTest {
                 .orElseThrow().getDisplayName());
         assertTrue(service.authenticate("id", "incorrect password".toCharArray()).isEmpty());
         assertTrue(service.authenticate("missing", PASSWORD.clone()).isEmpty());
-        assertTrue(service.authenticate("id", null).isEmpty());
         assertEquals(1, service.list().size());
     }
 
@@ -240,13 +223,10 @@ class ProfileServiceTest {
     void validatesAuthenticationInputAndPreservesStorageFailures() {
         MemoryRepository repository = new MemoryRepository();
         ProfileService service = new ProfileService(repository, new FakeHasher(), () -> "id");
-        assertThrows(IllegalArgumentException.class, () -> service.authenticate(null, PASSWORD));
         assertThrows(IllegalArgumentException.class, () -> service.authenticate(" ", PASSWORD));
         repository.failRead = true;
         assertSame(repository.failure, assertThrows(IOException.class,
                 () -> service.authenticate("id", PASSWORD.clone())));
-        assertThrows(IllegalArgumentException.class,
-                () -> new ProfileService(repository, null, () -> "id"));
     }
 
     private static StoredProfile stored(String id, String name) {

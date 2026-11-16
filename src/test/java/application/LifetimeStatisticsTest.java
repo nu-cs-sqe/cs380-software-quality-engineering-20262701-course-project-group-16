@@ -24,7 +24,6 @@ class LifetimeStatisticsTest {
         AuthenticatedProfile account = service.login("profile", PASSWORD).orElseThrow();
         assertEquals(profile.getDisplayName(), account.getProfile().getDisplayName());
         assertEquals(0, service.getLifetimeStatistics(account).getHandsPlayed());
-        assertThrows(IllegalArgumentException.class, () -> service.getLifetimeStatistics(null));
         ProfileService other = service(repo);
         assertThrows(IllegalArgumentException.class, () -> other.getLifetimeStatistics(account));
         repo.data.clear();
