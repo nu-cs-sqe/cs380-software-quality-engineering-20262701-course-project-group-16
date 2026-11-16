@@ -1,5 +1,38 @@
 # System design
 
+## Full-chip match victory — November 16
+
+SetupSession.getMatchWinner requires successful settlement and a player holding
+the full configured chip total, normally 6,000. The query scans paid ownership
+across all fixed seats. An all-in quitter's complete payout and a completed
+winner's later departure retain that victory. Starting a new match clears the
+paid result and departure state.
+
+The existing retirement contract is retained: departed stacks stay owned and
+receive no later cards/blinds. Two or more funded nondeparted seats can continue,
+including heads-up dealing and blind order. With zero or one such seat and chips
+still split, play stops without a match winner. English/Chinese resources make
+that outcome explicit. Completed-hand statistics and chip conservation remain
+independent of the absence of a match winner.
+
+## Immediate quit-as-fold — November 16
+
+An active human's quit takes effect immediately through the engine's dedicated
+foldDepartingPlayer operation. It preserves another pending actor's turn, removes
+the quitter's decision/raise rights and eligibility, and retains cards and chip
+ownership. Ordinary submitted actions still require the current actor.
+
+SetupSession prepares automatic public-event successors and the resulting hand
+before recording/publishing the fold. A recording failure leaves the departure
+and bot revision retryable. BotTable.afterDeparture needs no legal-choice or
+position context and excludes the event from strategic learning. All-in players
+retain current-hand eligibility. Folded players and resolved hands acquire no
+extra fold. The compatibility playDepartureTurns entry point refreshes private
+handoffs after quit has already committed the departure.
+
+The earlier queued-fold policy is superseded for I03. The I07 full-total victory
+and stopped-match rules are described above; local fixes await review/CI/merge.
+
 ## Bot/profile integration — November 16
 
 SetupSession.startMatch prepares a fresh bot table, revision, match statistics and

@@ -13,6 +13,7 @@ import java.awt.Container;
 import java.awt.Font;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Random;
+import java.util.List;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
@@ -21,6 +22,7 @@ import javax.swing.SwingUtilities;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.CsvSource;
 import static org.junit.jupiter.api.Assertions.*;
 
 class PlayedGamePanelTest {
@@ -245,6 +247,80 @@ class PlayedGamePanelTest {
             assertEquals(language == 0 ? "Departed" : "已离开",
                     find(panel, "seatStatus3", JLabel.class).getText());
             assertEquals("--", find(panel, "seatCards3", JLabel.class).getText());
+        });
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1})
+    void leavingOutOfTurnAwardsTheUncontestedHandToTheRemainingPlayer(int language)
+            throws InterruptedException, InvocationTargetException {
+        onEdt(() -> {
+            SetupSession session = session(new GameConfig());
+            GamePanel panel = panel(session, language);
+            start(panel, 6);
+            for (int index = 0; index < 3; index++) {
+                find(panel, "fold", JButton.class).doClick();
+            }
+            find(panel, "call", JButton.class).doClick();
+            find(panel, "fold", JButton.class).doClick();
+            assertEquals(2, view(session).getCurrentActorSeat());
+            String quitter = view(session).getPlayers().get(0).getId();
+            String winner = view(session).getPlayers().get(2).getId();
+            find(panel, "viewers", JComboBox.class).setSelectedIndex(0);
+            find(panel, "quit", JButton.class).doClick();
+            assertTrue(session.hasDeparted(quitter));
+            assertEquals(List.of(winner), session.getResult().orElseThrow().getWinnerIds());
+            assertTrue(find(panel, "settle", JButton.class).isEnabled());
+            assertFalse(find(panel, "fold", JButton.class).isEnabled());
+            assertEquals("--", find(panel, "hole0", JLabel.class).getText());
+            find(panel, "settle", JButton.class).doClick();
+            assertEquals(980, view(session).getPlayers().get(0).getChipStack());
+            assertEquals(1030, view(session).getPlayers().get(2).getChipStack());
+            assertEquals(6000, view(session).getPlayers().stream()
+                    .mapToLong(player -> player.getChipStack()).sum());
+            panel.stopBots();
+        });
+    }
+
+    @ParameterizedTest
+    @CsvSource({"0,0", "0,1", "0,2", "1,0", "1,1", "1,2"})
+    void terminalPolicyHandlesZeroOneAndTwoPlayingSeats(int language, int remaining)
+            throws InterruptedException, InvocationTargetException {
+        onEdt(() -> {
+            SetupSession session = session(new GameConfig());
+            GamePanel panel = panel(session, language);
+            start(panel, 6);
+            for (int index = 0; index < 5; index++) {
+                find(panel, "fold", JButton.class).doClick();
+            }
+            find(panel, "settle", JButton.class).doClick();
+            for (int seat = 5; seat >= remaining; seat--) {
+                find(panel, "viewers", JComboBox.class).setSelectedIndex(seat);
+                find(panel, "quit", JButton.class).doClick();
+            }
+            assertTrue(session.getMatchWinner().isEmpty());
+            assertEquals(6000, view(session).getPlayers().stream()
+                    .mapToLong(player -> player.getChipStack()).sum());
+            assertEquals(5, session.getAcceptedActions().size());
+            assertEquals("--", find(panel, "hole0", JLabel.class).getText());
+            JButton next = find(panel, "nextHand", JButton.class);
+            assertEquals(remaining == 2, next.isEnabled());
+            if (remaining == 2) {
+                assertEquals(language == 0 ? "Pot paid" : "底池已结算",
+                        find(panel, "status", JLabel.class).getText());
+                next.doClick();
+                assertEquals(1, view(session).getPositions().getDealerSeat());
+                assertEquals(1, view(session).getPositions().getSmallBlindSeat());
+                assertEquals(0, view(session).getPositions().getBigBlindSeat());
+                assertEquals(48, view(session).getRemainingCardCount());
+                assertTrue(view(session).getHoleCards().isEmpty());
+                assertEquals(6000, view(session).getPot() + view(session).getPlayers().stream()
+                        .mapToLong(player -> player.getChipStack()).sum());
+            } else {
+                assertEquals(language == 0 ? "Match ended without a winner."
+                        : "比赛结束，无整场获胜者。", find(panel, "status", JLabel.class).getText());
+            }
+            panel.stopBots();
         });
     }
 

@@ -64,3 +64,9 @@ The November 10 profile flow adds 23 headless component cases mapped in
 feedback in both languages, password/card concealment, storage retries and
 same-name account selection. New messages remain resource-backed and catalog-
 validated; no locale switch is implemented as a language-specific Java branch.
+
+November 16 I07 adds six terminal boundary invocations in PlayedGamePanelTest.
+English/Chinese match.ended now states that play ended without a winner. Four
+terminal text assertions first failed against the former generic labels, then
+passed with both resource values updated. Two heads-up continuation boundaries
+retain Pot paid and enabled Next hand. No Java locale branch or new key is added.

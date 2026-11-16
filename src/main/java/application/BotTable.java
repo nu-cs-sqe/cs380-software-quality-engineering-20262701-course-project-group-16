@@ -64,24 +64,24 @@ final class BotTable {
         return models;
     }
 
-    BotTable after(AcceptedAction action, LegalActions before, boolean position,
-            DecisionOrigin origin) {
+    BotTable after(AcceptedAction action, LegalActions before, boolean position) {
         long next = Math.incrementExact(sequence);
-        PublicDecision event = publicEvent(next, action, before, position, origin);
-        Map<String, OpponentModel> updated = new LinkedHashMap<>();
-        models.forEach((id, model) -> updated.put(id, model.after(event)));
-        return new BotTable(matchId, next, players, updated);
-    }
-
-    private PublicDecision publicEvent(long next, AcceptedAction action, LegalActions before,
-            boolean position, DecisionOrigin origin) {
-        if (origin == DecisionOrigin.DEPARTURE) {
-            return new PublicDecision(matchId, next, action, DecisionOrigin.DEPARTURE);
-        }
         Set<ResolvedActionType> choices = before.getActions().stream()
                 .map(type -> ResolvedActionType.valueOf(type.name())).collect(Collectors.toSet());
         DecisionContext context = new DecisionContext(action.getStreet(), choices, position);
-        return new PublicDecision(matchId, next, action, context, DecisionOrigin.PLAYER_CHOICE);
+        return after(new PublicDecision(matchId, next, action, context,
+                DecisionOrigin.PLAYER_CHOICE));
+    }
+
+    BotTable afterDeparture(AcceptedAction action) {
+        return after(new PublicDecision(matchId, Math.incrementExact(sequence), action,
+                DecisionOrigin.DEPARTURE));
+    }
+
+    private BotTable after(PublicDecision event) {
+        Map<String, OpponentModel> updated = new LinkedHashMap<>();
+        models.forEach((id, model) -> updated.put(id, model.after(event)));
+        return new BotTable(matchId, event.getSequence(), players, updated);
     }
 
     Map<String, OpponentBeliefs> snapshot(String bot) {

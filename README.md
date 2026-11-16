@@ -3,8 +3,9 @@
 A Java desktop no-limit Texas Hold'em game with six seats for 1–6 humans and bots
 filling the remaining seats. Players share one computer and use virtual chips.
 Seats and chip ownership stay fixed during a match. Humans can leave. The agreed
-match target is one player holding all 6,000 chips; departure-related terminal
-behavior still needs reconciliation with that requirement.
+match winner must hold all 6,000 chips after settlement. When departures leave
+fewer than two funded playing seats and chips remain split, play ends without
+a match winner; departed stacks stay with their owners.
 
 **Status:** The engine and application session support full bets/raises and
 fold/check/call on every street, settlement and continued hands with carried
@@ -16,8 +17,8 @@ decisions in a cancellable background worker.
 
 Bot inputs contain only their own cards and public information. Match/hand/state
 checks reject old results. This is an adaptive heuristic; equity uses uniform
-opponent hands. Profile integration and the documented departure/terminal-policy
-follow-ups remain pending; see [quality](docs/quality.md).
+opponent hands. Native desktop verification, broader evaluation and review/CI
+acceptance remain pending; see [quality](docs/quality.md).
 
 ## Contributors
 
@@ -92,10 +93,12 @@ and retains completed lifetime data. Closing discards unfinished play. Saved
 accounts/statistics are local in `~/.cs380-holdem/profiles.properties`; they reopen
 after password verification. Storage errors leave settlement retryable.
 
-Select a human and choose **Leave match** to retire their seat. Current actors fold
-immediately; other active departures queue a fold, and all-in eligibility lasts
-through settlement. The queued-departure winner and 6,000-chip terminal-policy
-follow-ups are still open; see [quality results](docs/quality.md).
+Select a human and choose **Leave match** to retire their seat. Active humans fold
+immediately, including out-of-turn departures. Another pending player keeps their
+turn while betting remains open. All-in eligibility lasts through settlement.
+A match winner owns the full chip total. A stopped match with chips split across
+playing and departed seats displays **Match ended without a winner**. See
+[quality results](docs/quality.md) for verification and acceptance status.
 Tests run headlessly with temporary catalogs, without creating real profiles.
 
 ## Application initialization

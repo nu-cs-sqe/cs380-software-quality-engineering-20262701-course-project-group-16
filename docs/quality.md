@@ -8,6 +8,117 @@ no `ignoreFailures`, global suppression or baseline hiding existing warnings. Re
 CI uploads test, coverage, mutation and static-analysis reports even after a
 failed step.
 
+## I07 full-chip match victory — November 16, 2026
+
+The confirmed departure policy preserves each retired stack. After payment, a
+match winner must own the full configured chip total, normally 6,000. With fewer
+than two funded nondeparted seats and no full-total owner, play ends without a
+winner. English/Chinese resources now state that outcome explicitly. Two playing
+seats retain normal heads-up continuation, stable seats, blinds and chip totals.
+
+SetupSession.getMatchWinner scans paid ownership across all fixed seats. A
+legitimate all-in quitter can win the full total, and a completed champion's
+later departure preserves that result. New matches clear the paid outcome.
+The production change uses GameConfig.getInitialTotalChips(), including supported
+injected settings. NextHand and departed-stack ownership behavior are retained.
+
+Four winner invocations first failed against the previous source, then passed
+with the full-total query. Six bilingual UI boundaries first produced four
+terminal-label failures and two continuation passes, then all six passed after
+resource updates. The configured 120-chip winner is additional boundary coverage.
+The 98-case focused winner/continuation/localization run passed.
+
+The first full build/PIT run passed 1,545 tests in 12m57s but exposed one new
+non-equivalent getMatchWinner settlement-guard survivor: PIT killed 1,823/1,838,
+with 15 survivors. A before-start Optional.empty regression was added to preserve
+legitimate absence. The final PIT report names that test as killing the guard
+mutation. This is mutation hardening after implementation, preserving the actual
+RED/GREEN history. No synthetic test-first Git commits are claimed.
+
+Final build pitest --warning-mode all exits 0 in 12m03s with JDK 25 for Gradle
+and Java 11 compilation/tests. No source/test/configuration changes follow that
+run. Existing BVA/design/rules/weekly records are updated; the uncommitted I03
+work is preserved on fix/quit-eligibility in the original checkout.
+
+| Check | Final local result |
+| --- | --- |
+| JUnit | **1,546 passing**, zero failures/errors/skips; 12 new invocations above the 1,534 I03 checkpoint. |
+| Checkstyle | Zero main/test/seat-rule findings; production/new test lines remain within 100 characters. |
+| SpotBugs | Zero unexcluded main/test findings, analysis errors or missing classes. |
+| Shared scope | **66 parent components / 68 reported classes**, unchanged. |
+| JaCoCo | **2,893/2,894 lines**, 1,509/1,510 branches, 1,567/1,568 complexity counters, 14,126/14,131 instructions, 807/807 methods and 68/68 classes. |
+| PIT | **1,824/1,838 killed**, the same 14 documented baseline survivors; zero uncovered/timeout/error mutants; 97 selected test classes and 13,459 executions across mutants. PIT lines 2,898/2,902. |
+
+Survivor class/method/signature/operator/description identities match the I03
+baseline. All mutations in the new winner query are killed. The existing
+GameState.hasBoardSizeForPhase enum-default miss and baseline equivalence/basis-
+path interpretation remain review limits. No measured class, test pattern,
+operator, rule, suppression or exclusion was added/removed for these results.
+
+I03/I07 changes are uncommitted on the same local branch. User commit/push,
+Kevin's contract review, remote CI and merge acceptance remain pending. Issue
+checkboxes remain open under those gates; the scoped result establishes no
+whole-backend or individual-grade conclusion.
+
+## I03 immediate quit-as-fold correction — November 16, 2026
+
+At the user's request, fix/quit-eligibility starts at the verified integration
+commit 4a9d9d3 in the original checkout. E05/E06 integration was committed/pushed
+and submitted in PR #26. This local I03 correction is separate uncommitted work.
+
+An active human's quit now records an immediate automatic FOLD, including an
+out-of-turn departure. BettingEngine.foldDepartingPlayer preserves another pending
+actor, fixed seats, cards, stacks and commitments while removing the quitter's
+eligibility and decision/raise rights. Ordinary apply retains its turn validation.
+The session prepares the resulting hand/model successors, records the accepted
+fold, then publishes it. Recording failure leaves eligibility, log, learning and
+revision retryable. All-in departures retain their current-hand payout eligibility.
+Already-folded players and resolved hands receive no duplicate/retroactive fold.
+
+BotTable.afterDeparture uses the automatic PublicDecision overload without legal
+choices or position. Automatic folds never train strategic preferences. Captured
+bot results become stale on successful departure; fresh pot/equity scenarios
+exclude the folded quitter. The compatibility playDepartureTurns API retains its
+private-handoff refresh, with an empty action list after immediate departure.
+Obsolete queued-fold branches were removed from the passive helper and session.
+
+Three DEP-08/09/10 assertions failed against the original source before production
+changes. Fourteen DB invocations then failed compilation against the missing
+engine operation. Their first executable run exposed an incorrect identity-based
+Player-list assertion in the new test; it was corrected to compare ownership
+fields. The new UI case also required its List import. These test-development
+corrections are recorded explicitly, not claimed as additional behavior REDs.
+The complete focused rerun passed 58 invocations. Four additional boundary/UI
+invocations supplement the initial 17 engine/session invocations, for 21 new cases.
+Existing all-in, privacy, invalid/repeated departure and next-hand cases remain.
+No synthetic Git TDD commits or scratch reports were created.
+
+Final build pitest --warning-mode all exits 0 in 12m17s with JDK 25 running
+Gradle and Java 11 compilation/tests. No source/test/configuration changes follow
+that run. Checkstyle rules, SpotBugs filters, measured classes, mutators and test
+patterns are unchanged.
+
+| Check | Local result |
+| --- | --- |
+| JUnit | **1,534 passing**, zero failures/errors/skips; 21 new invocations above the 1,513 integration baseline. |
+| Checkstyle | Zero main/test/seat-rule findings; production and new test lines remain within 100 characters. |
+| SpotBugs | Zero unexcluded main/test findings, analysis errors or missing classes. |
+| Shared scope | **66 parent components / 68 reported classes**, unchanged. |
+| JaCoCo | **2,892/2,893 lines**, 1,509/1,510 branches, 1,566/1,567 complexity counters, 14,119/14,124 instructions, 806/806 methods and 68/68 classes. |
+| PIT | **1,822/1,836 killed**, the same 14 documented baseline survivors; zero uncovered/timeout/error mutants; 97 selected test classes and 13,412 executions across mutants. PIT lines 2,897/2,901. |
+
+Survivor class/method/signature/operator/description identities match the previous
+integration report. GameState.hasBoardSizeForPhase's unreachable enum-default line
+remains the sole JaCoCo miss. Survivor equivalence and independent basis-path
+interpretation retain their existing review limits. Reduced branch/line counters
+reflect removal of the obsolete queue paths; measurement scope is unchanged.
+
+I03 is verified locally and awaits user commit/push, Kevin's contract review,
+remote CI and merge acceptance. The rules/design/BVA now describe immediate
+active departure and preserve the historical queued-fold checkpoint. I07's
+retired-stack/6,000-chip terminal policy remains open. No issue checkbox or
+whole-backend completion is claimed by this local fix.
+
 ## E05/E06 and profile integration — November 16, 2026
 
 The original checkout on feature/bot-integration combines bot head 02a8e1a with

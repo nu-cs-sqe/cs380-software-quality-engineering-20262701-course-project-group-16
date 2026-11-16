@@ -43,3 +43,26 @@ MatchStatistics.complete names accepted-event replay as a separate step before
 player completion. NextHand separates initial bet targeting from preflop actor
 selection. Existing payment/continuation, failure and short-blind cases retain
 their expected results. This does not modify the separate profile branch.
+
+## I07 full-chip-total victory — November 16, 2026
+
+| ID | Methods/state | Expected result | Test |
+| --- | --- | --- | --- |
+| I07-00 | getMatchWinner before starting a session | Optional.empty and no continuation; no match state is required for the absence query | aMatchWinnerIsAbsentBeforeStartingTheSession |
+| I07-01-1/1000 | getMatchWinner; settled winning stack 5,999/5,000, with 1/1,000 chips in a departed seat | No match winner; each stack retained and total 6,000 | aRemainingPlayerBelowTheFullChipTotalCannotBeDeclaredMatchWinner |
+| I07-02 | quit; all-in CALL/runout; settleHand | Departed all-in player can win all 6,000; no winner before payment, full-total winner afterward | anAllInDepartureCanWinTheCompleteChipTotal |
+| I07-03 | quit after a paid 6,000-chip victory, then start | Retain completed winner after departure; new match clears settlement, winner and departure flag | aCompletedMatchWinnerRetainsTheResultAfterLeaving |
+| I07-04 | getMatchWinner with injected 20-chip initial stacks and 10/20 blinds | Winning total is configured 120, preserving supported test settings | theWinningStackUsesTheConfiguredMatchTotal |
+
+The four original winner invocations were observed RED against the old funded-seat
+counting logic, then GREEN after the full-total predicate replaced it. The custom
+configuration and six UI boundary cases are additional coverage/hardening.
+Existing finalHeadsUpWin coverage retains real comparison, 6,000-chip payout,
+elimination and completed statistics. UI-I07 additionally exercises normal
+Next hand entry with exactly two funded playing seats and departed stacks.
+Historical results and genuine Git/TDD evidence retain their original scope.
+
+The first full PIT run exposed one additional getMatchWinner settlement-guard
+survivor. I07-00 adds the legitimate before-start absence case that would throw
+if that guard were removed. It is mutation hardening added after implementation,
+not a claimed new feature RED cycle or a programmer-null input case.

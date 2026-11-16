@@ -32,6 +32,13 @@ All six seat records stay in state after elimination or departure. An eliminated
 player has no chips, cards or commitments. A departed seat keeps its stack but
 receives no cards or commitments in future hands. An all-in player, including
 one who leaves, remains `ALL_IN` and eligible until settlement.
+An active human's quit immediately produces a `FOLDED` current-hand state with
+their cards and commitments retained. Another pending actor keeps their turn.
+The departing seat becomes `DEPARTED` when a later hand is initialized.
+After payment, a match winner owns GameConfig.getInitialTotalChips(). Departure
+flags do not erase a full-total victory, including an all-in quitter's final
+payout. When fewer than two funded nondeparted seats remain and chips stay split,
+the match ends without a winner. Fixed chip ownership is retained.
 
 ## Setup and position selection
 

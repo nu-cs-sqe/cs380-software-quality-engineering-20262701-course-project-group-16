@@ -10,7 +10,7 @@ GameState, Deck, human cards or a mutable opponent registry.
 | SB03 | invalidateBotTurns/applyBotDecision | Cancel without a game action | Old revision ignored without privacy/chip/log changes | Implemented, GREEN |
 | SB04 | start/applyBotDecision | Restart same hand/player fixture | Match identity still rejects old result | Implemented, GREEN |
 | SB05 | nextHand/getBotTurn | Human, result, paid hand, next hand | No unnecessary job; old hand rejected; match beliefs persist | Implemented, GREEN |
-| SB06 | quit/playDepartureTurns | Current and queued departures | Accepted folds advance normally but never train strategic beliefs | Implemented, GREEN |
+| SB06 | quit/playDepartureTurns | Current and out-of-turn departures | Immediate automatic folds invalidate work and never train strategic beliefs | Implemented, GREEN |
 | SB07 | applyBotDecision/getBotBeliefs | Before start or another match | Ignore old output; no unrelated mutation | Implemented, GREEN |
 | SB08 | getBotTurn/applyBotDecision | Short blind, gross call 10, refund 15 including old chips | Preview only new-call refund 10; actual payment conserves chips | Implemented, GREEN |
 | SB09 | isCurrentBotTurn | Same revision, different hand or actor | Reject without engine/state mutation | Implemented, GREEN |
@@ -26,7 +26,7 @@ owner-only; this value object introduces no independent mutation API.
 | --- | --- | --- | --- | --- |
 | SB10 | getBotTurn | Closed round with no actor | Empty; no fabricated job | Implemented, GREEN |
 | SB11 | submitAction/getBotBeliefs/getBotTurn | Every street, position true/false, free CHECK preview | Learn exact public context; zero-cost preview has no hypothetical CALL | Implemented, GREEN |
-| SB12 | playBotTurns | Legacy helper consumes departed human | Never learn automatic fold | Implemented, GREEN |
+| SB12 | playBotTurns | Passive bots continue after a human's immediate departure | Complete the hand without learning the automatic fold | Implemented, GREEN |
 | SB13 | playDepartureTurns | Six humans; viewer differs from actor | Select actor with hidden cards | Implemented, GREEN |
 | SB14 | applyBotDecision/getBotBeliefs | Injected recorder failure, retry same captured turn | No chip/log/learning publication or consumed revision on failure; retry once | Implemented, GREEN |
 

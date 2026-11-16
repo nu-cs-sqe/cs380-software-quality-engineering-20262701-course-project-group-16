@@ -2,7 +2,6 @@ package application;
 
 import domain.model.GameState;
 import bot.EquityRequest;
-import bot.learning.DecisionOrigin;
 import bot.learning.OpponentBeliefs;
 import domain.model.GamePhase;
 import domain.model.LegalActions;
@@ -81,31 +80,25 @@ public final class SetupSession implements BotSession {
      * @throws UnsupportedOperationException for actions outside the supported engine scope
      */
     public AcceptedAction submitAction(ActionRequest request) {
-        return submit(request, DecisionOrigin.PLAYER_CHOICE);
-    }
-
-    private AcceptedAction submit(ActionRequest request, DecisionOrigin origin) {
         hideCards();
         GameState hand = requireOpenHand();
-        requireDepartureFold(request);
         BettingResult accepted = engine.apply(hand, request);
+        long nextRevision = Math.incrementExact(revision);
+        BotTable learned = bots.orElseThrow().after(accepted.getAcceptedAction(),
+                engine.getLegalActions(hand), decisionPosition(hand));
+        return commitAction(accepted, learned, nextRevision);
+    }
+
+    private AcceptedAction commitAction(BettingResult accepted, BotTable learned,
+            long nextRevision) {
         GameState candidate = advanceClosedRounds(accepted.getState());
         Optional<ShowdownResult> comparison = compareIfFinished(candidate);
         AcceptedAction action = accepted.getAcceptedAction();
-        long nextRevision = Math.incrementExact(revision);
-        BotTable learned = bots.orElseThrow().after(action, engine.getLegalActions(hand),
-                decisionPosition(hand), origin);
         statistics.orElseThrow().accept(action);
         publishAction(candidate, comparison, action);
         bots = Optional.of(learned);
         revision = nextRevision;
         return action;
-    }
-
-    private void requireDepartureFold(ActionRequest request) {
-        if (hasDeparted(request.getPlayerId()) && request.getType() != ActionType.FOLD) {
-            throw new IllegalArgumentException("A departed player can only fold.");
-        }
     }
 
     private GameState requireOpenHand() {
@@ -125,7 +118,7 @@ public final class SetupSession implements BotSession {
     }
 
     /**
-     * Legacy passive helper: queued departure folds and CHECK/CALL bots until a human or result.
+     * Legacy passive helper: CHECK/CALL bots until a human or result.
      * Uses no opponent cards/equity. Each returned action was committed once.
      * @throws IllegalStateException if no match exists
      */
@@ -135,13 +128,10 @@ public final class SetupSession implements BotSession {
         while (match.getCurrentActorSeat().isPresent()) {
             Player actor = match.getPlayers()
                     .get(match.getCurrentActorSeat().orElseThrow());
-            boolean quitting = hasDeparted(actor.getId());
-            if (actor.getType() == PlayerType.HUMAN && !quitting) {
+            if (actor.getType() == PlayerType.HUMAN) {
                 break;
             }
-            ActionType type = quitting ? ActionType.FOLD : passiveBotAction();
-            played.add(submit(new ActionRequest(actor.getId(), type),
-                    quitting ? DecisionOrigin.DEPARTURE : DecisionOrigin.PLAYER_CHOICE));
+            played.add(submitAction(new ActionRequest(actor.getId(), passiveBotAction())));
             match = requireMatch();
         }
         selectActingHuman();
@@ -159,8 +149,7 @@ public final class SetupSession implements BotSession {
             return LegalActions.none();
         }
         GameState match = state.orElseThrow();
-        return match.getCurrentActorId().filter(this::hasDeparted).isPresent()
-                ? LegalActions.none() : engine.getLegalActions(match);
+        return engine.getLegalActions(match);
     }
 
     public Set<ActionType> getAvailableActions() {
@@ -168,30 +157,35 @@ public final class SetupSession implements BotSession {
     }
 
     /**
-     * Retires a human seat from later hands. A current actor folds immediately; another
-     * active seat folds at its next turn. All-in eligibility survives until settlement.
+     * Retires a human seat from later hands and folds an active participant immediately.
+     * Another pending actor keeps their turn. All-in eligibility survives until settlement.
      * @throws IllegalArgumentException if the human is unknown or already departed
      * @throws IllegalStateException if no match exists
      */
     public void quit(String playerId) {
         hideCards();
         GameState match = requireMatch();
-        requireRemainingHuman(match, playerId);
+        PlayerState departing = requireRemainingHuman(match, playerId);
         long nextRevision = Math.incrementExact(revision);
-        if (match.getCurrentActorId().filter(playerId::equals).isPresent()) {
-            submit(new ActionRequest(playerId, ActionType.FOLD), DecisionOrigin.DEPARTURE);
+        if (result.isEmpty() && departing.canAct()) {
+            BettingResult folded = engine.foldDepartingPlayer(match, playerId);
+            BotTable learned = bots.orElseThrow().afterDeparture(folded.getAcceptedAction());
+            commitAction(folded, learned, nextRevision);
         }
         departed.add(playerId);
         revision = nextRevision;
         selectActingHuman();
     }
 
-    private void requireRemainingHuman(GameState match, String playerId) {
-        if (hasDeparted(playerId) || match.getPlayers().stream()
-                .noneMatch(player -> player.getId().equals(playerId)
-                        && player.getType() == PlayerType.HUMAN)) {
+    private PlayerState requireRemainingHuman(GameState match, String playerId) {
+        if (hasDeparted(playerId)) {
             throw new IllegalArgumentException("Choose a human player who has not left.");
         }
+        return match.getPlayerStates().stream()
+                .filter(player -> player.getPlayer().getId().equals(playerId)
+                        && player.getPlayer().getType() == PlayerType.HUMAN)
+                .findFirst().orElseThrow(() -> new IllegalArgumentException(
+                        "Choose a human player who has not left."));
     }
 
     public boolean hasDeparted(String playerId) { return departed.contains(playerId); }
@@ -375,13 +369,14 @@ public final class SetupSession implements BotSession {
         return settlement.isPresent() && fundedPlayers().size() > 1;
     }
 
-    /** A paid match with one remaining funded seat has a winner. */
+    /** A paid match has a winner only when one player owns the full configured chip total. */
     public Optional<Player> getMatchWinner() {
         if (settlement.isEmpty()) {
             return Optional.empty();
         }
-        List<Player> remaining = fundedPlayers();
-        return remaining.size() == 1 ? Optional.of(remaining.get(0)) : Optional.empty();
+        GameState paid = requireMatch();
+        return paid.getPlayers().stream().filter(player -> player.getChipStack()
+                == paid.getConfig().getInitialTotalChips()).findFirst();
     }
 
     private List<Player> fundedPlayers() {
@@ -440,24 +435,12 @@ public final class SetupSession implements BotSession {
         revision = Math.incrementExact(revision);
     }
 
-    /** Runs only queued automatic departures; normal bot computation belongs to BotController. */
+    /** Refreshes the private handoff; quit already commits departure folds immediately. */
     public List<AcceptedAction> playDepartureTurns() {
-        List<AcceptedAction> actions = new ArrayList<>();
-        Optional<String> actor = queuedDeparture();
-        while (actor.isPresent()) {
-            actions.add(submit(new ActionRequest(actor.orElseThrow(), ActionType.FOLD),
-                    DecisionOrigin.DEPARTURE));
-            actor = queuedDeparture();
-        }
         if (state.isPresent()) {
             selectActingHuman();
         }
-        return List.copyOf(actions);
-    }
-
-    private Optional<String> queuedDeparture() {
-        return state.flatMap(GameState::getCurrentActorId)
-                .filter(this::hasDeparted);
+        return List.of();
     }
 
     private static boolean decisionPosition(GameState hand) {

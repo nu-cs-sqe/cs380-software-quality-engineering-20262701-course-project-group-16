@@ -134,9 +134,12 @@ class SessionBotIntegrationTest {
         BotTurn old = queued.getBotTurn(64).orElseThrow();
         String human = queued.getView().orElseThrow().getPlayers().get(0).getId();
         queued.quit(human);
+        assertEquals(1, queued.getAcceptedActions().size());
+        assertEquals(human, queued.getAcceptedActions().get(0).getPlayerId());
+        assertEquals(PlayerStatus.FOLDED, queued.getView().orElseThrow().getStatuses().get(0));
         assertFalse(queued.applyBotDecision(old, BotFixtures.passive(queued)));
         for (int index = 0; index < 3; index++) queued.submitAction(BotFixtures.passive(queued));
-        assertEquals(1, queued.playDepartureTurns().size());
+        assertTrue(queued.playDepartureTurns().isEmpty());
         assertTrue(queued.playDepartureTurns().isEmpty());
         String bot = queued.getView().orElseThrow().getPlayers().get(1).getId();
         assertEquals(0, queued.getBotBeliefs(bot).get(human).getObservedDecisions());

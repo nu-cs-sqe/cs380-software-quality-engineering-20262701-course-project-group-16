@@ -49,7 +49,7 @@ case. No new null-input tests were introduced. See the [shared API contract](../
 | `PlayerState` | [PlayerState.md](PlayerState.md) |
 | `BettingProgress` | [BettingProgress.md](BettingProgress.md) |
 | `BettingHistory` | [BettingHistory.md](BettingHistory.md) |
-| `BettingEngine` (actions and street advancement) | [BettingEngine.md](BettingEngine.md), [full bets/raises](FullBetting.md), [short all-ins/reopening](ShortAllInBetting.md) |
+| `BettingEngine` (actions, immediate departures and street advancement) | [BettingEngine.md](BettingEngine.md), [full bets/raises](FullBetting.md), [short all-ins/reopening](ShortAllInBetting.md) |
 | `LegalActions` | [LegalActions.md](LegalActions.md) |
 | `BettingResult` | [BettingResult.md](BettingResult.md) |
 | `HandPositions` | [HandPositions.md](HandPositions.md) |
