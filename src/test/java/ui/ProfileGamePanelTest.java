@@ -409,7 +409,7 @@ class ProfileGamePanelTest {
 
     private static GamePanel panel(ProfileService service, SetupSession session, int language)
             throws InterruptedException, InvocationTargetException {
-        GamePanel panel = edt(() -> new GamePanel(session, service));
+        GamePanel panel = edt(() -> UiBotFixtures.passive(session, service));
         idle(panel);
         event(() -> find(panel, "language", JComboBox.class).setSelectedIndex(language));
         return panel;

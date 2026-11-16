@@ -33,12 +33,17 @@ final class MatchStatistics {
 
     MatchStatistics complete(GameState hand, Settlement paid, List<AcceptedAction> actions) {
         Map<String, PlayStats> next = prepareCollectors(hand);
-        HandStatistics recorder = new HandStatistics(hand.getHandId(), next);
+        replayAcceptedActions(hand, actions, next);
+        completePlayers(hand, paid, actions, next);
+        return new MatchStatistics(next);
+    }
+
+    private static void replayAcceptedActions(GameState hand, List<AcceptedAction> actions,
+            Map<String, PlayStats> collectors) {
+        HandStatistics recorder = new HandStatistics(hand.getHandId(), collectors);
         for (AcceptedAction action : actions) {
             recorder.record(action);
         }
-        completePlayers(hand, paid, actions, next);
-        return new MatchStatistics(next);
     }
 
     private Map<String, PlayStats> prepareCollectors(GameState hand) {

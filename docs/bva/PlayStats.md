@@ -158,11 +158,18 @@ or a multi-hand sequence. Public constructor and all public methods are covered.
 | PS-Z09 | Constructor, getWtsdPercent() | New instance; denominator is zero | OptionalDouble.empty() | Yes |
 | PS-Z10 | Constructor, getWonAtShowdownPercent() | New instance; denominator is zero | OptionalDouble.empty() | Yes |
 
+Readability follow-up (November 15): recording separates participant,
+action-order and c-bet-role checks. Completion prepares checked totals in
+addToLifetimeTotals before commitCompletedHand publishes them and clears the
+pending hand. Postflop action counts and c-bet opportunities have separate named
+operations. Existing PS cases remain unchanged; 39 expected-rate rows now use
+OptionalDouble explicitly instead of nullable expected values.
+
 ## Completed persistence boundary
 
 completedSnapshot exports only committed raw counters and completed-hand IDs;
 active ID/actions are excluded. fromCompleted restores those counters/history
 with no active hand. CS-C01, CS-C25, CS-C27–28 in CompletedStatisticsTest cover
-empty/restored rates, duplicate protection, unfinished-hand exclusion, null input
+empty/restored rates, duplicate protection, unfinished-hand exclusion
 and nonparticipant completion. ST-C05 verifies all metric types after real file
 reload. See [snapshot BVA](CompletedStatisticsSnapshot.md).

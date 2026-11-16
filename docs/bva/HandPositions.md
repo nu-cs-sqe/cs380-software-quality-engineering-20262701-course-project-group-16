@@ -23,3 +23,13 @@ Bounds use the shared GameConfig.SEAT_COUNT constant, and named validation is
 separate from constructor assignment. Existing first/last/out-of-range seat
 cases retain their expected results. checkstyleSeatRules enforces MagicNumber
 for this class and the shared table-rule classes.
+
+## Shared public decision position (E06)
+
+| ID | Method | Input/state | Expected | Implemented |
+| --- | --- | --- | --- | --- |
+| DP01 | isInPosition | Preflop/postflop, missing/folded seats, last active responder | Uses BB/dealer street anchor; only last active responder is in position | Yes |
+| DP02 | isInPosition | Heads-up, zero/one active responders | Correct HU order; no response position with fewer than two actors | Yes |
+| DP03 | isInPosition | Seat or set entry -1/6 | Reject out-of-range public seat | Yes |
+
+Cases map to DecisionPositionTest. Policy and event contexts use this same method.

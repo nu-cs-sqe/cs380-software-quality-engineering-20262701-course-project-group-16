@@ -1,6 +1,8 @@
 package application;
 
 import domain.model.*;
+import bot.MonteCarloEquityEstimator;
+import bot.UniformDealSampler;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -11,6 +13,8 @@ import java.util.Map;
 import java.util.Random;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import persistence.FileProfileRepository;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -205,6 +209,95 @@ class ProfiledMatchIntegrationTest {
         session.nextHand();
         assertEquals(Map.of(playerId, profile.getProfileId()), session.getProfileIds());
         assertEquals(1, profiles.getLifetimeStatistics(account).getHandsPlayed());
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void pmC07AdaptiveProfileHandPreservesLearningAndRetriesSettlement(boolean afterSave)
+            throws IOException, GeneralSecurityException {
+        FailingRepository repository = new FailingRepository(new FileProfileRepository(directory));
+        ProfileService profiles = new ProfileService(repository);
+        PlayerProfile profile = profiles.create("Player", PASSWORD);
+        AuthenticatedProfile account =
+                profiles.login(profile.getProfileId(), PASSWORD).orElseThrow();
+        SetupSession session = new SetupSession(BotFixtures.initializer());
+        session.startProfiles(profiles, List.of(account));
+        Map<String, String> bindings = session.getProfileIds();
+        String player = bindings.keySet().iterator().next();
+        String observer = session.getView().orElseThrow().getPlayers().get(5).getId();
+        playAdaptiveHand(session);
+        Map<String, bot.learning.OpponentBeliefs> beliefs = session.getBotBeliefs(observer);
+        assertTrue(beliefs.values().stream().anyMatch(b -> b.getObservedDecisions() > 0));
+        SetupView before = session.getView().orElseThrow();
+        repository.fail = !afterSave;
+        repository.failAfterSave = afterSave;
+        assertThrows(UncheckedIOException.class, session::settleHand);
+        assertTrue(session.getSettlement().isEmpty());
+        assertEquals(before.getPlayers(), session.getView().orElseThrow().getPlayers());
+        assertEquals(before.getPot(), session.getView().orElseThrow().getPot());
+        assertEquals(0, session.getStatistics().get(player).getHandsPlayed());
+        assertEquals(afterSave ? 1 : 0, profiles.getLifetimeStatistics(account).getHandsPlayed());
+        assertEquals(beliefs, session.getBotBeliefs(observer));
+        repository.fail = false;
+        session.settleHand();
+        assertEquals(1, session.getStatistics().get(player).getHandsPlayed());
+        assertEquals(1, profiles.getLifetimeStatistics(account).getHandsPlayed());
+        assertThrows(IllegalStateException.class, session::settleHand);
+        assertEquals(6000, session.getView().orElseThrow().getPlayers().stream()
+                .mapToLong(Player::getChipStack).sum());
+        ProfileService reopened = new ProfileService(new FileProfileRepository(directory));
+        AuthenticatedProfile login = reopened.login(profile.getProfileId(), PASSWORD).orElseThrow();
+        assertEquals(session.getStatistics().get(player).getRates(),
+                reopened.getLifetimeStatistics(login).getRates());
+        session.nextHand();
+        assertEquals(bindings, session.getProfileIds());
+        assertEquals(beliefs, session.getBotBeliefs(observer));
+        assertEquals(1, session.getLifetimeStatistics().get(player).getHandsPlayed());
+    }
+
+    @Test
+    void pmC08ProfileRestartRejectsOldBotTurnsAndResetsLearning()
+            throws IOException, GeneralSecurityException {
+        ProfileService profiles = new ProfileService(new FileProfileRepository(directory));
+        PlayerProfile profile = profiles.create("Player", PASSWORD);
+        AuthenticatedProfile account =
+                profiles.login(profile.getProfileId(), PASSWORD).orElseThrow();
+        SetupSession session = new SetupSession(BotFixtures.initializer());
+        session.startProfiles(profiles, List.of(account));
+        BotTurn old = session.getBotTurn(32).orElseThrow();
+        session.submitAction(BotFixtures.passive(session));
+        session.startProfiles(profiles, List.of(account));
+        Map<String, String> bindings = session.getProfileIds();
+        session.revealCards();
+        assertFalse(session.applyBotDecision(old, new ActionRequest(
+                old.getView().getViewerId(), ActionType.CALL)));
+        assertTrue(session.getAcceptedActions().isEmpty());
+        assertEquals(2, session.getView().orElseThrow().getHoleCards().size());
+        BotTurn current = session.getBotTurn(32).orElseThrow();
+        assertTrue(session.isCurrentBotTurn(current));
+        assertTrue(session.getBotBeliefs(current.getView().getViewerId()).values().stream()
+                .allMatch(b -> b.getObservedDecisions() == 0));
+        assertEquals(profile.getProfileId(), bindings.values().iterator().next());
+        assertEquals(0, profiles.getLifetimeStatistics(account).getHandsPlayed());
+    }
+
+    private static void playAdaptiveHand(SetupSession session) {
+        Random deals = new Random(380);
+        Random decisions = new Random(16);
+        MonteCarloEquityEstimator equity = new MonteCarloEquityEstimator(new PokerHandEvaluator(),
+                new UniformDealSampler(deals::nextInt));
+        BotComputer computer = new BotComputer(equity::estimate, decisions::nextDouble);
+        int actions = 0;
+        while (session.getResult().isEmpty() && actions++ < 200) {
+            session.getBotTurn(32).ifPresentOrElse(turn -> assertTrue(
+                    session.applyBotDecision(turn, computer.decide(turn, () -> false))),
+                    () -> session.submitAction(BotFixtures.passive(session)));
+            SetupView view = session.getView().orElseThrow();
+            assertEquals(6000, view.getPot() + view.getPlayers().stream()
+                    .mapToLong(Player::getChipStack).sum());
+        }
+        assertTrue(session.getResult().isPresent());
+        assertTrue(actions < 200);
     }
 
     private static void wager(SetupSession session, ActionType type, long target) {

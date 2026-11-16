@@ -30,3 +30,7 @@ Grouped assertions exercise the public getters at the stated boundary; no mutabl
 | PS-27 | PlayerState; getHoleCards | Caller mutates card list after construction | Stored cards unaffected | Yes |
 | PS-28 | getHoleCards | Caller mutates returned card list | UnsupportedOperationException | Yes |
 | PS-29 | PlayerState; isDealtSeat; canAct; isParticipating | Departed seat with retained stack; zero or nonzero commitments; cards absent or present | Retain stack only with no cards/commitments; never deal or act | Yes; BettingStateBoundaryTest.departedSeatsCannotRetainCardsOrCommitChipsInLaterHands |
+
+Readability follow-up (November 15): contribution/overflow, physical hole
+cards and status compatibility are separate validation responsibilities. Existing
+constructor cases still cover each rule without null-input cases.

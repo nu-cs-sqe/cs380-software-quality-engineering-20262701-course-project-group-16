@@ -14,20 +14,27 @@ public final class PlayerState {
     /** @throws IllegalArgumentException for inconsistent status, cards or chip amounts */
     public PlayerState(Player player, PlayerStatus status, List<Card> cards,
             long round, long hand) {
-        if (round < 0 || hand < round
-                || player.getChipStack() > Long.MAX_VALUE - hand) {
-            throw new IllegalArgumentException("Invalid player, status or contribution.");
-        }
-        if ((cards.size() != 0 && cards.size() != 2)
-                || new HashSet<>(cards).size() != cards.size()) {
-            throw new IllegalArgumentException("Hole cards must be empty or two distinct cards.");
-        }
+        validateContributions(player.getChipStack(), round, hand);
+        validateHoleCards(cards);
         validateStatus(player.getChipStack(), status, hand, cards);
         this.player = player;
         this.status = status;
         this.holeCards = List.copyOf(cards);
         this.roundContribution = round;
         this.handContribution = hand;
+    }
+
+    private static void validateContributions(long stack, long round, long hand) {
+        if (round < 0 || hand < round || stack > Long.MAX_VALUE - hand) {
+            throw new IllegalArgumentException("Invalid player, status or contribution.");
+        }
+    }
+
+    private static void validateHoleCards(List<Card> cards) {
+        if ((cards.size() != 0 && cards.size() != 2)
+                || new HashSet<>(cards).size() != cards.size()) {
+            throw new IllegalArgumentException("Hole cards must be empty or two distinct cards.");
+        }
     }
 
     private static void validateStatus(long chips, PlayerStatus status, long hand,

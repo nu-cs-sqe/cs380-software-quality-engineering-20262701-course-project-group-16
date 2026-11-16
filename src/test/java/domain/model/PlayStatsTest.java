@@ -397,7 +397,7 @@ class PlayStatsTest {
     @ParameterizedTest(name = "{0}: {1}")
     @MethodSource("aggressionCases")
     void distinguishesAggressionRatioAndFrequency(String id, String description,
-            StatsAction[] actions, Double factor, Double frequency) {
+            StatsAction[] actions, OptionalDouble factor, OptionalDouble frequency) {
         PlayStats stats = new PlayStats();
         playPostflop(stats, id, actions);
         assertOptional(factor, stats.getAggressionFactor());
@@ -413,17 +413,82 @@ class PlayStatsTest {
         StatsAction rejected = new StatsAction(false, BettingStreet.FLOP,
                 ResolvedActionType.RAISE, 40, noContext());
         return Stream.of(
-                Arguments.of("PS-G01", "checks alone provide no denominator", actions(check), null, null),
-                Arguments.of("PS-G02", "positive aggression with zero calls has unavailable AF", actions(bet), null, 100.0),
-                Arguments.of("PS-G03", "call-only aggression is zero", actions(call), 0.0, 0.0),
-                Arguments.of("PS-G04", "fold-only frequency is zero but AF unavailable", actions(fold), null, 0.0),
-                Arguments.of("PS-G05", "one bet and one call", actions(bet, call), 1.0, 50.0),
-                Arguments.of("PS-G06", "bets and raises are action counts", actions(bet, raise, call), 2.0, 200.0 / 3.0),
-                Arguments.of("PS-G07", "preflop actions are excluded", actions(raise(PreflopRaiseType.OPENING_RAISE, 60), pre(ResolvedActionType.CALL, 20), bet, call, post(BettingStreet.TURN, ResolvedActionType.CALL, 20)), 0.5, 100.0 / 3.0),
-                Arguments.of("PS-G08", "checks do not dilute frequency", actions(check, bet, post(BettingStreet.TURN, ResolvedActionType.CHECK, 0), post(BettingStreet.TURN, ResolvedActionType.CALL, 20), post(BettingStreet.RIVER, ResolvedActionType.CHECK, 0)), 1.0, 50.0),
-                Arguments.of("PS-G09", "all-in resolved as a postflop call", actions(post(BettingStreet.FLOP, ResolvedActionType.CALL, 100)), 0.0, 0.0),
-                Arguments.of("PS-G10", "all-in resolved as a postflop raise", actions(post(BettingStreet.FLOP, ResolvedActionType.RAISE, 100)), null, 100.0),
-                Arguments.of("PS-G11", "rejected aggression is ignored", actions(rejected, call), 0.0, 0.0));
+                Arguments.of(
+                    "PS-G01",
+                    "checks alone provide no denominator",
+                    actions(check),
+                    OptionalDouble.empty(),
+                    OptionalDouble.empty()),
+                Arguments.of(
+                    "PS-G02",
+                    "positive aggression with zero calls has unavailable AF",
+                    actions(bet),
+                    OptionalDouble.empty(),
+                    OptionalDouble.of(100.0)),
+                Arguments.of(
+                    "PS-G03",
+                    "call-only aggression is zero",
+                    actions(call),
+                    OptionalDouble.of(0.0),
+                    OptionalDouble.of(0.0)),
+                Arguments.of(
+                    "PS-G04",
+                    "fold-only frequency is zero but AF unavailable",
+                    actions(fold),
+                    OptionalDouble.empty(),
+                    OptionalDouble.of(0.0)),
+                Arguments.of(
+                    "PS-G05",
+                    "one bet and one call",
+                    actions(bet, call),
+                    OptionalDouble.of(1.0),
+                    OptionalDouble.of(50.0)),
+                Arguments.of(
+                    "PS-G06",
+                    "bets and raises are action counts",
+                    actions(bet, raise, call),
+                    OptionalDouble.of(2.0),
+                    OptionalDouble.of(200.0 / 3.0)),
+                Arguments.of(
+                    "PS-G07",
+                    "preflop actions are excluded",
+                    actions(
+                        raise(PreflopRaiseType.OPENING_RAISE, 60),
+                        pre(ResolvedActionType.CALL, 20),
+                        bet,
+                        call,
+                        post(BettingStreet.TURN, ResolvedActionType.CALL, 20)),
+                    OptionalDouble.of(0.5),
+                    OptionalDouble.of(100.0 / 3.0)),
+                Arguments.of(
+                    "PS-G08",
+                    "checks do not dilute frequency",
+                    actions(
+                        check,
+                        bet,
+                        post(BettingStreet.TURN, ResolvedActionType.CHECK, 0),
+                        post(BettingStreet.TURN, ResolvedActionType.CALL, 20),
+                        post(BettingStreet.RIVER, ResolvedActionType.CHECK, 0)),
+                    OptionalDouble.of(1.0),
+                    OptionalDouble.of(50.0)),
+                Arguments.of(
+                    "PS-G09",
+                    "all-in resolved as a postflop call",
+                    actions(post(BettingStreet.FLOP, ResolvedActionType.CALL, 100)),
+                    OptionalDouble.of(0.0),
+                    OptionalDouble.of(0.0)),
+                Arguments.of(
+                    "PS-G10",
+                    "all-in resolved as a postflop raise",
+                    actions(post(BettingStreet.FLOP, ResolvedActionType.RAISE, 100)),
+                    OptionalDouble.empty(),
+                    OptionalDouble.of(100.0)),
+                Arguments.of(
+                    "PS-G11",
+                    "rejected aggression is ignored",
+                    actions(rejected, call),
+                    OptionalDouble.of(0.0),
+                    OptionalDouble.of(0.0)));
     }
 
     @Test
@@ -442,7 +507,7 @@ class PlayStatsTest {
     @ParameterizedTest(name = "{0}: {1}")
     @MethodSource("cBetCases")
     void usesExplicitFlopCBetEligibility(String id, String description,
-            StatsAction[] actions, Double expected) {
+            StatsAction[] actions, OptionalDouble expected) {
         PlayStats stats = new PlayStats();
         playPostflop(stats, id, actions);
         assertOptional(expected, stats.getFlopCBetPercent());
@@ -454,13 +519,41 @@ class PlayStatsTest {
                 ResolvedActionType.BET, 20, new StatsContext(PreflopRaiseType.NONE,
                         false, true, false));
         return Stream.of(
-                Arguments.of("PS-C01", "eligible opening flop bet is a c-bet", actions(open, cBetDecision(ResolvedActionType.BET, 20)), 100.0),
-                Arguments.of("PS-C02", "checking an eligible opportunity counts as declined", actions(open, cBetDecision(ResolvedActionType.CHECK, 0)), 0.0),
-                Arguments.of("PS-C03", "facing another opening bet is not an opening opportunity", actions(open, post(BettingStreet.FLOP, ResolvedActionType.CALL, 20)), null),
-                Arguments.of("PS-C04", "all-in before the flop has no betting opportunity", actions(open), null),
-                Arguments.of("PS-C05", "an ordinary flop bet is not automatically a c-bet", actions(post(BettingStreet.FLOP, ResolvedActionType.BET, 20)), null),
-                Arguments.of("PS-C06", "rejected c-bet followed by check is declined", actions(open, rejectedCBet, cBetDecision(ResolvedActionType.CHECK, 0)), 0.0),
-                Arguments.of("PS-C07", "eligible fold declines the opening bet", actions(open, cBetDecision(ResolvedActionType.FOLD, 0)), 0.0));
+                Arguments.of(
+                    "PS-C01",
+                    "eligible opening flop bet is a c-bet",
+                    actions(open, cBetDecision(ResolvedActionType.BET, 20)),
+                    OptionalDouble.of(100.0)),
+                Arguments.of(
+                    "PS-C02",
+                    "checking an eligible opportunity counts as declined",
+                    actions(open, cBetDecision(ResolvedActionType.CHECK, 0)),
+                    OptionalDouble.of(0.0)),
+                Arguments.of(
+                    "PS-C03",
+                    "facing another opening bet is not an opening opportunity",
+                    actions(open, post(BettingStreet.FLOP, ResolvedActionType.CALL, 20)),
+                    OptionalDouble.empty()),
+                Arguments.of(
+                    "PS-C04",
+                    "all-in before the flop has no betting opportunity",
+                    actions(open),
+                    OptionalDouble.empty()),
+                Arguments.of(
+                    "PS-C05",
+                    "an ordinary flop bet is not automatically a c-bet",
+                    actions(post(BettingStreet.FLOP, ResolvedActionType.BET, 20)),
+                    OptionalDouble.empty()),
+                Arguments.of(
+                    "PS-C06",
+                    "rejected c-bet followed by check is declined",
+                    actions(open, rejectedCBet, cBetDecision(ResolvedActionType.CHECK, 0)),
+                    OptionalDouble.of(0.0)),
+                Arguments.of(
+                    "PS-C07",
+                    "eligible fold declines the opening bet",
+                    actions(open, cBetDecision(ResolvedActionType.FOLD, 0)),
+                    OptionalDouble.of(0.0)));
     }
 
     @Test
@@ -478,7 +571,7 @@ class PlayStatsTest {
     @ParameterizedTest(name = "{0}: {1}")
     @MethodSource("facedCBetCases")
     void countsResponsesToActualFlopCBets(String id, String description,
-            StatsAction[] actions, Double expected) {
+            StatsAction[] actions, OptionalDouble expected) {
         PlayStats stats = new PlayStats();
         playPostflop(stats, id, actions);
         assertOptional(expected, stats.getFoldToFlopCBetPercent());
@@ -489,12 +582,36 @@ class PlayStatsTest {
                 ResolvedActionType.FOLD, 0, new StatsContext(PreflopRaiseType.NONE,
                         false, false, true));
         return Stream.of(
-                Arguments.of("PS-F01", "fold to an eligible actual c-bet", actions(facedCBetDecision(ResolvedActionType.FOLD, 0)), 100.0),
-                Arguments.of("PS-F02", "calling an eligible c-bet is not folding", actions(facedCBetDecision(ResolvedActionType.CALL, 20)), 0.0),
-                Arguments.of("PS-F03", "raising an eligible c-bet is not folding", actions(facedCBetDecision(ResolvedActionType.RAISE, 60)), 0.0),
-                Arguments.of("PS-F04", "ordinary folds create no c-bet opportunity", actions(post(BettingStreet.FLOP, ResolvedActionType.FOLD, 0)), null),
-                Arguments.of("PS-F05", "all-in player has no response decision", actions(pre(ResolvedActionType.CALL, 100)), null),
-                Arguments.of("PS-F06", "rejected fold followed by call is not a fold", actions(rejectedFold, facedCBetDecision(ResolvedActionType.CALL, 20)), 0.0));
+                Arguments.of(
+                    "PS-F01",
+                    "fold to an eligible actual c-bet",
+                    actions(facedCBetDecision(ResolvedActionType.FOLD, 0)),
+                    OptionalDouble.of(100.0)),
+                Arguments.of(
+                    "PS-F02",
+                    "calling an eligible c-bet is not folding",
+                    actions(facedCBetDecision(ResolvedActionType.CALL, 20)),
+                    OptionalDouble.of(0.0)),
+                Arguments.of(
+                    "PS-F03",
+                    "raising an eligible c-bet is not folding",
+                    actions(facedCBetDecision(ResolvedActionType.RAISE, 60)),
+                    OptionalDouble.of(0.0)),
+                Arguments.of(
+                    "PS-F04",
+                    "ordinary folds create no c-bet opportunity",
+                    actions(post(BettingStreet.FLOP, ResolvedActionType.FOLD, 0)),
+                    OptionalDouble.empty()),
+                Arguments.of(
+                    "PS-F05",
+                    "all-in player has no response decision",
+                    actions(pre(ResolvedActionType.CALL, 100)),
+                    OptionalDouble.empty()),
+                Arguments.of(
+                    "PS-F06",
+                    "rejected fold followed by call is not a fold",
+                    actions(rejectedFold, facedCBetDecision(ResolvedActionType.CALL, 20)),
+                    OptionalDouble.of(0.0)));
     }
 
     @Test
@@ -511,7 +628,7 @@ class PlayStatsTest {
     @MethodSource("showdownCases")
     void separatesFlopParticipationShowdownAndPayout(String id, String description,
             StatsAction[] actions, boolean sawFlop, boolean showdown, long payout,
-            long refund, Double wtsd, Double wonAtShowdown) {
+            long refund, OptionalDouble wtsd, OptionalDouble wonAtShowdown) {
         PlayStats stats = new PlayStats();
         stats.beginHand(id, true);
         for (StatsAction action : actions) {
@@ -529,21 +646,156 @@ class PlayStatsTest {
                 ResolvedActionType.FOLD, 0,
                 new StatsContext(PreflopRaiseType.NONE, false, false, true));
         return Stream.of(
-                Arguments.of("PS-S01", "folding after seeing the flop is not showdown", actions(post(BettingStreet.FLOP, ResolvedActionType.FOLD, 0)), true, false, 0L, 0L, 0.0, null),
-                Arguments.of("PS-S02", "showdown without payout", actions(check), true, true, 0L, 0L, 100.0, 0.0),
-                Arguments.of("PS-S03", "positive contested showdown payout", actions(check), true, true, 1L, 0L, 100.0, 100.0),
-                Arguments.of("PS-S04", "split-pot payout qualifies", actions(post(BettingStreet.FLOP, ResolvedActionType.CALL, 10)), true, true, 5L, 0L, 100.0, 100.0),
-                Arguments.of("PS-S05", "side-pot payout qualifies", actions(post(BettingStreet.TURN, ResolvedActionType.CALL, 10)), true, true, 7L, 0L, 100.0, 100.0),
-                Arguments.of("PS-S06", "positive payout with negative net result qualifies", actions(pre(ResolvedActionType.CALL, 100)), true, true, 10L, 0L, 100.0, 100.0),
-                Arguments.of("PS-S07", "combined payouts from multiple pots qualify once", actions(check), true, true, 30L, 0L, 100.0, 100.0),
-                Arguments.of("PS-S08", "uncalled-bet refund alone is not a showdown payout", actions(check), true, true, 0L, 100L, 100.0, 0.0),
-                Arguments.of("PS-S09", "winning when others fold is not showdown", actions(check), true, false, 0L, 10L, 0.0, null),
-                Arguments.of("PS-S10", "an all-in participant sees the flop", actions(pre(ResolvedActionType.CALL, 100)), true, true, 0L, 0L, 100.0, 0.0),
-                Arguments.of("PS-S11", "a preflop fold never saw the flop", actions(pre(ResolvedActionType.FOLD, 0)), false, false, 0L, 0L, null, null),
-                Arguments.of("PS-S15", "an all-in forced blind still participates in showdown", actions(pre(ResolvedActionType.FORCED_POST, 20)), true, true, 0L, 0L, 100.0, 0.0),
-                Arguments.of("PS-S16", "a rejected fold does not end showdown participation", actions(pre(ResolvedActionType.CALL, 100), rejectedFold), true, true, 5L, 0L, 100.0, 100.0),
-                Arguments.of("PS-S17", "largest positive payout counts as one payout hand", actions(check), true, true, Long.MAX_VALUE, 0L, 100.0, 100.0),
-                Arguments.of("PS-S18", "largest refund alone still does not qualify", actions(check), true, true, 0L, Long.MAX_VALUE, 100.0, 0.0));
+                Arguments.of(
+                    "PS-S01",
+                    "folding after seeing the flop is not showdown",
+                    actions(post(BettingStreet.FLOP, ResolvedActionType.FOLD, 0)),
+                    true,
+                    false,
+                    0L,
+                    0L,
+                    OptionalDouble.of(0.0),
+                    OptionalDouble.empty()),
+                Arguments.of(
+                    "PS-S02",
+                    "showdown without payout",
+                    actions(check),
+                    true,
+                    true,
+                    0L,
+                    0L,
+                    OptionalDouble.of(100.0),
+                    OptionalDouble.of(0.0)),
+                Arguments.of(
+                    "PS-S03",
+                    "positive contested showdown payout",
+                    actions(check),
+                    true,
+                    true,
+                    1L,
+                    0L,
+                    OptionalDouble.of(100.0),
+                    OptionalDouble.of(100.0)),
+                Arguments.of(
+                    "PS-S04",
+                    "split-pot payout qualifies",
+                    actions(post(BettingStreet.FLOP, ResolvedActionType.CALL, 10)),
+                    true,
+                    true,
+                    5L,
+                    0L,
+                    OptionalDouble.of(100.0),
+                    OptionalDouble.of(100.0)),
+                Arguments.of(
+                    "PS-S05",
+                    "side-pot payout qualifies",
+                    actions(post(BettingStreet.TURN, ResolvedActionType.CALL, 10)),
+                    true,
+                    true,
+                    7L,
+                    0L,
+                    OptionalDouble.of(100.0),
+                    OptionalDouble.of(100.0)),
+                Arguments.of(
+                    "PS-S06",
+                    "positive payout with negative net result qualifies",
+                    actions(pre(ResolvedActionType.CALL, 100)),
+                    true,
+                    true,
+                    10L,
+                    0L,
+                    OptionalDouble.of(100.0),
+                    OptionalDouble.of(100.0)),
+                Arguments.of(
+                    "PS-S07",
+                    "combined payouts from multiple pots qualify once",
+                    actions(check),
+                    true,
+                    true,
+                    30L,
+                    0L,
+                    OptionalDouble.of(100.0),
+                    OptionalDouble.of(100.0)),
+                Arguments.of(
+                    "PS-S08",
+                    "uncalled-bet refund alone is not a showdown payout",
+                    actions(check),
+                    true,
+                    true,
+                    0L,
+                    100L,
+                    OptionalDouble.of(100.0),
+                    OptionalDouble.of(0.0)),
+                Arguments.of(
+                    "PS-S09",
+                    "winning when others fold is not showdown",
+                    actions(check),
+                    true,
+                    false,
+                    0L,
+                    10L,
+                    OptionalDouble.of(0.0),
+                    OptionalDouble.empty()),
+                Arguments.of(
+                    "PS-S10",
+                    "an all-in participant sees the flop",
+                    actions(pre(ResolvedActionType.CALL, 100)),
+                    true,
+                    true,
+                    0L,
+                    0L,
+                    OptionalDouble.of(100.0),
+                    OptionalDouble.of(0.0)),
+                Arguments.of(
+                    "PS-S11",
+                    "a preflop fold never saw the flop",
+                    actions(pre(ResolvedActionType.FOLD, 0)),
+                    false,
+                    false,
+                    0L,
+                    0L,
+                    OptionalDouble.empty(),
+                    OptionalDouble.empty()),
+                Arguments.of(
+                    "PS-S15",
+                    "an all-in forced blind still participates in showdown",
+                    actions(pre(ResolvedActionType.FORCED_POST, 20)),
+                    true,
+                    true,
+                    0L,
+                    0L,
+                    OptionalDouble.of(100.0),
+                    OptionalDouble.of(0.0)),
+                Arguments.of(
+                    "PS-S16",
+                    "a rejected fold does not end showdown participation",
+                    actions(pre(ResolvedActionType.CALL, 100), rejectedFold),
+                    true,
+                    true,
+                    5L,
+                    0L,
+                    OptionalDouble.of(100.0),
+                    OptionalDouble.of(100.0)),
+                Arguments.of(
+                    "PS-S17",
+                    "largest positive payout counts as one payout hand",
+                    actions(check),
+                    true,
+                    true,
+                    Long.MAX_VALUE,
+                    0L,
+                    OptionalDouble.of(100.0),
+                    OptionalDouble.of(100.0)),
+                Arguments.of(
+                    "PS-S18",
+                    "largest refund alone still does not qualify",
+                    actions(check),
+                    true,
+                    true,
+                    0L,
+                    Long.MAX_VALUE,
+                    OptionalDouble.of(100.0),
+                    OptionalDouble.of(0.0)));
     }
 
     @Test
@@ -766,11 +1018,11 @@ class PlayStatsTest {
         stats.completeHand(id, true, false, 0, 0);
     }
 
-    private static void assertOptional(Double expected, OptionalDouble actual) {
-        if (expected == null) {
+    private static void assertOptional(OptionalDouble expected, OptionalDouble actual) {
+        if (expected.isEmpty()) {
             assertFalse(actual.isPresent());
         } else {
-            assertAvailable(expected, actual);
+            assertAvailable(expected.getAsDouble(), actual);
         }
     }
 

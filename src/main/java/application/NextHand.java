@@ -60,20 +60,30 @@ final class NextHand {
 
     private static GameState table(GameState previous, List<PlayerState> players,
             HandPositions positions) {
-        long currentBet = players.stream().mapToLong(PlayerState::getRoundContribution)
-                .max().orElseThrow();
-        if (players.stream().filter(PlayerState::canAct).count() > 1) {
-            currentBet = Math.max(currentBet, previous.getConfig().getBigBlind());
-        }
+        long currentBet = initialBetTarget(previous, players);
         Set<String> pending = pendingPlayers(players, currentBet);
-        Optional<String> actor = pending.isEmpty() ? Optional.empty()
-                : Optional.of(players.get(new SeatOrder(players)
-                        .firstPreflopActor(positions.getDealerSeat()).orElseThrow())
-                        .getPlayer().getId());
+        Optional<String> actor = firstPreflopActor(players, positions, pending);
         return GameState.create(previous.getConfig(), UUID.randomUUID().toString(), GamePhase.SETUP,
                 players, positions, actor, List.of(), List.of(),
                 new BettingProgress(currentBet, previous.getConfig().getBigBlind(), pending,
                         pending.size() > 1 ? pending : Set.of()));
+    }
+
+    private static long initialBetTarget(GameState previous, List<PlayerState> players) {
+        long postedMaximum = players.stream().mapToLong(PlayerState::getRoundContribution)
+                .max().orElseThrow();
+        return players.stream().filter(PlayerState::canAct).count() > 1
+                ? Math.max(postedMaximum, previous.getConfig().getBigBlind()) : postedMaximum;
+    }
+
+    private static Optional<String> firstPreflopActor(List<PlayerState> players,
+            HandPositions positions, Set<String> pending) {
+        if (pending.isEmpty()) {
+            return Optional.empty();
+        }
+        int seat = new SeatOrder(players)
+                .firstPreflopActor(positions.getDealerSeat()).orElseThrow();
+        return Optional.of(players.get(seat).getPlayer().getId());
     }
 
     private static Set<String> pendingPlayers(List<PlayerState> players, long currentBet) {

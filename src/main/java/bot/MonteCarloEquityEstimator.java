@@ -46,7 +46,8 @@ public final class MonteCarloEquityEstimator implements EquityEstimator {
         Map<String, List<Card>> deal = sampler.sample(request);
         Map<String, Integer> comparisons = compareOpponents(request, deal);
         for (EquityPot pot : request.getPots()) {
-            double share = share(request.getHeroId(), request.getOpponents(), pot, comparisons);
+            double share = heroPotShare(request.getHeroId(), request.getOpponents(),
+                    pot, comparisons);
             totals.put(pot.getId(), totals.get(pot.getId()) + share);
         }
     }
@@ -61,7 +62,7 @@ public final class MonteCarloEquityEstimator implements EquityEstimator {
         return comparisons;
     }
 
-    private static double share(String hero, List<String> opponents, EquityPot pot,
+    private static double heroPotShare(String hero, List<String> opponents, EquityPot pot,
             Map<String, Integer> comparisons) {
         if (!pot.getEligiblePlayers().contains(hero)) {
             return 0;

@@ -19,28 +19,37 @@ public final class StatsContext {
     public StatsContext(PreflopRaiseType preflopRaiseType, boolean threeBetOpportunity,
             boolean flopCBetOpportunity, boolean facedFlopCBetOpportunity) {
 
-        if (flopCBetOpportunity && facedFlopCBetOpportunity) {
-            throw new IllegalArgumentException("Opening and facing a flop c-bet are incompatible.");
-        }
-
-        boolean flopContext = flopCBetOpportunity || facedFlopCBetOpportunity;
-        if (flopContext && (threeBetOpportunity || preflopRaiseType != PreflopRaiseType.NONE)) {
-            throw new IllegalArgumentException("Preflop and flop context cannot be combined.");
-        }
-
-        if (preflopRaiseType == PreflopRaiseType.THREE_BET && !threeBetOpportunity) {
-            throw new IllegalArgumentException("A three-bet requires an eligible opportunity.");
-        }
-
-        if (threeBetOpportunity && preflopRaiseType != PreflopRaiseType.NONE
-                && preflopRaiseType != PreflopRaiseType.THREE_BET) {
-            throw new IllegalArgumentException("This raise is not a three-bet decision.");
-        }
-
+        requireExclusiveFlopRole(flopCBetOpportunity, facedFlopCBetOpportunity);
+        requireSingleStreetContext(preflopRaiseType, threeBetOpportunity,
+                flopCBetOpportunity || facedFlopCBetOpportunity);
+        requireThreeBetClassification(preflopRaiseType, threeBetOpportunity);
         this.preflopRaiseType = preflopRaiseType;
         this.threeBetOpportunity = threeBetOpportunity;
         this.flopCBetOpportunity = flopCBetOpportunity;
         this.facedFlopCBetOpportunity = facedFlopCBetOpportunity;
+    }
+
+    private static void requireExclusiveFlopRole(boolean opening, boolean facing) {
+        if (opening && facing) {
+            throw new IllegalArgumentException("Opening and facing a flop c-bet are incompatible.");
+        }
+    }
+
+    private static void requireSingleStreetContext(PreflopRaiseType raise,
+            boolean threeBetOpportunity, boolean flopContext) {
+        if (flopContext && (threeBetOpportunity || raise != PreflopRaiseType.NONE)) {
+            throw new IllegalArgumentException("Preflop and flop context cannot be combined.");
+        }
+    }
+
+    private static void requireThreeBetClassification(PreflopRaiseType raise,
+            boolean opportunity) {
+        if (raise == PreflopRaiseType.THREE_BET && !opportunity) {
+            throw new IllegalArgumentException("A three-bet requires an eligible opportunity.");
+        }
+        if (opportunity && raise != PreflopRaiseType.NONE && raise != PreflopRaiseType.THREE_BET) {
+            throw new IllegalArgumentException("This raise is not a three-bet decision.");
+        }
     }
 
     public PreflopRaiseType getPreflopRaiseType() {

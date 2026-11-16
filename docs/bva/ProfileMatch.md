@@ -15,6 +15,8 @@ UncheckedIOException before SetupSession publishes paid state or match totals.
 | LS-C06 | requireAccounts; constructor | Six/seven distinct accounts | Six accepted/mapped; seven rejected independently of duplicate checks | Yes - locally passing |
 | PM-C05 | save | Durable real-file save succeeds, then adapter throws | Fresh service sees one completion; retry publishes paid state without another write | Yes - locally passing |
 | PM-C04 | constructor | Initializer produces two humans for one account | Reject before publishing match | Yes - locally passing |
+| PM-C07-before/after | save; profileIds; snapshot | Adaptive bot hand with storage failure before or after durable save | Retry publishes one completion, conserves chips and retains bindings/learning across nextHand | Yes - locally passing |
+| PM-C08 | requireAccounts; constructor | Profile-bound restart while a bot turn is captured | Old turn rejected, cards preserved, fresh learning and human-only binding | Yes - locally passing |
 
 ProfiledMatchIntegrationTest exercises real composition; it is an integration
 test, not an isolated ProfileMatch unit test. Public entry points are SetupSession
@@ -24,6 +26,11 @@ Latest verification: full build 1,196 passing tests; Checkstyle/SpotBugs clean;
 new/modified E02 component mutants all killed. See the existing
 [quality record](../quality.md#completed-lifetime-statistics--november-9-2026).
 These are local results; commit/CI/review/merge gates are not marked complete.
+
+PM-C07/08 are merge regressions added November 16. They combine the real seeded
+Monte Carlo/policy/engine flow with temporary profile catalogs. Both failed-save
+shapes retain the unpaid hand and completed match totals until retry succeeds.
+The original E05/E06 and profile RED/GREEN records retain their dated evidence.
 
 ## Raised-hand persistence merge regression — November 15, 2026
 

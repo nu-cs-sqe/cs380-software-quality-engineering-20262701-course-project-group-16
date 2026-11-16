@@ -105,3 +105,7 @@ The implemented behaviors have recorded RED/GREEN pairs:
 All 64 full-suite cases pass: 15 Card cases, 48 Deck cases, and one initial-deal integration case. Every row in this Deck analysis has an implemented passing test. Hand evaluation remains a separately documented Week 6 contract.
 
 The two random-stub cases extend coverage of existing behavior, rather than introducing a new feature. A temporary mutation that ignored the injected source caused one of these cases to fail; the original production code was then restored.
+
+Readability follow-up (November 15): the constructor delegates standard
+52-card construction to standardCards; the deck still owns a mutable private
+list. Existing size/uniqueness/shuffle/deal cases are retained.

@@ -121,3 +121,10 @@ Cases map to OptionalGameStateTest. Nullable String actor constructors were
 removed; production callers and tests use create with explicit Optional actors.
 The five retained business cases were observed RED before implementation and GREEN
 afterward. New TDD/BVA additions cover business boundaries and explicit absence.
+
+Readability follow-up (November 15): validation now names board/hand-card
+rules, aggressor/c-bet provenance, betting amounts, eligible decision makers,
+actor consistency and terminal betting separately. Existing GS/history cases
+exercise those rules through the same public factories; validation order and
+rejection behavior are preserved. The enum-default miss is now located in
+hasBoardSizeForPhase, not a newly uncovered behavior.

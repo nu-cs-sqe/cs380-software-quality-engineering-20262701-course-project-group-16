@@ -66,3 +66,11 @@ GamePanel retains its required injected session directly under the non-null
 caller contract. Existing live-session SpotBugs exceptions remain exact and
 unchanged. UI-AC01–16 still exercise authentication, busy-state controls, saved
 statistics, error/retry behavior and private-card handoffs.
+
+November 16 bot/profile merge verification observed six failures in UI-AC03/09/16
+because their immediate assertions assumed synchronous passive bots. The shared
+UiBotFixtures.passive scheduler now also supports profile-bound GamePanel tests.
+These presentation/persistence cases retain their assertions and controlled bot
+actions. GamePanelBotsTest and BotBackgroundIntegrationTest exercise scheduling
+separately; PM-C07/08 compose adaptive computation with profile persistence.
+The production constructor continues to create the bounded background worker.

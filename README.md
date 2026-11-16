@@ -11,10 +11,13 @@ fold/check/call on every street, settlement and continued hands with carried
 chips/statistics. Requests specify round targets; the engine calculates deductions
 and individual reopening eligibility. Swing exposes the five actions in English
 and Chinese, private-card handoffs, local password accounts and lifetime statistics.
-Bots use a temporary check/call policy; adaptive bots remain on their separate branch.
+Live bots combine Monte Carlo equity, learned public tendencies and varied legal
+decisions in a cancellable background worker.
 
-Standalone equity estimation and opponent learning are available in `bot`;
-varied bot decision integration follows in E05/E06. Profile work is separate.
+Bot inputs contain only their own cards and public information. Match/hand/state
+checks reject old results. This is an adaptive heuristic; equity uses uniform
+opponent hands. Profile integration and the documented departure/terminal-policy
+follow-ups remain pending; see [quality](docs/quality.md).
 
 ## Contributors
 
@@ -70,7 +73,10 @@ With the JDKs configured above, run `bash ./gradlew run` (Windows:
 Chinese, then use **Profiles** to create a name/password account. Enter its
 password under **Sign in**, choose **Sign in and add**, and repeat for 1–6 humans.
 Choose **Start Game**; bots fill the remaining seats. Removing a profile from the
-next-match roster does not change an ongoing match.
+next-match roster does not change an ongoing match. Bots act automatically while
+a thinking status appears. If calculation fails or times out, choose **Retry bot**.
+English is the default. Add future languages through resources/configuration;
+see [localization](docs/design/localization.md).
 
 Use **Fold**, **Check** or **Call**, or enter a round total and choose **Bet** or
 **Raise**. Engine-provided limits determine the allowed wagers. Pass the computer
@@ -90,7 +96,6 @@ Select a human and choose **Leave match** to retire their seat. Current actors f
 immediately; other active departures queue a fold, and all-in eligibility lasts
 through settlement. The queued-departure winner and 6,000-chip terminal-policy
 follow-ups are still open; see [quality results](docs/quality.md).
-New locales use resources/configuration; see [localization](docs/design/localization.md).
 Tests run headlessly with temporary catalogs, without creating real profiles.
 
 ## Application initialization
@@ -132,8 +137,8 @@ scenarios and 1–10,000 trials, then call `MonteCarloEquityEstimator.estimate`.
 The result provides per-pot expected shares, eligible-pot equity and expected
 payout. It handles multiway ties and side-pot eligibility without receiving the
 real deck or opponents' cards. Uniform unknown hands are the initial model;
-opponent learning is available separately in `bot.learning`, while varied action
-selection and asynchronous session integration follow in E05–E06. See
+opponent learning is in `bot.learning`, varied action selection is in
+`bot.policy`, and application services coordinate background session decisions. See
 [equity design](docs/design/README.md#standalone-equity-e03) and
 [opponent learning](docs/design/README.md#opponent-learning-e04).
 
@@ -147,14 +152,11 @@ and required status-check enforcement still need verification after push.
 
 Run `bash ./gradlew build` for tests/static checks/coverage and
 `bash ./gradlew pitest` for mutation testing. The team suite and shared static
-checks run across the project; coverage/PIT use 56 documented parent components,
-including betting/state, dealing, settlement, continuation, PlayStats, local account
-storage/password services and the shared session. These are not full-game metrics.
-checks run across the project; coverage/PIT use 46 documented parent components,
-including betting/state, dealing, settlement, continuation, PlayStats and the
-standalone bot components. These are not
-full-game metrics. The build also checks named table-rule constants and
-production formatting; see the quality scope below.
+checks run across the project; coverage/PIT use 66 documented parent components,
+including betting/state, dealing, settlement, continuation, PlayStats, profiles,
+password/storage services and bot components. These are scoped metrics. The build
+also checks named table-rule constants and production formatting; see the quality
+scope below.
 [Quality results](docs/quality.md)
 list exact scope, report paths, adapted Checkstyle rules and reviewed SpotBugs
 exceptions. There is no invented metric threshold that hides findings.
@@ -176,10 +178,7 @@ exceptions. There is no invented metric threshold that hides findings.
 
 ### Code Coverage
 
-Coverage uses the documented 56-component scope, including betting/state,
-shared session/view, statistics, settlement and local accounts. The rubric targets
-100% cyclomatic coverage, with View/Main/Enum exemptions. JaCoCo line, branch
-Coverage uses the documented 46-component scope, including betting, InitialDeal and the
+Coverage uses the documented 66-component scope, including betting, InitialDeal and the
 shared session/view, statistics collectors and settlement. The rubric targets 100%
 cyclomatic coverage, with View/Main/Enum exemptions. JaCoCo line, branch
 and covered-complexity counters are reported separately; these do not prove
@@ -189,7 +188,7 @@ cover components outside that measurement scope.
 
 ### Mutation Testing
 
-PIT uses the DEFAULTS operator group on the documented 46-component scope. The target
+PIT uses the DEFAULTS operator group on the documented 66-component scope. The target
 is to kill every non-equivalent mutant. Actual raw scores and each surviving
 mutant's reasoning remain visible in [quality.md](docs/quality.md), including
 the unresolved acceptance of a contract-preserving constant hash. Survivor reasoning and acceptance limits are documented alongside the raw score.

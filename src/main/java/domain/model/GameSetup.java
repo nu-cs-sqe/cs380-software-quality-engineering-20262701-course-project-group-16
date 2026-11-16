@@ -29,23 +29,31 @@ public final class GameSetup {
      * @throws IllegalArgumentException unless humanCount is between one and six
      */
     public GameState create(int humanCount) {
-        if (humanCount < 1 || humanCount > config.getSeatCount()) {
-            throw new IllegalArgumentException("Human count must be between one and six.");
-        }
+        requireHumanCount(humanCount);
         String matchId = UUID.randomUUID().toString();
         List<PlayerState> players = createPlayers(matchId, humanCount);
         int dealer = dealerRandom.nextInt(players.size());
-        HandPositions positions = new SeatOrder(players).positionsFor(dealer);
+        SeatOrder seats = new SeatOrder(players);
+        HandPositions positions = seats.positionsFor(dealer);
         postBlind(players, positions.getSmallBlindSeat(), config.getSmallBlind());
         postBlind(players, positions.getBigBlindSeat(), config.getBigBlind());
-        Set<String> active = players.stream().filter(PlayerState::canAct)
-                .map(state -> state.getPlayer().getId()).collect(Collectors.toSet());
-        int actorSeat = new SeatOrder(players).firstPreflopActor(dealer).orElseThrow();
-        BettingProgress betting = new BettingProgress(config.getBigBlind(),
-                config.getBigBlind(), active, active);
+        int actorSeat = seats.firstPreflopActor(dealer).orElseThrow();
+        BettingProgress betting = initialBettingProgress(players);
         return GameState.create(config, matchId + ":hand:1", GamePhase.SETUP, players, positions,
                 Optional.of(players.get(actorSeat).getPlayer().getId()),
                 List.of(), List.of(), betting);
+    }
+
+    private void requireHumanCount(int humanCount) {
+        if (humanCount < 1 || humanCount > config.getSeatCount()) {
+            throw new IllegalArgumentException("Human count must be between one and six.");
+        }
+    }
+
+    private BettingProgress initialBettingProgress(List<PlayerState> players) {
+        Set<String> active = players.stream().filter(PlayerState::canAct)
+                .map(state -> state.getPlayer().getId()).collect(Collectors.toSet());
+        return new BettingProgress(config.getBigBlind(), config.getBigBlind(), active, active);
     }
 
     private List<PlayerState> createPlayers(String matchId, int humanCount) {

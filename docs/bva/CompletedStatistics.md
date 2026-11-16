@@ -37,3 +37,9 @@ minimum above actual posted chips only for a short all-in big blind with no
 recorded aggressor. Raised rounds remain unsupported. Earlier tests that only
 inspected the next actor missed the actual action rejection; these cases submit
 real engine requests and check chip amounts and settlement.
+
+Readability follow-up (November 15, current application branch):
+MatchStatistics.complete names accepted-event replay as a separate step before
+player completion. NextHand separates initial bet targeting from preflop actor
+selection. Existing payment/continuation, failure and short-blind cases retain
+their expected results. This does not modify the separate profile branch.

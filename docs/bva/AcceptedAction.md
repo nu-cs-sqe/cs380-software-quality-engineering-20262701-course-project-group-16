@@ -28,3 +28,7 @@ Grouped assertions exercise the public getters at the stated boundary; no mutabl
 | AA-26 | AcceptedAction; toStatsAction | Check with existing contribution | Zero added chips; retain existing contribution | Yes |
 | AA-27 | AcceptedAction; toStatsAction; PlayStats integration | Forced blind exhausts a stack; completed hand | Hands=1; VPIP=0%; PFR=0% | Yes |
 | AA-28 | AcceptedAction; toStatsAction; PlayStats integration | Accepted three-bet followed by all-in flop continuation bet | Correct VPIP/PFR/3-bet/c-bet/AFq; AF unavailable without calls | Yes |
+
+Readability follow-up (November 15): identity and resulting
+contribution/all-in consistency are named constructor rules; resolved-action
+structure remains validated by StatsAction. Public behavior is unchanged.

@@ -59,3 +59,7 @@ implemented only after its test has been written, executed, and passed.
 
 Player seat bounds share GameConfig.SEAT_COUNT with position selection and the
 rest of the table; existing first/last/invalid-seat cases are unchanged.
+
+Readability follow-up (November 15): construction names identity/seat
+validation and nonnegative-stack validation separately; existing boundaries,
+exception behavior and immutable identity remain unchanged.

@@ -3,6 +3,7 @@ package bot.learning;
 import domain.model.ResolvedActionType;
 import domain.model.PreflopRaiseType;
 import domain.model.StatsContext;
+import domain.model.BettingStreet;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
@@ -71,6 +72,30 @@ public final class OpponentBeliefs {
 
     public TendencyEstimate getTendency(OpponentTendency tendency) {
         return tendencies.get(tendency);
+    }
+
+    /** Beta-smoothed aggression over decisions where a bet or raise was legal. */
+    public TendencyEstimate getAggressionEstimate(BettingStreet street) {
+        long successes = 0;
+        long opportunities = 0;
+        for (ActionPrediction prediction : predictions) {
+            if (eligibleAggression(prediction.getContext(), street)) {
+                successes = Math.addExact(successes, aggressionCount(prediction));
+                opportunities = Math.addExact(opportunities, prediction.getObservations());
+            }
+        }
+        return new TendencyEstimate(successes, opportunities);
+    }
+
+    private static boolean eligibleAggression(DecisionContext context, BettingStreet street) {
+        return context.getStreet() == street
+                && (context.getLegalActions().contains(ResolvedActionType.BET)
+                || context.getLegalActions().contains(ResolvedActionType.RAISE));
+    }
+
+    private static long aggressionCount(ActionPrediction prediction) {
+        return Math.addExact(prediction.getCounts().getOrDefault(ResolvedActionType.BET, 0L),
+                prediction.getCounts().getOrDefault(ResolvedActionType.RAISE, 0L));
     }
 
     public long getObservedDecisions() { return observedDecisions; }

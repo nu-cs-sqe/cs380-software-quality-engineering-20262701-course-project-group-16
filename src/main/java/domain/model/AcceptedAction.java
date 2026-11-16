@@ -18,20 +18,29 @@ public final class AcceptedAction {
     public AcceptedAction(String handId, String playerId, BettingStreet street,
             ResolvedActionType type, long chipsAdded, long roundContributionAfter,
             boolean becameAllIn, StatsContext context) {
-        if (handId.isBlank() || playerId.isBlank()) {
-            throw new IllegalArgumentException("Hand and player IDs are required.");
-        }
-        if (roundContributionAfter < 0 || chipsAdded > roundContributionAfter
-                || (becameAllIn && (type == ResolvedActionType.CHECK
-                || type == ResolvedActionType.FOLD))) {
-            throw new IllegalArgumentException(
-                "Inconsistent resulting contribution or all-in flag.");
-        }
+        requireIdentity(handId, playerId);
+        requireContributionResult(type, chipsAdded, roundContributionAfter, becameAllIn);
         this.observation = new StatsAction(true, street, type, chipsAdded, context);
         this.handId = handId;
         this.playerId = playerId;
         this.roundContributionAfter = roundContributionAfter;
         this.becameAllIn = becameAllIn;
+    }
+
+    private static void requireIdentity(String handId, String playerId) {
+        if (handId.isBlank() || playerId.isBlank()) {
+            throw new IllegalArgumentException("Hand and player IDs are required.");
+        }
+    }
+
+    private static void requireContributionResult(ResolvedActionType type, long chipsAdded,
+            long roundContributionAfter, boolean becameAllIn) {
+        if (roundContributionAfter < 0 || chipsAdded > roundContributionAfter
+                || (becameAllIn && (type == ResolvedActionType.CHECK
+                || type == ResolvedActionType.FOLD))) {
+            throw new IllegalArgumentException(
+                    "Inconsistent resulting contribution or all-in flag.");
+        }
     }
 
     public String getHandId() { return handId; }

@@ -107,7 +107,17 @@ val measuredClasses = listOf(
     "bot.learning.ActionPrediction",
     "bot.learning.OpponentBeliefs",
     "bot.learning.OpponentModel",
-    "domain.model.GameSetup"
+    "domain.model.GameSetup",
+    "bot.policy.CallValue",
+    "bot.policy.PolicyRequest",
+    "bot.policy.ActionDistribution",
+    "bot.policy.BotPolicy",
+    "domain.model.PotLayout",
+    "application.BotTurn",
+    "application.BotTable",
+    "application.BotComputer",
+    "application.BotWorker",
+    "application.BotController"
 )
 val measuredClassFiles = measuredClasses.flatMap {
     val path = it.replace('.', '/')
@@ -191,7 +201,7 @@ pitest {
     targetTests.set(setOf(
         "domain.model.*Test", "application.*Test", "integration.*Test",
         "persistence.*Test", "security.*Test",
-        "localization.LocalizationsTest", "bot.*Test", "bot.learning.*Test"
+        "localization.LocalizationsTest", "bot.*Test", "bot.learning.*Test", "bot.policy.*Test"
     ))
     threads.set(2)
     mutators.set(setOf("DEFAULTS"))

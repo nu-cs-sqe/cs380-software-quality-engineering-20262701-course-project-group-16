@@ -52,3 +52,8 @@ All case IDs appear in StatsActionTest. Valid-value observations also exercise p
 | SA-V15 | Constructor | `true, BettingStreet.PREFLOP, ResolvedActionType.CALL, 1L, opportunity` | Constructed; input values retained exactly | Yes |
 | SA-V16 | Constructor | `true, BettingStreet.PREFLOP, ResolvedActionType.FOLD, 0L, opportunity` | Constructed; input values retained exactly | Yes |
 | SA-V17 | Constructor | `true, BettingStreet.FLOP, ResolvedActionType.FOLD, 0L, cBet` | Constructed; input values retained exactly | Yes |
+
+Readability follow-up (November 15): chip amount, street, raise
+classification, three-bet eligibility, c-bet opening and c-bet response are named
+validation responsibilities. Public constructor cases and expected results are
+unchanged; no programmer-null cases or guards were added.

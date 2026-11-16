@@ -82,6 +82,12 @@ case. No new null-input tests were introduced. See the [shared API contract](../
 | `ActionPrediction` | [ActionPrediction.md](ActionPrediction.md) |
 | `OpponentBeliefs` | [OpponentBeliefs.md](OpponentBeliefs.md) |
 | `OpponentModel` | [OpponentModel.md](OpponentModel.md) |
+| `PotLayout` (including Layer) | [PotLayout.md](PotLayout.md) |
+| `BotTurn` | [BotTurn.md](BotTurn.md) |
+| `BotTable` | [BotTable.md](BotTable.md) |
+| `BotComputer` | [BotComputer.md](BotComputer.md) |
+| `BotWorker` / `BotScheduler` port | [BotWorker.md](BotWorker.md) |
+| `BotController` / `BotSession` port | [BotController.md](BotController.md) |
 
 [Combined setup integration cases](setup-integration.md) cover the card/deck-to-state boundary.
 [Showdown integration](../design/showdown.md) covers the initialized-card-to-result boundary.
@@ -141,3 +147,13 @@ Here are 2 formats as references. You can use any of them or a revised version o
 - **TC4: NAME OF THE TEST CASE** ( implemented in TC1 )
     - **State of the system**: abc
     - **Expected output**: abc
+
+## E05 decision policy
+
+- [CallValue](CallValue.md)
+- [PolicyRequest](PolicyRequest.md)
+- [ActionDistribution](ActionDistribution.md)
+- [BotPolicy](BotPolicy.md)
+
+BotPersonality is an enum; its configurations are tested through BotPolicy.
+The aggression query extension is covered in [OpponentBeliefs](OpponentBeliefs.md).

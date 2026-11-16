@@ -20,19 +20,27 @@ public final class Player {
      * @throws IllegalArgumentException if any argument violates these constraints
      */
     public Player(String id, int seat, PlayerType type, long chipStack) {
+        requireIdentity(id, seat);
+        requireNonnegativeStack(chipStack);
+        this.id = id;
+        this.seat = seat;
+        this.type = type;
+        this.chipStack = chipStack;
+    }
+
+    private static void requireIdentity(String id, int seat) {
         if (id.isBlank()) {
             throw new IllegalArgumentException("Player ID must not be blank.");
         }
         if (seat < 0 || seat >= SEAT_COUNT) {
             throw new IllegalArgumentException("Seat must be between 0 and 5.");
         }
+    }
+
+    private static void requireNonnegativeStack(long chipStack) {
         if (chipStack < 0) {
             throw new IllegalArgumentException("Chip stack must not be negative.");
         }
-        this.id = id;
-        this.seat = seat;
-        this.type = type;
-        this.chipStack = chipStack;
     }
 
     /** @return the player ID as supplied to the constructor */

@@ -10,7 +10,7 @@ import java.awt.event.WindowEvent;
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 
-/** Desktop entry point for the setup preview. */
+/** Desktop entry point for the played match. */
 public final class Main {
     private Main() { }
 
@@ -27,6 +27,10 @@ public final class Main {
             frame.setContentPane(panel);
             frame.setMinimumSize(new Dimension(1080, 780));
             frame.addWindowListener(new WindowAdapter() {
+                @Override public void windowClosing(WindowEvent event) {
+                    panel.hidePrivateCards();
+                    panel.stopBots();
+                }
                 @Override public void windowDeactivated(WindowEvent event) {
                     panel.hidePrivateCards();
                 }
