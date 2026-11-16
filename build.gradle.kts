@@ -191,7 +191,6 @@ pitest {
     targetTests.set(setOf(
         "domain.model.*Test", "application.*Test", "integration.*Test",
         "persistence.*Test", "security.*Test",
-        "localization.LocalizationsTest"
         "localization.LocalizationsTest", "bot.*Test", "bot.learning.*Test"
     ))
     threads.set(2)

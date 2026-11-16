@@ -14,7 +14,7 @@ public final class PasswordHash {
     }
 
     private static String requireEncodedBytes(String encoded, int expectedBytes) {
-        if (encoded == null || Base64.getDecoder().decode(encoded).length != expectedBytes) {
+        if (Base64.getDecoder().decode(encoded).length != expectedBytes) {
             throw new IllegalArgumentException("Credential encoding or length is invalid.");
         }
         return encoded;

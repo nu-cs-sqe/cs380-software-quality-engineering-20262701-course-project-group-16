@@ -20,7 +20,6 @@ class PlayerProfileTest {
 
     static Stream<Arguments> invalidProfileIds() {
         return Stream.of(
-                Arguments.of("PP-C01", (String) null),
                 Arguments.of("PP-C02", ""),
                 Arguments.of("PP-C03", " "),
                 Arguments.of("PP-C04", "\t"),
@@ -37,7 +36,6 @@ class PlayerProfileTest {
 
     static Stream<Arguments> invalidDisplayNames() {
         return Stream.of(
-                Arguments.of("PP-C07", (String) null),
                 Arguments.of("PP-C08", ""),
                 Arguments.of("PP-C09", " "),
                 Arguments.of("PP-C10", "\t"),

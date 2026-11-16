@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.Optional;
 import java.util.Set;
 
 /** Versioned UTF-8 identity catalog. The application owns single-writer coordination. */
@@ -27,9 +28,6 @@ public final class FileProfileRepository implements ProfileRepository {
 
     /** Selects an application-data directory without reading or writing it. */
     public FileProfileRepository(Path directory) {
-        if (directory == null) {
-            throw new IllegalArgumentException("A profile directory is required.");
-        }
         this.directory = directory;
         this.catalog = directory.resolve("profiles.properties");
     }
@@ -49,7 +47,7 @@ public final class FileProfileRepository implements ProfileRepository {
 
     private List<StoredProfile> readProfiles(Properties properties) {
         int count = requireSchema(properties);
-        boolean legacy = "2".equals(properties.getProperty("formatVersion"));
+        boolean legacy = "2".equals(requiredProperty(properties, "formatVersion"));
         List<StoredProfile> profiles = new ArrayList<>();
         Set<String> seen = new HashSet<>();
         long expectedProperties = 2L;
@@ -68,23 +66,29 @@ public final class FileProfileRepository implements ProfileRepository {
 
     private StoredProfile readProfile(Properties properties, String prefix, boolean legacy) {
         return new StoredProfile(
-                new PlayerProfile(properties.getProperty(prefix + ".id"),
-                        properties.getProperty(prefix + ".name")),
-                new PasswordHash(properties.getProperty(prefix + ".salt"),
-                        properties.getProperty(prefix + ".hash")),
+                new PlayerProfile(requiredProperty(properties, prefix + ".id"),
+                        requiredProperty(properties, prefix + ".name")),
+                new PasswordHash(requiredProperty(properties, prefix + ".salt"),
+                        requiredProperty(properties, prefix + ".hash")),
                 legacy ? new CompletedStatistics() : statistics.read(properties, prefix));
     }
 
     private static int requireSchema(Properties properties) {
-        String version = properties.getProperty("formatVersion");
+        String version = requiredProperty(properties, "formatVersion");
         if (!"2".equals(version) && !"3".equals(version)) {
             throw new IllegalArgumentException("Unsupported profile catalog version.");
         }
-        int count = Integer.parseInt(properties.getProperty("profileCount"));
+        int count = Integer.parseInt(requiredProperty(properties, "profileCount"));
         if (count < 0) {
             throw new IllegalArgumentException("Profile records do not match the catalog count.");
         }
         return count;
+    }
+
+    // Normalize Java Properties' nullable result at the catalog boundary, before model creation.
+    static String requiredProperty(Properties properties, String key) {
+        return Optional.ofNullable(properties.getProperty(key)).orElseThrow(() ->
+                new IllegalArgumentException("Missing profile property: " + key));
     }
 
     @Override
@@ -93,9 +97,6 @@ public final class FileProfileRepository implements ProfileRepository {
     }
 
     private Properties writeProfiles(List<StoredProfile> profiles) {
-        if (profiles == null) {
-            throw new IllegalArgumentException("A profile collection is required.");
-        }
         Properties properties = new Properties();
         properties.setProperty("formatVersion", "3");
         properties.setProperty("profileCount", Integer.toString(profiles.size()));
@@ -114,8 +115,8 @@ public final class FileProfileRepository implements ProfileRepository {
     }
 
     private static void requireUnique(StoredProfile profile, Set<String> seen) {
-        if (profile == null || !seen.add(profile.getProfile().getProfileId())) {
-            throw new IllegalArgumentException("Profiles must be non-null with unique IDs.");
+        if (!seen.add(profile.getProfile().getProfileId())) {
+            throw new IllegalArgumentException("Profiles must have unique IDs.");
         }
     }
 

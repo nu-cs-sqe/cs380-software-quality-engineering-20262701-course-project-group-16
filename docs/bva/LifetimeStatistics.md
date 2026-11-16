@@ -2,7 +2,7 @@
 
 | ID | Methods | System/input state | Expected output | Implemented? |
 | --- | --- | --- | --- | --- |
-| LS-C01 | login; getLifetimeStatistics | Valid/wrong password, null/foreign handle, missing record | Authoritative authenticated access only | Yes - locally passing |
+| LS-C01 | login; getLifetimeStatistics | Valid/wrong password, foreign handle, missing record | Authoritative authenticated access only | Yes - locally passing |
 | LS-C02 | saveCompleted | One hand delivered twice | One durable increment; duplicate causes no write | Yes - locally passing |
 | LS-C03 | saveCompleted | Write fails then retry succeeds | Old totals retained; one increment on retry | Yes - locally passing |
 | LS-C04 | saveCompleted | Missing delta, foreign/missing account | Reject without saving | Yes - locally passing |
@@ -15,7 +15,7 @@
 | ST-C02 | load/save | Existing version-2 password account | Empty lifetime data; upgrade on successful save only; hashes retained | Yes - locally passing |
 | ST-C03 | load | Negative/inconsistent/nonnumeric counters or huge history count | IOException; original bytes retained | Yes - locally passing |
 | ST-C05 | save/load; PlayStats.fromCompleted | All raw counts and duplicate/missing history | Exact restored rates; invalid history rejected | Yes - locally passing |
-| ST-C04 | StoredProfile constructors/getters | Null statistics, valid immutable snapshot | Reject null; retain immutable values | Yes - locally passing |
+| ST-C04 | StoredProfile constructors/getters | Valid immutable snapshot | Retain immutable values under the non-null caller contract | Yes - locally passing |
 
 Isolated orchestration: LifetimeStatisticsTest injects storage and hashing.
 Real integration: ProfiledMatchIntegrationTest and LifetimeStorageTest use JUnit
@@ -45,3 +45,12 @@ Latest verification: full build 1,196 passing tests; Checkstyle/SpotBugs clean;
 new/modified E02 component mutants all killed. See the existing
 [quality record](../quality.md#completed-lifetime-statistics--november-9-2026).
 These are local results; commit/CI/review/merge gates are not marked complete.
+
+## Storage-boundary regression — November 16, 2026
+
+ST-C06 is parameterized over all 24 required V3 catalog fields: version/count,
+identity/credential fields, 16 raw counters, completed-count and one completed ID.
+Removing each field must raise IOException with an IllegalArgumentException cause
+and preserve the damaged file. Missing internal bound-hand entries remain covered
+by LS-C04/05. Required references/elements are caller contracts, not null-input
+partitions. See the latest quality record for full verification.

@@ -4,8 +4,9 @@
 
 `PlayerProfile(String profileId, String displayName)` is an immutable human
 profile identity. It is separate from a match's `Player`, seat, chip stack and
-pending hand. Both inputs are non-null and nonblank according to Java 11
-`String.isBlank()`. Invalid input throws `IllegalArgumentException`.
+pending hand. Inputs follow the non-null caller contract. Nonblank validation uses
+Java 11 String.isBlank(); blank text throws IllegalArgumentException. Missing saved
+fields are rejected at the catalog boundary before this constructor is called.
 
 The supplied strings are retained exactly: this model does not trim, normalize,
 restrict scripts, require UUID syntax or impose an arbitrary length limit.
@@ -27,13 +28,13 @@ and `displayName="Estella"`. Rejection produces no constructed profile.
 
 | ID | Method(s) | System state / input | Expected output | Implemented? |
 | --- | --- | --- | --- | --- |
-| PP-C01 | Constructor | ID is null | IllegalArgumentException | Yes - locally passing |
+| PP-C01 | Constructor | ID is null | Non-null caller contract; no runtime null guarantee | Retired November 16, 2026 |
 | PP-C02 | Constructor | ID is empty | IllegalArgumentException | Yes - locally passing |
 | PP-C03 | Constructor | ID is one space | IllegalArgumentException | Yes - locally passing |
 | PP-C04 | Constructor | ID is one tab | IllegalArgumentException | Yes - locally passing |
 | PP-C05 | Constructor | ID is one newline | IllegalArgumentException | Yes - locally passing |
 | PP-C06 | Constructor | ID is Unicode em space U+2003 | IllegalArgumentException | Yes - locally passing |
-| PP-C07 | Constructor | Display name is null | IllegalArgumentException | Yes - locally passing |
+| PP-C07 | Constructor | Display name is null | Non-null caller contract; no runtime null guarantee | Retired November 16, 2026 |
 | PP-C08 | Constructor | Display name is empty | IllegalArgumentException | Yes - locally passing |
 | PP-C09 | Constructor | Display name is one space | IllegalArgumentException | Yes - locally passing |
 | PP-C10 | Constructor | Display name is one tab | IllegalArgumentException | Yes - locally passing |
@@ -51,8 +52,8 @@ and `displayName="Estella"`. Rejection produces no constructed profile.
 ## JUnit mapping
 
 `domain.model.PlayerProfileTest` includes the case IDs in parameterized display
-names. `rejectsInvalidProfileIds` covers PP-C01–06;
-`rejectsInvalidDisplayNames` covers PP-C07–12;
+names. `rejectsInvalidProfileIds` covers PP-C02–06;
+`rejectsInvalidDisplayNames` covers PP-C08–12;
 `preservesValidProfileData` covers PP-C13–19; and
 `separateIdentitiesMayShareADisplayName` covers PP-C20.
 

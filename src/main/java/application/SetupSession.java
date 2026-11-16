@@ -187,8 +187,7 @@ public final class SetupSession {
     }
 
     private void startMatch(GameState started, Optional<ProfileMatch> binding) {
-        Consumer<AcceptedAction> recorder =
-                Objects.requireNonNull(statisticsFactory.apply(started));
+        Consumer<AcceptedAction> recorder = statisticsFactory.apply(started);
         MatchStatistics fresh = MatchStatistics.start(started);
         departed.clear();
         publishStart(started, recorder);

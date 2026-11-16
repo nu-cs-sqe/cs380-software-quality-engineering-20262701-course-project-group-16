@@ -4,7 +4,6 @@ import domain.model.PasswordHash;
 import java.security.GeneralSecurityException;
 import java.util.Arrays;
 import java.util.Base64;
-import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.crypto.spec.PBEKeySpec;
 import org.junit.jupiter.api.Test;
@@ -23,7 +22,7 @@ class PasswordBufferTest {
 
         assertEquals(expected, hash.getHashBase64());
         assertArrayEquals(new byte[32], derived);
-        PBEKeySpec specification = Objects.requireNonNull(captured.get());
+        PBEKeySpec specification = captured.get();
         assertThrows(IllegalStateException.class, specification::getPassword);
         assertEquals(600000, specification.getIterationCount());
         assertEquals(256, specification.getKeyLength());
@@ -41,7 +40,7 @@ class PasswordBufferTest {
 
         assertTrue(hasher.matches("PokerPlayer123".toCharArray(), hash));
         assertArrayEquals(new byte[32], derived);
-        PBEKeySpec specification = Objects.requireNonNull(captured.get());
+        PBEKeySpec specification = captured.get();
         assertArrayEquals(new byte[16], specification.getSalt());
         assertThrows(IllegalStateException.class, specification::getPassword);
     }
@@ -58,10 +57,8 @@ class PasswordBufferTest {
 
         assertSame(failure, assertThrows(GeneralSecurityException.class,
                 () -> hasher.hash("PokerPlayer123".toCharArray())));
-        PBEKeySpec specification = Objects.requireNonNull(captured.get());
+        PBEKeySpec specification = captured.get();
         assertThrows(IllegalStateException.class, specification::getPassword);
-        assertThrows(IllegalArgumentException.class,
-                () -> new Pbkdf2PasswordHasher(salt -> { }, null));
     }
 
     @Test
@@ -83,7 +80,6 @@ class PasswordBufferTest {
                 salt -> { throw new AssertionError("Verification must not generate a salt"); },
                 specification -> { throw new AssertionError("Invalid input must not be derived"); });
 
-        assertFalse(hasher.matches(null, hash));
         assertFalse(hasher.matches("short".toCharArray(), hash));
         assertFalse(hasher.matches("a".repeat(129).toCharArray(), hash));
         char[] malformed = "a".repeat(15).toCharArray();

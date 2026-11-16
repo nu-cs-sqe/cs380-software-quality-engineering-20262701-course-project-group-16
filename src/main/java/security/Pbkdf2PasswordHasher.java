@@ -28,15 +28,8 @@ public final class Pbkdf2PasswordHasher implements PasswordHasher {
 
     /** Controls salt/provider behavior for isolated lifecycle tests. */
     public Pbkdf2PasswordHasher(Consumer<byte[]> saltSource, PasswordDeriver deriver) {
-        requireSources(saltSource, deriver);
         this.saltSource = saltSource;
         this.deriver = deriver;
-    }
-
-    private static void requireSources(Consumer<byte[]> saltSource, PasswordDeriver deriver) {
-        if (saltSource == null || deriver == null) {
-            throw new IllegalArgumentException("Salt and derivation sources are required.");
-        }
     }
 
     @Override
@@ -58,9 +51,6 @@ public final class Pbkdf2PasswordHasher implements PasswordHasher {
     @Override
     public boolean matches(char[] password, PasswordHash credential)
             throws GeneralSecurityException {
-        if (credential == null) {
-            throw new IllegalArgumentException("A password credential is required.");
-        }
         // Continue accepting credentials registered under the former longer-password policy.
         if (!validPassword(password, 128)) {
             return false;
@@ -76,9 +66,6 @@ public final class Pbkdf2PasswordHasher implements PasswordHasher {
     }
 
     private static boolean validPassword(char[] password, int maximumLength) {
-        if (password == null) {
-            return false;
-        }
         int length = Character.codePointCount(password, 0, password.length);
         return length >= 6 && length <= maximumLength
                 && StandardCharsets.UTF_8.newEncoder().canEncode(CharBuffer.wrap(password));

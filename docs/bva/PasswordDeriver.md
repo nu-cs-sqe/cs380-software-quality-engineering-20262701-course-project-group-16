@@ -16,4 +16,4 @@ algorithm checks remain integration tests.
 
 | ID | Method(s) | State | Expected result | Implemented? |
 | --- | --- | --- | --- | --- |
-| PB-C05 | matches | Null, too-short/long or malformed Unicode password | Return false before invoking salt/provider sources | Yes - locally passing |
+| PB-C05 | matches | Too-short/long or malformed Unicode password | Return false before invoking salt/provider sources | Yes - locally passing |

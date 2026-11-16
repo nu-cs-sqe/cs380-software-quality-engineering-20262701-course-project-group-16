@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
@@ -85,9 +84,6 @@ class FileProfileRepositoryTest {
         repository.save(List.of(stored("saved", "Original")));
         byte[] before = Files.readAllBytes(catalog());
 
-        assertThrows(IllegalArgumentException.class, () -> repository.save(null));
-        assertThrows(IllegalArgumentException.class,
-                () -> repository.save(Arrays.asList((StoredProfile) null)));
         assertThrows(IllegalArgumentException.class, () -> repository.save(List.of(
                 stored("duplicate", "First"),
                 stored("duplicate", "Second"))));
@@ -184,12 +180,6 @@ class FileProfileRepositoryTest {
                 .save(List.of(stored("one", "Name"))));
         assertEquals("keep", Files.readString(catalog().resolve("keep")));
         assertNoTemporaryFiles();
-    }
-
-    @Test
-    @DisplayName("FP-C25: requires a storage directory")
-    void rejectsANullDirectory() {
-        assertThrows(IllegalArgumentException.class, () -> new FileProfileRepository(null));
     }
 
     private static StoredProfile stored(String id, String name) {

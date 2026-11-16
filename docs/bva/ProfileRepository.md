@@ -10,7 +10,7 @@ default methods; its file adapter and service behavior are mapped separately.
 | PR-C02 | load | Existing valid catalog | Saved identities/credentials in catalog order; see FP-C02–04 | Yes - locally passing |
 | PR-C03 | load | Corrupt or unreadable catalog | IOException; data retained; see FP-C06–22 | Yes - locally passing |
 | PR-C04 | save | Valid complete snapshot | Persist identity and credential together without partial publication; see FP-C02–04 | Yes - locally passing |
-| PR-C05 | save | Null list/entry or duplicate ID | IllegalArgumentException before writes; see FP-C05 | Yes - locally passing |
+| PR-C05 | save | Duplicate ID | IllegalArgumentException before writes; see FP-C05 | Yes - locally passing |
 | PR-C06 | save | Failed directory creation/replacement | IOException with prior target retained; see FP-C23–24 | Yes - locally passing |
 
 Unit service tests supply an in-memory implementation. Real persistence is

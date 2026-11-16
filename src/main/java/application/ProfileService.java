@@ -28,18 +28,9 @@ public final class ProfileService {
     /** Injects storage, hashing and IDs for isolated coordination tests. */
     public ProfileService(ProfileRepository repository, PasswordHasher hasher,
             Supplier<String> ids) {
-        requireCollaborators(repository, hasher, ids);
         this.repository = repository;
         this.hasher = hasher;
         this.ids = ids;
-    }
-
-    private static void requireCollaborators(ProfileRepository repository, PasswordHasher hasher,
-            Supplier<String> ids) {
-        if (repository == null || hasher == null || ids == null) {
-            throw new IllegalArgumentException(
-                    "Storage, password hashing and ID sources are required.");
-        }
     }
 
     /** Saves identity and credential together before returning the created profile. */
@@ -87,7 +78,7 @@ public final class ProfileService {
     }
 
     void requireAccount(AuthenticatedProfile account) {
-        if (account == null || !account.belongsTo(this)) {
+        if (!account.belongsTo(this)) {
             throw new IllegalArgumentException("A login from this profile service is required.");
         }
     }
@@ -95,7 +86,22 @@ public final class ProfileService {
     // Only the application hand-completion boundary supplies these authoritative deltas.
     void saveCompleted(Map<String, AuthenticatedProfile> accounts,
             Map<String, CompletedStatistics> hand) throws IOException {
+        requireBoundHandDeltas(accounts, hand);
         List<StoredProfile> records = new ArrayList<>(repository.load());
+        if (mergeBoundStatistics(records, accounts, hand)) {
+            repository.save(List.copyOf(records));
+        }
+    }
+
+    private static void requireBoundHandDeltas(Map<String, AuthenticatedProfile> accounts,
+            Map<String, CompletedStatistics> hand) {
+        if (!hand.keySet().containsAll(accounts.keySet())) {
+            throw new IllegalArgumentException("Every bound player requires a completed hand.");
+        }
+    }
+
+    private boolean mergeBoundStatistics(List<StoredProfile> records,
+            Map<String, AuthenticatedProfile> accounts, Map<String, CompletedStatistics> hand) {
         boolean changed = false;
         for (Map.Entry<String, AuthenticatedProfile> binding : accounts.entrySet()) {
             AuthenticatedProfile account = binding.getValue();
@@ -107,9 +113,7 @@ public final class ProfileService {
             records.set(index, new StoredProfile(before.getProfile(),
                     before.getPasswordHash(), next));
         }
-        if (changed) {
-            repository.save(List.copyOf(records));
-        }
+        return changed;
     }
 
     private static int recordIndex(List<StoredProfile> records, String profileId) {
@@ -134,7 +138,7 @@ public final class ProfileService {
     }
 
     private static void requireLookupId(String profileId) {
-        if (profileId == null || profileId.isBlank()) {
+        if (profileId.isBlank()) {
             throw new IllegalArgumentException("A nonblank profile ID is required.");
         }
     }

@@ -59,3 +59,10 @@ target controls must be disabled during that operation and enabled again afterwa
 The human remains in the match. Both cases first failed because Leave match stayed
 enabled, then passed after all three controls joined the existing busy-state list.
 This is an observed local RED/GREEN cycle, not separate Git TDD commits.
+
+## Instructor convention repair — November 16, 2026
+
+GamePanel retains its required injected session directly under the non-null
+caller contract. Existing live-session SpotBugs exceptions remain exact and
+unchanged. UI-AC01–16 still exercise authentication, busy-state controls, saved
+statistics, error/retry behavior and private-card handoffs.

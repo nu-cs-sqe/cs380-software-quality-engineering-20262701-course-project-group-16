@@ -45,18 +45,10 @@ class CompletedStatisticsTest {
     static Stream<Arguments> invalidSnapshots() {
         Map<Statistic, Long> missing = counts();
         missing.remove(Statistic.VPIP);
-        Map<Statistic, Long> nullValue = counts();
-        nullValue.put(Statistic.HANDS, null);
-        Set<String> nullId = new HashSet<>();
-        nullId.add(null);
         return Stream.of(
-                Arguments.of("CS-C03", null, Set.of()),
-                Arguments.of("CS-C04", counts(), null),
                 Arguments.of("CS-C05", missing, Set.of()),
-                Arguments.of("CS-C06", nullValue, Set.of()),
                 Arguments.of("CS-C07", counts(Statistic.HANDS, -1), Set.of()),
                 Arguments.of("CS-C08", counts(Statistic.HANDS, 1), Set.of()),
-                Arguments.of("CS-C09", counts(), nullId),
                 Arguments.of("CS-C10", counts(), Set.of("")),
                 Arguments.of("CS-C11", counts(), Set.of(" ")),
                 Arguments.of("CS-C12", counts(Statistic.VPIP, 1), Set.of("h")),
@@ -104,7 +96,6 @@ class CompletedStatisticsTest {
     @Test
     void csC26RejectsNonHandInputAndPreservesStateOnOverflow() {
         CompletedStatistics empty = new CompletedStatistics();
-        assertThrows(IllegalArgumentException.class, () -> empty.addHand(null));
         assertThrows(IllegalArgumentException.class, () -> empty.addHand(empty));
         CompletedStatistics several = new CompletedStatistics(counts(Statistic.HANDS, 1),
                 Set.of("one", "two"));
@@ -133,7 +124,6 @@ class CompletedStatisticsTest {
         restored.completeHand("unfinished", false, false, 0, 0);
         assertEquals(2, restored.getHandsPlayed());
         assertEquals(1, original.getHandsPlayed());
-        assertThrows(IllegalArgumentException.class, () -> PlayStats.fromCompleted(null));
     }
 
     @Test
@@ -146,11 +136,7 @@ class CompletedStatisticsTest {
     }
 
     @Test
-    void csC35RejectsExtraNullCounterKeysAndNegativeUnrelatedActionCounts() {
-        Map<Statistic, Long> extra = new java.util.HashMap<>(counts());
-        extra.put(null, 0L);
-        assertThrows(IllegalArgumentException.class,
-                () -> new CompletedStatistics(extra, Set.of()));
+    void csC35RejectsNegativeUnrelatedActionCounts() {
         assertThrows(IllegalArgumentException.class,
                 () -> new CompletedStatistics(counts(Statistic.POSTFLOP_RAISES, -1), Set.of()));
     }

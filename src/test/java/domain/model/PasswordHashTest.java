@@ -22,12 +22,10 @@ class PasswordHashTest {
 
     static Stream<Arguments> invalidCredentials() {
         return Stream.of(
-                Arguments.of("PH-C01", null, HASH),
                 Arguments.of("PH-C02", "", HASH),
                 Arguments.of("PH-C03", "not base64!", HASH),
                 Arguments.of("PH-C04", encoded(15), HASH),
                 Arguments.of("PH-C05", encoded(17), HASH),
-                Arguments.of("PH-C06", SALT, null),
                 Arguments.of("PH-C07", SALT, ""),
                 Arguments.of("PH-C08", SALT, "not base64!"),
                 Arguments.of("PH-C09", SALT, encoded(31)),

@@ -4,7 +4,7 @@ PasswordHasher is the application hashing port. Pbkdf2PasswordHasher implements
 PBKDF2WithHmacSHA256 with 600,000 iterations, a 16-byte SecureRandom salt and
 32 derived bytes. New hashing requires 6–15 valid characters, without
 trimming or normalization. Verification returns false for invalid/wrong password
-input; a null credential is an invalid caller dependency. JCA failures propagate
+input; password, credential and provider references are non-null caller contracts. JCA failures propagate
 as GeneralSecurityException, not as successful authentication.
 
 Caller char arrays remain caller-owned. PBEKeySpec password copies are cleared;
@@ -19,7 +19,7 @@ default constructor uses SecureRandom.
 | PW-C03-6/7/14/15 | hash; matches | Boundary/adjacent valid lengths | Successful hash and verification | Yes - locally passing |
 | PW-C04 | hash; matches | Supplementary Unicode, added spaces, malformed surrogate | Valid Unicode succeeds unchanged; different password fails; malformed rejected | Yes - locally passing |
 | PW-C05 | default constructor; hash; matches | Same password hashed twice | Independent salts/hashes; both verify | Yes - locally passing |
-| PW-C06 | both constructors; hash; matches | Null salt source, password or credential | IllegalArgumentException as contracted | Yes - locally passing |
+| PW-C06 | both constructors; hash; matches | Null salt source, password or credential | Non-null caller contract; no runtime null guarantee | Retired November 16, 2026 |
 
 Pbkdf2PasswordHasherIntegrationTest runs the real JCA provider; ProfileServiceTest
 uses an injected fake hasher to isolate orchestration and failure behavior.

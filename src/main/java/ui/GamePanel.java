@@ -92,7 +92,7 @@ public final class GamePanel extends JPanel {
     public GamePanel(SetupSession session) { this(session, List.of()); }
 
     private GamePanel(SetupSession session, List<ProfileService> services) {
-        this.session = java.util.Objects.requireNonNull(session, "session");
+        this.session = session;
         profiles = services.stream().map(service -> new ProfilePanel(service, messages,
                 this::profileBusy, this::profilesChanged)).collect(Collectors.toUnmodifiableList());
         for (String tag : messages.languages()) {

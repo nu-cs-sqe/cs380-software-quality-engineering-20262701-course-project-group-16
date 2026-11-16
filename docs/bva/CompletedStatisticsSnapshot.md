@@ -10,11 +10,11 @@ long counters, and treats a previously completed ID as an idempotent retry.
 | --- | --- | --- | --- | --- |
 | CS-C01 | empty constructor; getters; PlayStats.fromCompleted | No hands | All zero; unavailable rates | Yes - locally passing |
 | CS-C02 | constructor; getters | Mutable valid inputs then caller mutation | Detached immutable data, exact opaque ID | Yes - locally passing |
-| CS-C03–11 | constructor | Null/missing/negative counts, too few IDs, null/blank ID | Reject without publishing | Yes - locally passing |
+| CS-C05/07/08/10/11 | constructor | Missing/negative counts, too few IDs or blank ID | Reject without publishing | Yes - locally passing |
 | CS-C12–24 | constructor | Inconsistent counters/opportunities/participation | Reject | Yes - locally passing |
 | CS-C29–34 | constructor | Incompatible c-bet histories, action counts or missing flop | Reject | Yes - locally passing |
 | CS-C25 | addHand; getters; restoration | Two distinct completed hands then retry | Sum once; earlier snapshots unchanged; correct rates | Yes - locally passing |
-| CS-C26 | addHand | Null/empty/multiple-hand delta or long overflow | Reject without altering earlier totals/history | Yes - locally passing |
+| CS-C26 | addHand | Empty/multiple-hand delta or long overflow | Reject without altering earlier totals/history | Yes - locally passing |
 | CS-C27 | PlayStats.completedSnapshot/fromCompleted/beginHand | Completed plus active hand | Export completed only; restore dedup history; no active state | Yes - locally passing |
 | CS-C28 | snapshot/getters | Eliminated nonparticipant | Record completion ID; no hands played | Yes - locally passing |
 
@@ -23,11 +23,20 @@ Six additional validation cases refine independent subset/action partitions.
 These are local executions; no RED/GREEN Git commits are claimed. Enum Statistic defines
 stable storage keys and is exempt from a separate executable-class BVA.
 
-CS-C35 additionally checks an extra null counter key and a negative postflop-raise
-counter, independently of other subset checks. It was added after mutation
+CS-C35 retains the negative postflop-raise check independently of other subset
+checks. The extra-null-key portion and CS-C03/04/06/09 are retired under the
+non-null reference/element contract; their historical IDs are not reused. It was added after mutation
 analysis exposed masked rejection paths.
 
 Latest verification: full build 1,196 passing tests; Checkstyle/SpotBugs clean;
 new/modified E02 component mutants all killed. See the existing
 [quality record](../quality.md#completed-lifetime-statistics--november-9-2026).
 These are local results; commit/CI/review/merge gates are not marked complete.
+
+## Main integration repair — November 16, 2026
+
+Required maps, IDs and elements are non-null caller contracts. Constructor steps
+requireAllCounters, requireNonnegativeCounts and requireCompletedIds name the
+independent shape/value/history validations. Subset consistency, exact overflow
+handling and completed-ID deduplication are preserved. Missing map keys remain a
+business rejection; only programmer-null expectations were retired.

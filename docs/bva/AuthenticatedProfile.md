@@ -9,7 +9,7 @@ so another ProfileService cannot reuse it, even against the same catalog.
 | --- | --- | --- | --- | --- |
 | LS-C01 | constructor; getProfile; belongsTo; login | Correct/wrong password; same/foreign service | Valid login yields exact stable identity; wrong password gives no handle; foreign issuer rejected | Yes - locally passing |
 | LS-C04 | ownership through saveCompleted | Foreign/missing account | No durable changes | Yes - locally passing |
-| PM-C03 | ownership through startProfiles | Null account in supplied list | Reject before match publication | Yes - locally passing |
+| PM-C03 | ownership through startProfiles | Required account references | Non-null caller contract | Null-only case retired November 16 |
 
 Covered by LifetimeStatisticsTest with injected hashing/storage, plus the real
 ProfiledMatchIntegrationTest flow. Handles are never saved or resumed on restart.

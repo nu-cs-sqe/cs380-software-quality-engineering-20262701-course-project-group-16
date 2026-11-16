@@ -5,8 +5,14 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Properties;
+import java.util.stream.Stream;
+import java.io.StringReader;
+import java.io.StringWriter;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import static org.junit.jupiter.api.Assertions.*;
 
 class LifetimeStorageTest {
@@ -108,11 +114,43 @@ class LifetimeStorageTest {
         }
     }
 
+    @ParameterizedTest(name = "ST-C06 missing catalog field: {0}")
+    @MethodSource("requiredCatalogFields")
+    void missingRequiredFieldsAreStorageErrorsAndPreserveCatalog(String field) throws IOException {
+        PlayStats stats = new PlayStats();
+        stats.beginHand("completed", true);
+        stats.completeHand("completed", false, false, 0, 0);
+        FileProfileRepository repository = new FileProfileRepository(directory);
+        repository.save(List.of(new StoredProfile(new PlayerProfile("id", "Player"),
+                new PasswordHash(SALT, HASH), stats.completedSnapshot())));
+        Path catalog = directory.resolve("profiles.properties");
+        Properties data = new Properties();
+        data.load(new StringReader(Files.readString(catalog)));
+        assertTrue(data.containsKey(field), field);
+        data.remove(field);
+        StringWriter encoded = new StringWriter();
+        data.store(encoded, "Missing-field regression");
+        String damaged = encoded.toString();
+        Files.writeString(catalog, damaged);
+
+        IOException failure = assertThrows(IOException.class, repository::load);
+
+        assertInstanceOf(IllegalArgumentException.class, failure.getCause());
+        assertEquals(damaged, Files.readString(catalog));
+    }
+
+    static Stream<String> requiredCatalogFields() {
+        return Stream.concat(Stream.of("formatVersion", "profileCount", "profile.0.id",
+                "profile.0.name", "profile.0.salt", "profile.0.hash",
+                "profile.0.completedCount", "profile.0.completed.0"),
+                java.util.Arrays.stream(Statistic.values())
+                        .map(counter -> "profile.0.stats." + counter));
+    }
+
     @Test
     void stC04StoredSnapshotRequiresStatisticsAndRetainsImmutableIdentity() {
         PlayerProfile identity = new PlayerProfile("id", "Player");
         PasswordHash hash = new PasswordHash(SALT, HASH);
-        assertThrows(IllegalArgumentException.class, () -> new StoredProfile(identity, hash, null));
         CompletedStatistics stats = new CompletedStatistics();
         StoredProfile record = new StoredProfile(identity, hash, stats);
         assertSame(stats, record.getStatistics());
