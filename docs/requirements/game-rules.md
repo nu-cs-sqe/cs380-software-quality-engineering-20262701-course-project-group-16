@@ -21,8 +21,11 @@ All chips are virtual and have no cash value.
   Departed seats keep their chips and completed statistics, but receive no
   further cards, blinds or turns.
 - The whole game may be stopped at any time by closing the window. There is no
-  login/logout or saved-match feature. Starting again abandons the previous
-  match and starts everyone at the initial stack; it does not resume that match.
+  saved unfinished-match feature. Starting again abandons the previous match and
+  starts everyone at the initial stack; it does not resume that match. The desktop
+  Profiles screen creates local password accounts and signs in 1–6 humans before
+  starting. Profile-bound matches retain completed lifetime statistics. Removing
+  an account from the next-match roster leaves the ongoing match unchanged.
 - The match carries stacks between settled hands, eliminates
   zero-chip players from further deals, and ends once a paid hand has fewer
   than two funded seats that have not left. A sole remaining funded player wins;
@@ -91,4 +94,10 @@ Accepted voluntary actions feed pending statistics once. Blinds, queries and
 rejected actions do not create voluntary observations. Settlement completes each
 player's hand statistics once; the Statistics tab shows accumulated match totals.
 Next hand keeps those totals, while starting a new match resets them. Closing
-the game discards the match; saved profiles remain future work.
+the game discards the match. Backend profile-bound matches additionally retain
+completed lifetime counters and completed-hand IDs locally, separately from
+match totals; new matches do not reset lifetime data. Save failures leave hand
+settlement retryable without paying chips or incrementing statistics twice.
+No unfinished hand is serialized. The existing desktop Statistics tab still
+shows match totals; Profiles displays the selected signed-in account's completed
+lifetime statistics. Accounts reopen on this device after password verification.

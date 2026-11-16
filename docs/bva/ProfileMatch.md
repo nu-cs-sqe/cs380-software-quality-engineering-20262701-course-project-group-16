@@ -1,0 +1,43 @@
+# ProfileMatch BVA
+
+Application binding from stable match-player IDs to password-verified profiles.
+requireAccounts accepts 1–6 distinct handles from the supplied service. Constructor
+checks the initializer's human count, then maps humans in stable seat order.
+Bots have no profile binding. Immutable views expose profile IDs/lifetime rates.
+save persists all bound human deltas in one repository save; IOException becomes
+UncheckedIOException before SetupSession publishes paid state or match totals.
+
+| ID | Methods | System/input state | Expected output | Implemented? |
+| --- | --- | --- | --- | --- |
+| PM-C01 | constructor; profileIds; snapshot; save | Real human/bot setup, showdown, next hand, restart | Correct immutable human-only binding; lifetime persistence; fresh-match stacks/totals | Yes - locally passing |
+| PM-C02 | save | Repository write failure then retry | Original IOException retained as cause; no paid state/statistics published; exactly one durable increment | Yes - locally passing |
+| PM-C03 | requireAccounts; views | Before start, valid one, zero/seven, duplicates, foreign issuer, unprofiled restart | Reject invalid starts without replacing binding; unprofiled start clears it | Yes - locally passing |
+| LS-C06 | requireAccounts; constructor | Six/seven distinct accounts | Six accepted/mapped; seven rejected independently of duplicate checks | Yes - locally passing |
+| PM-C05 | save | Durable real-file save succeeds, then adapter throws | Fresh service sees one completion; retry publishes paid state without another write | Yes - locally passing |
+| PM-C04 | constructor | Initializer produces two humans for one account | Reject before publishing match | Yes - locally passing |
+| PM-C07-before/after | save; profileIds; snapshot | Adaptive bot hand with storage failure before or after durable save | Retry publishes one completion, conserves chips and retains bindings/learning across nextHand | Yes - locally passing |
+| PM-C08 | requireAccounts; constructor | Profile-bound restart while a bot turn is captured | Old turn rejected, cards preserved, fresh learning and human-only binding | Yes - locally passing |
+
+ProfiledMatchIntegrationTest exercises real composition; it is an integration
+test, not an isolated ProfileMatch unit test. Public entry points are SetupSession
+and ProfileService. There is no persistence of cards, stacks or active hands.
+
+Latest verification: full build 1,196 passing tests; Checkstyle/SpotBugs clean;
+new/modified E02 component mutants all killed. See the existing
+[quality record](../quality.md#completed-lifetime-statistics--november-9-2026).
+These are local results; commit/CI/review/merge gates are not marked complete.
+
+PM-C07/08 are merge regressions added November 16. They combine the real seeded
+Monte Carlo/policy/engine flow with temporary profile catalogs. Both failed-save
+shapes retain the unpaid hand and completed match totals until retry succeeds.
+The original E05/E06 and profile RED/GREEN records retain their dated evidence.
+
+## Raised-hand persistence merge regression — November 15, 2026
+
+PM-C06 composes profiles with the main branch's full betting engine: an opening
+raise, the profile's three-bet to 80, a flop continuation bet to 40, calls and
+checks through showdown. The 720-chip pot settles with 6,000 chips conserved.
+The profile's VPIP, PFR, three-bet and flop c-bet rates are each 100%; a fresh
+service loads identical completed rates. Continuing preserves profile bindings
+and does not count the settled hand twice. This is a passing integration
+regression for the merge, not a claim of a new feature RED cycle.

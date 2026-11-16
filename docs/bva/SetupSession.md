@@ -50,3 +50,17 @@ getBotTurn, isCurrentBotTurn, applyBotDecision, getBotBeliefs,
 invalidateBotTurns and playDepartureTurns. Invalidating work changes only the
 revision; stale results preserve hand, log, learning and newly revealed cards.
 Queued automatic folds do not teach strategic preferences.
+
+## Authenticated profile matches
+
+Public startProfiles(ProfileService,List<AuthenticatedProfile>), getProfileIds and
+getLifetimeStatistics are mapped by PM-C01–04 in
+[lifetime BVA](LifetimeStatistics.md). Binding persists across nextHand and is
+cleared by successful unprofiled start. settleHand saves lifetime deltas before
+publishing paid state/match totals; failed IO is wrapped in UncheckedIOException,
+leaving the original hand retryable. Existing unprofiled APIs remain in-memory.
+
+November 16 integration retains both match-scoped BotTable/revision initialization
+and profile binding in startMatch. PM-C07-before/after and PM-C08 in
+ProfiledMatchIntegrationTest cover adaptive decisions through retryable settlement,
+continued learning/binding and stale-turn rejection after profile-bound restart.

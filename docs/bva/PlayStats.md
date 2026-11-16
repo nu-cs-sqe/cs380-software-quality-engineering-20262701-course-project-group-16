@@ -164,3 +164,12 @@ addToLifetimeTotals before commitCompletedHand publishes them and clears the
 pending hand. Postflop action counts and c-bet opportunities have separate named
 operations. Existing PS cases remain unchanged; 39 expected-rate rows now use
 OptionalDouble explicitly instead of nullable expected values.
+
+## Completed persistence boundary
+
+completedSnapshot exports only committed raw counters and completed-hand IDs;
+active ID/actions are excluded. fromCompleted restores those counters/history
+with no active hand. CS-C01, CS-C25, CS-C27–28 in CompletedStatisticsTest cover
+empty/restored rates, duplicate protection, unfinished-hand exclusion
+and nonparticipant completion. ST-C05 verifies all metric types after real file
+reload. See [snapshot BVA](CompletedStatisticsSnapshot.md).

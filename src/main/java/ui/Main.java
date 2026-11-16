@@ -1,6 +1,9 @@
 package ui;
 
 import application.SetupSession;
+import application.ProfileService;
+import persistence.FileProfileRepository;
+import java.nio.file.Path;
 import java.awt.Dimension;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -13,7 +16,10 @@ public final class Main {
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            GamePanel panel = new GamePanel(new SetupSession());
+            Path directory = Path.of(System.getProperty("cs380.profileDirectory",
+                    Path.of(System.getProperty("user.home"), ".cs380-holdem").toString()));
+            ProfileService profiles = new ProfileService(new FileProfileRepository(directory));
+            GamePanel panel = new GamePanel(new SetupSession(), profiles);
             JFrame frame = new JFrame((String) panel.getClientProperty("windowTitle"));
             panel.addPropertyChangeListener("windowTitle",
                     event -> frame.setTitle((String) event.getNewValue()));

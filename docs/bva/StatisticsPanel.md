@@ -21,3 +21,12 @@ Readability follow-up (November 15): column-width setup is separate
 from row rendering. Numeric versus percentage formatting selects the metric
 name (gap/af), rather than unexplained positional indices. Existing EN/ZH
 statistics/layout assertions cover the same display contract.
+
+## Profile lifetime rows
+
+The view also renders authenticated profiles with their saved StatisticsView
+values (UI-AC01/03/04). UI-AC03 verifies a real settled hand after application
+restart, profile names, read-only cells and separate fresh-match totals. Empty/
+unauthenticated selection has zero rows; unavailable rates retain the existing
+locale formatting. UI-AC09 covers failed-save feedback/retry; UI-AC13 escapes
+markup-like names. See [profile-screen BVA](ProfileScreen.md).

@@ -4,6 +4,7 @@ import application.BotController;
 import application.BotFailure;
 import application.BotScheduler;
 import application.BotTurn;
+import application.ProfileService;
 import application.SetupSession;
 import domain.model.ActionRequest;
 import domain.model.ActionType;
@@ -15,6 +16,11 @@ final class UiBotFixtures {
 
     static GamePanel passive(SetupSession session) {
         return new GamePanel(session, changed -> new BotController(session,
+                new PassiveScheduler(), changed));
+    }
+
+    static GamePanel passive(SetupSession session, ProfileService profiles) {
+        return new GamePanel(session, profiles, changed -> new BotController(session,
                 new PassiveScheduler(), changed));
     }
 

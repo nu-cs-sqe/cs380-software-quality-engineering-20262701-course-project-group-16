@@ -53,6 +53,16 @@ application {
 // This is not a whole-team coverage or mutation score.
 val measuredClasses = listOf(
     "domain.model.Card",
+    "domain.model.PlayerProfile",
+    "domain.model.CompletedStatistics",
+    "application.AuthenticatedProfile",
+    "application.ProfileMatch",
+    "persistence.StatisticsProperties",
+    "domain.model.PasswordHash",
+    "domain.model.StoredProfile",
+    "security.Pbkdf2PasswordHasher",
+    "application.ProfileService",
+    "persistence.FileProfileRepository",
     "domain.model.Deck",
     "domain.model.PokerHandEvaluator",
     "domain.model.ShowdownResolver",
@@ -190,6 +200,7 @@ pitest {
     excludedClasses.set(setOf("domain.model.ShowdownResult\$Status"))
     targetTests.set(setOf(
         "domain.model.*Test", "application.*Test", "integration.*Test",
+        "persistence.*Test", "security.*Test",
         "localization.LocalizationsTest", "bot.*Test", "bot.learning.*Test", "bot.policy.*Test"
     ))
     threads.set(2)

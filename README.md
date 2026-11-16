@@ -2,18 +2,17 @@
 
 A Java desktop no-limit Texas Hold'em game with six seats for 1–6 humans and bots
 filling the remaining seats. Players share one computer and use virtual chips.
-Seats and chip ownership stay fixed during a match. Humans can leave, and the
-last funded player still in the match wins.
+Seats and chip ownership stay fixed during a match. Humans can leave. The agreed
+match target is one player holding all 6,000 chips; departure-related terminal
+behavior still needs reconciliation with that requirement.
 
 **Status:** The engine and application session support full bets/raises and
-fold/check/call on every street, real results, pot payouts and continued hands
-with the same chips/statistics. Requests specify the round target; the engine
-calculates deductions. Short all-ins and player-specific cumulative reopening
-are supported by the engine. Swing exposes all five actions in English and
-Chinese, with engine-provided wager limits, private-card handoffs and read-only
-statistics. Live bots now combine Monte Carlo equity, learned public tendencies
-and varied legal decisions in a cancellable background worker. Saved profiles
-remain on a separate branch.
+fold/check/call on every street, settlement and continued hands with carried
+chips/statistics. Requests specify round targets; the engine calculates deductions
+and individual reopening eligibility. Swing exposes the five actions in English
+and Chinese, private-card handoffs, local password accounts and lifetime statistics.
+Live bots combine Monte Carlo equity, learned public tendencies and varied legal
+decisions in a cancellable background worker.
 
 Bot inputs contain only their own cards and public information. Match/hand/state
 checks reject old results. This is an adaptive heuristic; equity uses uniform
@@ -38,10 +37,10 @@ repository root. Gradle uses the installed JDK 11 toolchain to compile and run
 tests; setting `JAVA_HOME` to JDK 11 does not select the required Gradle runtime.
 The first build downloads Gradle and dependencies. CI installs both JDKs automatically.
 
-On macOS, select the locally verified JDK 17 runtime with:
+On macOS, select the locally verified JDK 25 runtime with:
 
 ```bash
-export JAVA_HOME="$(/usr/libexec/java_home -v 17)"
+export JAVA_HOME="$(/usr/libexec/java_home -v 25)"
 ```
 
 On Linux or Windows, set `JAVA_HOME` to your JDK 17 or 25 installation directory.
@@ -67,33 +66,37 @@ installation directory and add
 
 Test reports appear at `build/reports/tests/test/index.html`.
 
-## Run the supported hand demo
+## Run the desktop game
 
 With the JDKs configured above, run `bash ./gradlew run` (Windows:
-`.\gradlew.bat run`) on a computer with a desktop display. Enter 1–6 human
-players, select English or Chinese, and choose **Start Game**; bots fill the remaining seats. The highlighted
-seat is the current actor; bots act automatically while a thinking status appears.
-If calculation fails or times out, choose **Retry bot**. Use the enabled
-**Fold**, **Check** or **Call** control, or enter a round total in the wager
-field and choose **Bet** or **Raise**. Then pass the computer to the next human.
-The board and winner/tie result update as rounds finish. Select a human in
-**Private hand** and pass the computer
-to that person before choosing **Reveal cards**. Switching humans, restarting
-or leaving the window hides the cards. Language changes also hide cards while
-preserving the match. English is the explicit default, independent of the
-computer's language settings. Add future languages through resources/configuration;
+`.\gradlew.bat run`) on a computer with a desktop display. Choose English or
+Chinese, then use **Profiles** to create a name/password account. Enter its
+password under **Sign in**, choose **Sign in and add**, and repeat for 1–6 humans.
+Choose **Start Game**; bots fill the remaining seats. Removing a profile from the
+next-match roster does not change an ongoing match. Bots act automatically while
+a thinking status appears. If calculation fails or times out, choose **Retry bot**.
+English is the default. Add future languages through resources/configuration;
 see [localization](docs/design/localization.md).
 
-This is shared-computer privacy by handoff, not authentication: anyone using the
-computer can select another human. Actions are enabled only for the current
-human viewer. After a result, choose **Settle hand** to pay pots and update
-statistics, then **Next hand** to continue with eligible seats and their carried
-stacks. Select a human and choose **Leave match** to retire their seat. They fold
-on their turn if still active; an all-in hand stays eligible until payment.
-The **Statistics** tab shows completed-hand totals; N/A means no qualifying
-opportunity. Switching tabs conceals cards. **Start Game** resets the match.
-Statistics are kept in memory for this match; closing the game discards them.
-Tests run headlessly, without opening a desktop window.
+Use **Fold**, **Check** or **Call**, or enter a round total and choose **Bet** or
+**Raise**. Engine-provided limits determine the allowed wagers. Pass the computer
+to the selected human before choosing **Reveal cards**. Switching humans/tabs,
+changing language, restarting or leaving the window hides cards and clears password
+fields. Profile authentication identifies accounts; private-card access still relies
+on shared-computer handoffs.
+
+After a result, choose **Settle hand**, then **Next hand**. **Statistics** shows
+current-match totals; **Profiles** shows the selected signed-in account's lifetime
+totals. N/A means no qualifying opportunity. A new match resets stacks/match totals
+and retains completed lifetime data. Closing discards unfinished play. Saved
+accounts/statistics are local in `~/.cs380-holdem/profiles.properties`; they reopen
+after password verification. Storage errors leave settlement retryable.
+
+Select a human and choose **Leave match** to retire their seat. Current actors fold
+immediately; other active departures queue a fold, and all-in eligibility lasts
+through settlement. The queued-departure winner and 6,000-chip terminal-policy
+follow-ups are still open; see [quality results](docs/quality.md).
+Tests run headlessly with temporary catalogs, without creating real profiles.
 
 ## Application initialization
 
@@ -106,6 +109,27 @@ player information and only the selected human's cards after explicit reveal.
 All domain classes are under `domain.model`; coordinators stay in `application`
 and Swing classes stay in `ui`.
 
+## Local account backend
+
+`ProfileService` provides `create(name, password)`, `list()`, `find(profileId)` and
+`authenticate(profileId, password)`. `login` returns a verified account handle
+for lifetime statistics and `SetupSession.startProfiles`. Passwords are caller-owned `char[]` values;
+new registration requires 6–15 characters. Existing longer account passwords still verify. Only authentication verifies
+access; list/find expose public selection metadata. IDs are generated separately
+from match participants and seats.
+
+Construct it with `new FileProfileRepository(dataDirectory)` and reuse the same
+application-data path after restart, for example
+`Path.of(System.getProperty("user.home"), ".cs380-holdem")`. Registration saves
+identity and a salted PBKDF2 hash together in `profiles.properties`; plaintext
+passwords are never saved. Read failures reject corrupt data without resetting it.
+The application must serialize writes. Profile-bound matches save completed raw
+counters and duplicate-prevention IDs before publishing settlement; failed saves
+remain retryable. Lifetime data survives restarts while new matches reset stacks
+and match totals. Unfinished matches are never saved. The desktop Profiles tab
+uses these APIs; account/password work runs off Swing's event thread. The optional
+`cs380.profileDirectory` JVM property selects another local data directory.
+See [account design](docs/design/README.md#local-password-accounts).
 ## Standalone equity API
 
 Create an `EquityRequest` from a filtered `GameView`, engine-supplied `EquityPot`
@@ -113,8 +137,8 @@ scenarios and 1–10,000 trials, then call `MonteCarloEquityEstimator.estimate`.
 The result provides per-pot expected shares, eligible-pot equity and expected
 payout. It handles multiway ties and side-pot eligibility without receiving the
 real deck or opponents' cards. Uniform unknown hands are the initial model;
-opponent learning is available separately in `bot.learning`, while varied action
-selection and asynchronous session integration follow in E05–E06. See
+opponent learning is in `bot.learning`, varied action selection is in
+`bot.policy`, and application services coordinate background session decisions. See
 [equity design](docs/design/README.md#standalone-equity-e03) and
 [opponent learning](docs/design/README.md#opponent-learning-e04).
 
@@ -128,11 +152,11 @@ and required status-check enforcement still need verification after push.
 
 Run `bash ./gradlew build` for tests/static checks/coverage and
 `bash ./gradlew pitest` for mutation testing. The team suite and shared static
-checks run across the project; coverage/PIT use 50 documented parent components,
-including betting/state, dealing, settlement, continuation, PlayStats and the
-standalone bot components. These are not
-full-game metrics. The build also checks named table-rule constants and
-production formatting; see the quality scope below.
+checks run across the project; coverage/PIT use 66 documented parent components,
+including betting/state, dealing, settlement, continuation, PlayStats, profiles,
+password/storage services and bot components. These are scoped metrics. The build
+also checks named table-rule constants and production formatting; see the quality
+scope below.
 [Quality results](docs/quality.md)
 list exact scope, report paths, adapted Checkstyle rules and reviewed SpotBugs
 exceptions. There is no invented metric threshold that hides findings.
@@ -154,7 +178,7 @@ exceptions. There is no invented metric threshold that hides findings.
 
 ### Code Coverage
 
-Coverage uses the documented 50-component scope, including betting, InitialDeal and the
+Coverage uses the documented 66-component scope, including betting, InitialDeal and the
 shared session/view, statistics collectors and settlement. The rubric targets 100%
 cyclomatic coverage, with View/Main/Enum exemptions. JaCoCo line, branch
 and covered-complexity counters are reported separately; these do not prove
@@ -164,7 +188,7 @@ cover components outside that measurement scope.
 
 ### Mutation Testing
 
-PIT uses the DEFAULTS operator group on the documented 50-component scope. The target
+PIT uses the DEFAULTS operator group on the documented 66-component scope. The target
 is to kill every non-equivalent mutant. Actual raw scores and each surviving
 mutant's reasoning remain visible in [quality.md](docs/quality.md), including
 the unresolved acceptance of a contract-preserving constant hash. Survivor reasoning and acceptance limits are documented alongside the raw score.
