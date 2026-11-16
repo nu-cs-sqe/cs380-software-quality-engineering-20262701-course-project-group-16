@@ -231,11 +231,80 @@ and combined-source results (970) describe different checkpoints.
 
 **Status at November 16:** PR #21 profiles, PR #22's instructor document,
 PR #24's refactor/equity/learning foundations and PR #25's integration repair
-have merged into main 69aae47. The original checkout on feature/bot-integration
-now has a staged, uncommitted E05/E06 integration with that baseline, verified
-locally. Kevin owns betting/departure/contracts; Estella owns profiles/bots.
+have merged into main 69aae47. E05/E06 integration is committed/pushed as 4a9d9d3
+and submitted in PR #26. At the user's request, Estella's I03 quit-eligibility
+correction is verified locally on fix/quit-eligibility in the original
+checkout. I07's confirmed policy preserves departed stacks and ends without a
+winner when fewer than two funded playing seats remain and nobody owns the full
+total; implementation is verified locally alongside I03. Kevin owns
+betting/departure/contracts; Estella owns profiles/bots.
 The checklist IDs below match issue #20. Older checkpoints retain their own
 measurements and dates; local verification leaves review/remote-CI/merge gates open.
+
+### I07 full-chip terminal policy — November 16 follow-up
+
+The confirmed policy keeps departed stacks with their owners. A paid match has a
+winner only when one player owns the full configured total, normally 6,000.
+With zero/one funded playing seat and chips still split, play ends without a
+match winner. Two funded playing seats can continue heads-up. All-in departure
+can retain a complete payout/victory, and later retirement preserves a completed
+champion. English/Chinese resources state a no-winner ending explicitly.
+
+Four winner invocations were observed RED before the query correction, then
+GREEN. The six UI boundaries observed four terminal-label failures and two
+continuation passes before both resource values were updated. Real Next hand
+checks verify heads-up dealer/SB/BB order, 48 remaining cards, privacy and 6,000
+chips conserved. Configured 120-chip victory adds a supported-settings boundary.
+The 98-case focused run passed.
+
+The first full run passed 1,545 tests and killed 1,823/1,838 mutants, leaving one
+new settlement-guard survivor alongside the 14 baseline cases. An explicit
+before-start absence regression kills that mutation in the final report.
+This is additional mutation hardening; no new feature RED or artificial Git TDD
+history is claimed for that case.
+
+Final build pitest --warning-mode all passes in **12m03s** with **1,546 tests**,
+clean Checkstyle/SpotBugs, **2,893/2,894 scoped lines** and **1,824/1,838 mutants
+killed**. The same 14 baseline survivors remain, with zero uncovered/timeout/error
+mutants. Scope is unchanged at 66 parents / 68 reported classes. Exact counters,
+first-run evidence and survivor identity comparison are in quality.md. No
+source/test/configuration changes follow the final run.
+
+I03 and I07 remain uncommitted together on fix/quit-eligibility in the original
+checkout. User commit/push, Kevin's contract review, remote CI and merge are
+pending. Local verification leaves the I07 checklist and whole issue open.
+
+### I03 immediate quit-as-fold — November 16 follow-up
+
+At the user's request, Estella implements the correction locally on
+fix/quit-eligibility, based on committed/pushed integration 4a9d9d3 (PR #26),
+using the original checkout. An active human folds immediately when leaving,
+including out of turn. Another pending actor keeps their turn while betting
+continues. Already-all-in players keep payout eligibility; folded players and
+resolved hands acquire no extra fold. Cards, commitments, fixed seats, privacy
+and exact completed statistics are retained.
+
+The three session regressions first failed against the original queued-fold
+source. Fourteen engine invocations then failed compilation against the missing
+automatic-fold API. A new assertion initially compared Player object identities;
+ownership assertions now compare IDs, seats, types, stacks and commitments.
+After these test corrections and implementation, all 58 focused checks pass.
+Two additional session boundaries and two bilingual UI cases provide further
+hardening. Historical tests retain their business assertions with immediate-fold
+timing. No synthetic test-first Git commits or extra reports were created.
+
+The automatic event uses a separate no-context learning path, invalidates old bot
+work and supports failed-recording retry without publication or duplicate folds.
+Full build pitest --warning-mode all passes in **12m17s** with **1,534 tests**,
+clean Checkstyle/SpotBugs, **2,892/2,893 scoped lines** and **1,822/1,836 mutants
+killed**. Scope stays 66 parents / 68 reported classes. The same 14 baseline
+survivors and unreachable enum-default miss remain. There are zero uncovered,
+timeout or error mutants. Exact metrics and survivor identity comparison are in
+quality.md; no source/test/configuration changes follow the final run.
+
+Status is verified locally, awaiting user commit/push, Kevin's engine/contract
+review, remote CI and merge. I03's issue checkbox remains open under those gates.
+I07's departed-stack/6,000-chip terminal policy remains a separate follow-up.
 
 ### E05/E06 and profile integration repair — November 16
 

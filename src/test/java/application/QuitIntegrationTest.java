@@ -2,32 +2,38 @@ package application;
 
 import domain.model.ActionRequest;
 import domain.model.ActionType;
+import domain.model.BettingEngine;
 import domain.model.GameConfig;
 import domain.model.PlayerStatus;
 import domain.model.ResolvedActionType;
+import domain.model.ShowdownResolver;
+import java.util.List;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class QuitIntegrationTest {
     @Test
-    void departingPlayersFoldInTurnAndKeepTheirStacksWithoutBeingDealtAgain() {
+    void departingPlayersFoldImmediatelyAndKeepTheirStacksWithoutBeingDealtAgain() {
         SetupSession session = start(6, new GameConfig());
         String queued = id(session, 4);
         session.selectViewer(queued);
         session.revealCards();
         session.quit(queued);
         assertEquals(3, view(session).getCurrentActorSeat());
-        assertTrue(session.getAcceptedActions().isEmpty());
+        assertEquals(1, session.getAcceptedActions().size());
+        assertEquals(queued, session.getAcceptedActions().get(0).getPlayerId());
+        assertEquals(ResolvedActionType.FOLD, session.getAcceptedActions().get(0).getType());
         assertTrue(view(session).getHoleCards().isEmpty());
         assertThrows(IllegalArgumentException.class, () -> session.selectViewer(queued));
 
         act(session, ActionType.CALL);
-        assertThrows(IllegalArgumentException.class, () -> act(session, ActionType.CALL));
-        assertEquals(1, session.getAcceptedActions().size());
-        assertTrue(session.getLegalActions().getActions().isEmpty());
-        assertEquals(ResolvedActionType.FOLD, session.playBotTurns().get(0).getType());
-        assertEquals(queued, session.getAcceptedActions().get(1).getPlayerId());
+        assertThrows(IllegalArgumentException.class, () -> session.submitAction(
+                new ActionRequest(queued, ActionType.CALL)));
+        assertEquals(2, session.getAcceptedActions().size());
+        assertTrue(session.getLegalActions().getActions().contains(ActionType.CALL));
+        assertTrue(session.playBotTurns().isEmpty());
         assertEquals(5, view(session).getCurrentActorSeat());
         session.quit(id(session, 5));
         assertEquals(0, view(session).getCurrentActorSeat());
@@ -64,11 +70,14 @@ class QuitIntegrationTest {
     }
 
     @Test
-    void paidMatchStopsWhenFewerThanTwoFundedPlayersRemainAndRestartClearsDepartures() {
+    void paidMatchEndsWithoutAWinnerWhenDepartedSeatsRetainChips() {
         SetupSession session = start(6, new GameConfig());
         finishWithFolds(session);
         for (int seat = 1; seat < 6; seat++) session.quit(id(session, seat));
-        assertEquals(id(session, 0), session.getMatchWinner().orElseThrow().getId());
+        assertTrue(session.getMatchWinner().isEmpty());
+        assertEquals(1000, view(session).getPlayers().get(0).getChipStack());
+        assertEquals(6000, view(session).getPlayers().stream()
+                .mapToLong(player -> player.getChipStack()).sum());
         assertFalse(session.canStartNextHand());
         assertThrows(IllegalStateException.class, session::nextHand);
         String lastId = id(session, 0);
@@ -91,7 +100,9 @@ class QuitIntegrationTest {
         assertEquals(3, view(session).getCurrentActorSeat());
         session.quit(id(session, 0));
         assertThrows(IllegalArgumentException.class, () -> session.quit(id(session, 0)));
-        assertTrue(session.getAcceptedActions().isEmpty());
+        assertEquals(1, session.getAcceptedActions().size());
+        assertEquals(id(session, 0), session.getAcceptedActions().get(0).getPlayerId());
+        assertEquals(ResolvedActionType.FOLD, session.getAcceptedActions().get(0).getType());
     }
 
     @Test
@@ -114,7 +125,114 @@ class QuitIntegrationTest {
         assertEquals(3, view(session).getCurrentActorSeat());
         assertEquals(1, view(session).getViewerSeat());
         assertTrue(view(session).getHoleCards().isEmpty());
+        assertEquals(1, session.getAcceptedActions().size());
+        assertEquals(id(session, 0), session.getAcceptedActions().get(0).getPlayerId());
+    }
+
+    @Test
+    void dep08NonCurrentQuitFoldsImmediatelyAndPreservesTheCurrentDecision() {
+        SetupSession session = start(6, new GameConfig());
+        String quitter = id(session, 4);
+        String actor = id(session, 3);
+        session.quit(quitter);
+        assertEquals(PlayerStatus.FOLDED, view(session).getStatuses().get(4));
+        assertEquals(3, view(session).getCurrentActorSeat());
+        assertEquals(30, view(session).getPot());
+        assertEquals(1000, view(session).getPlayers().get(4).getChipStack());
+        assertEquals(1, session.getAcceptedActions().size());
+        assertEquals(quitter, session.getAcceptedActions().get(0).getPlayerId());
+        assertEquals(ResolvedActionType.FOLD, session.getAcceptedActions().get(0).getType());
+        act(session, ActionType.CALL);
+        assertEquals(actor, session.getAcceptedActions().get(1).getPlayerId());
+        assertEquals(5, view(session).getCurrentActorSeat());
+        assertTrue(session.playDepartureTurns().isEmpty());
+    }
+
+    @Test
+    void dep09AQuitterWhoAlreadyActedCannotBecomeTheUncontestedWinner() {
+        SetupSession session = start(6, new GameConfig());
+        for (int index = 0; index < 3; index++) {
+            act(session, ActionType.FOLD);
+        }
+        act(session, ActionType.CALL);
+        act(session, ActionType.FOLD);
+        assertEquals(2, view(session).getCurrentActorSeat());
+        String quitter = id(session, 0);
+        String winner = id(session, 2);
+        session.quit(quitter);
+        assertTrue(session.getResult().isPresent());
+        assertEquals(List.of(winner), session.getResult().orElseThrow().getWinnerIds());
+        assertTrue(session.getResult().orElseThrow().isUncontested());
+        assertEquals(ResolvedActionType.FOLD, session.getAcceptedActions().get(5).getType());
+        assertEquals(quitter, session.getAcceptedActions().get(5).getPlayerId());
+        session.settleHand();
+        assertEquals(980, view(session).getPlayers().get(0).getChipStack());
+        assertEquals(1030, view(session).getPlayers().get(2).getChipStack());
+        assertEquals(6000, view(session).getPlayers().stream()
+                .mapToLong(player -> player.getChipStack()).sum());
+        assertEquals(1, session.getStatistics().get(quitter).getHandsPlayed());
+    }
+
+    @Test
+    void dep10FailedDepartureRecordingPreservesEligibilityAndSupportsRetry() {
+        AtomicBoolean reject = new AtomicBoolean(true);
+        SetupSession session = new SetupSession(BotFixtures.initializer(), new BettingEngine(),
+                new ShowdownResolver(), state -> action -> {
+                    if (reject.get()) {
+                        throw new IllegalStateException("Recorder rejected departure.");
+                    }
+                });
+        session.start(1);
+        String quitter = id(session, 0);
+        String observer = id(session, 3);
+        BotTurn turn = session.getBotTurn(1).orElseThrow();
+        session.revealCards();
+        assertThrows(IllegalStateException.class, () -> session.quit(quitter));
+        assertFalse(session.hasDeparted(quitter));
+        assertEquals(PlayerStatus.ACTIVE, view(session).getStatuses().get(0));
         assertTrue(session.getAcceptedActions().isEmpty());
+        assertTrue(session.isCurrentBotTurn(turn));
+        assertTrue(view(session).getHoleCards().isEmpty());
+        reject.set(false);
+        session.quit(quitter);
+        assertTrue(session.hasDeparted(quitter));
+        assertEquals(PlayerStatus.FOLDED, view(session).getStatuses().get(0));
+        assertFalse(session.isCurrentBotTurn(turn));
+        assertEquals(1, session.getAcceptedActions().size());
+        assertEquals(0, session.getBotBeliefs(observer).get(quitter).getObservedDecisions());
+        BotTurn fresh = session.getBotTurn(1).orElseThrow();
+        assertFalse(fresh.getScenario().getOpponents().contains(quitter));
+        assertEquals(turn.getView().getViewerId(), fresh.getView().getViewerId());
+    }
+
+    @Test
+    void dep11AnAlreadyFoldedQuitterCreatesNoDuplicateFold() {
+        SetupSession session = start(6, new GameConfig());
+        String quitter = id(session, 3);
+        act(session, ActionType.FOLD);
+        session.quit(quitter);
+        assertTrue(session.hasDeparted(quitter));
+        assertEquals(1, session.getAcceptedActions().size());
+        assertEquals(4, view(session).getCurrentActorSeat());
+        assertEquals(PlayerStatus.FOLDED, view(session).getStatuses().get(3));
+        assertEquals(1000, view(session).getPlayers().get(3).getChipStack());
+    }
+
+    @Test
+    void dep12LeavingAfterAResolvedHandPreservesItsWinnerAndPendingPayment() {
+        SetupSession session = start(6, new GameConfig());
+        for (int index = 0; index < 5; index++) {
+            act(session, ActionType.FOLD);
+        }
+        String winner = id(session, 2);
+        assertTrue(session.getResult().isPresent());
+        session.quit(winner);
+        assertEquals(5, session.getAcceptedActions().size());
+        assertEquals(List.of(winner), session.getResult().orElseThrow().getWinnerIds());
+        assertTrue(session.getSettlement().isEmpty());
+        session.settleHand();
+        assertEquals(1010, view(session).getPlayers().get(2).getChipStack());
+        assertEquals(1, session.getStatistics().get(winner).getHandsPlayed());
     }
 
     private static void finishWithFolds(SetupSession session) {

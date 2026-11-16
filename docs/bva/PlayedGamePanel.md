@@ -52,3 +52,15 @@ selector rebuilding and human-control availability; submitAction delegates input
 parsing to requestedAction. Five UI test classes share UiComponents.find for
 explicit, typed component lookup. Existing private-handoff, locale, action,
 layout and background-bot cases are preserved.
+
+## I07 terminal outcomes — November 16, 2026
+
+| ID | State/input | Expected result | Test |
+| --- | --- | --- | --- |
+| UI-I07-en/zh-0/1 | Paid hand, retire down to zero/one funded playing seat while departed stacks retain chips | Explicit localized no-winner end, Next hand disabled, cards hidden, accepted log unchanged, 6,000 conserved | terminalPolicyHandlesZeroOneAndTwoPlayingSeats |
+| UI-I07-en/zh-2 | Paid hand, retire down to exactly two funded playing seats | Pot paid, Next hand enabled; clockwise heads-up dealer/SB/BB, four hole cards/48 remaining cards and 6,000 chips conserved | Same |
+
+Before updating the two resource values, four no-winner text assertions failed
+and both continuation cases passed. All six pass afterward. Runtime locale
+selection remains resource-driven. These headless component cases use the real
+session, engine, payout and continuation with the controlled presentation scheduler.

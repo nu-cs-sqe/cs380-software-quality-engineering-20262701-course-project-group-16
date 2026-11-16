@@ -49,7 +49,7 @@ See [BotTurn](BotTurn.md) and [BotTable](BotTable.md) for SB01–09, covering
 getBotTurn, isCurrentBotTurn, applyBotDecision, getBotBeliefs,
 invalidateBotTurns and playDepartureTurns. Invalidating work changes only the
 revision; stale results preserve hand, log, learning and newly revealed cards.
-Queued automatic folds do not teach strategic preferences.
+Immediate automatic departure folds do not teach strategic preferences.
 
 ## Authenticated profile matches
 

@@ -325,3 +325,29 @@ actors, actor selection and board dealing. Closed-round validation delegates
 to one named check per condition. Internal actor selection returns Optional;
 existing street/short-blind/all-in tests retain their behavioral expectations.
 No additional programmer-error input cases were added.
+
+## Immediate automatic departure folds — November 16, 2026
+
+foldDepartingPlayer(GameState,String) accepts an active player on a contested
+betting street. It reuses normal fold resolution, round bookkeeping and immutable
+state construction. Another pending actor retains their turn; a departing actor
+advances clockwise. The ordinary apply entry point retains its turn-order checks.
+
+DepartureBettingTest uses real initialized state fixtures for engine component
+checks. These are separate from the session and Swing integration cases.
+
+| ID | Input/state | Expected result |
+| --- | --- | --- |
+| DB01-0/1/2/4/5 | Out-of-turn active seat, including both blinds | FOLD immediately; retain actor 3, cards, IDs, seats, types, stacks and commitments; remove pending/raise rights; zero added chips |
+| DB02 | Current actor departs | Advance to next pending seat 4 |
+| DB03-empty/space/unknown | Missing textual identity or unknown ID | Reject without changing input |
+| DB04 | Already-all-in big blind | Reject automatic fold; retain eligibility |
+| DB05 | Already-folded player | Reject duplicate fold |
+| DB06 | Undealt SETUP state | Reject unsupported phase |
+| DB07 | Sole remaining participant in an already-uncontested hand | Reject fold that would leave no eligible player |
+| DB08 | Round closed, actor explicitly absent, quitter previously called | Retain actor absence and other decision levels; remove quitter's level; keep the 120-chip pot |
+
+Fourteen invocations preceded production implementation and first failed to
+compile against the missing API. The three public-session DEP-08/09/10 cases
+independently reproduced assertion failures before any production change.
+No null-input cases, exclusions or suppressions were introduced.

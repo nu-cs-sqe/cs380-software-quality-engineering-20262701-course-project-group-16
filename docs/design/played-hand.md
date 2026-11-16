@@ -36,10 +36,12 @@ sequenceDiagram
 | --- | --- |
 | `start(humanCount)` | Initialize a separate hand, hide cards, prepare fresh pending collectors, clear history/result only after a successful start. It returns at the initial decision; the UI then calls playBotTurns. |
 | `submitAction(request)` | Delegate legality/deductions to BettingEngine. Advance closed rounds, resolve a terminal comparison, then record the pending observation, publish the candidate state and append exactly one accepted action. Any validation/comparison/recording failure preserves the old state/result/log; private cards are hidden. |
-| `playBotTurns()` | Fold departed actors in turn; bots CHECK if legal, otherwise CALL. Stop before a remaining human decision or after a result. Return immutable committed actions; inspect no cards. |
-| `getLegalActions()` / `getAvailableActions()` | Immutable engine options for the next decision, including capped call cost and a BET/RAISE range or exact short all-in. Empty before start, after a result, or when a queued departure owns the turn. Queries make no observations. |
-| `quit(playerId)` | Retire a human seat. Fold an active current actor through the normal submission; otherwise process any required fold at their next turn in the automatic pump. All-in eligibility and chip ownership stay intact. |
-| `canStartNextHand()` | True after payment if at least two funded seats remain. |
+| `playBotTurns()` | Legacy passive helper: bots CHECK if legal, otherwise CALL. Stop before a human decision or after a result. Return immutable committed actions; inspect no cards. |
+| `getLegalActions()` / `getAvailableActions()` | Immutable engine options for the next decision, including capped call cost and a BET/RAISE range or exact short all-in. Empty before start or after a result. Queries make no observations. |
+| `quit(playerId)` | Retire a human seat and fold an active participant immediately through BettingEngine.foldDepartingPlayer. Preserve another pending actor's turn, all-in eligibility and chip ownership. Record one automatic fold before publication; failed recording leaves the departure retryable. |
+| `playDepartureTurns()` | Refresh the private handoff. Immediate departures have already been committed by quit; return an empty immutable action list. |
+| `canStartNextHand()` | True after payment if at least two funded seats have not left. |
+| `getMatchWinner()` | After payment, return the player owning the full configured chip total. All-in departure and later retirement preserve a completed victory. With chips split across stopped playing/departed seats, return Optional.empty. |
 | `getResult()` | Optional immutable ShowdownResult. It remains the comparison snapshot; getSettlement reports subsequent payment. |
 | `getAcceptedActions()` | Immutable current-hand event snapshot, including human/bot actions and existing statistics context. No forced blind posts or invented runout actions; failed requests do not append. |
 

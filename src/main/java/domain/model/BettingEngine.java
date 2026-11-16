@@ -143,16 +143,45 @@ public final class BettingEngine {
         int seat = before.getCurrentActorSeat().orElseThrow();
         PlayerState actor = before.getPlayerStates().get(seat);
         AcceptedAction accepted = resolveAction(before, actor, request);
+        return applyResolvedAction(before, actor, accepted);
+    }
 
+    /**
+     * Folds an active departing player immediately, preserving another pending actor's turn.
+     * Retains cards, stack and commitments. Already-all-in players remain eligible.
+     * @throws IllegalArgumentException for an unknown/inactive player or an uncontested hand
+     * @throws UnsupportedOperationException outside betting streets
+     */
+    public BettingResult foldDepartingPlayer(GameState before, String playerId) {
+        requireBettingStreet(before);
+        requireContestedHand(before);
+        PlayerState departing = before.getPlayerStates().stream()
+                .filter(player -> player.getPlayer().getId().equals(playerId) && player.canAct())
+                .findFirst().orElseThrow(() ->
+                        new IllegalArgumentException("Departure requires an active player."));
+        AcceptedAction fold = resolveAction(before, departing,
+                new ActionRequest(playerId, ActionType.FOLD));
+        return applyResolvedAction(before, departing, fold);
+    }
+
+    private static BettingResult applyResolvedAction(GameState before, PlayerState actor,
+            AcceptedAction accepted) {
+        int seat = actor.getPlayer().getSeat();
         List<PlayerState> players = new ArrayList<>(before.getPlayerStates());
         players.set(seat, afterAction(actor, accepted));
         BettingProgress progress = BettingRound.after(before, players, accepted);
         GameState after = GameState.create(before.getConfig(), before.getHandId(),
                 before.getPhase(), players, before.getPositions(),
-                nextPendingActor(players, progress.getPlayersToAct(), seat),
+                nextActorAfter(before, players, progress, seat),
                 before.getCommunityCards(), before.getRemainingDeck(), progress,
                 before.getBettingHistory().after(accepted));
         return new BettingResult(after, accepted);
+    }
+
+    private static Optional<String> nextActorAfter(GameState before, List<PlayerState> players,
+            BettingProgress progress, int seat) {
+        return before.getCurrentActorId().filter(progress.getPlayersToAct()::contains)
+                .or(() -> nextPendingActor(players, progress.getPlayersToAct(), seat));
     }
 
     /** Queries legal actions for the current actor without constructing a next state. */

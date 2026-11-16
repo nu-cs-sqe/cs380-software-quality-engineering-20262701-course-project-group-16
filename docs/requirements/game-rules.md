@@ -15,9 +15,10 @@ All chips are virtual and have no cash value.
 - A hand is one deal and its betting rounds. Seats and chip ownership stay
   fixed during a match. Humans can leave; new players cannot join or replace
   them. Ordinary folding ends participation in the current hand only.
-- Leaving folds the current human actor immediately. Another active human folds
-  when their turn arrives; if the hand ends first, no extra action is recorded.
-  An already-all-in human keeps their current-hand eligibility and payouts.
+- Leaving immediately folds an active human, including an out-of-turn departure.
+  Another pending player keeps their turn while betting remains open. An
+  already-all-in human keeps their current-hand eligibility and payouts. Leaving
+  after folding or after the hand's result creates no additional fold.
   Departed seats keep their chips and completed statistics, but receive no
   further cards, blinds or turns.
 - The whole game may be stopped at any time by closing the window. There is no
@@ -26,12 +27,15 @@ All chips are virtual and have no cash value.
   Profiles screen creates local password accounts and signs in 1–6 humans before
   starting. Profile-bound matches retain completed lifetime statistics. Removing
   an account from the next-match roster leaves the ongoing match unchanged.
-- The match carries stacks between settled hands, eliminates
-  zero-chip players from further deals, and ends once a paid hand has fewer
-  than two funded seats that have not left. A sole remaining funded player wins;
-  if none remain, the match ends without a winner. Without departures, the
-  winner holds all 6,000 chips. Settle hand pays the current hand; Next hand
-  rotates the dealer and deals to eligible fixed seats.
+- The match carries stacks between settled hands and eliminates zero-chip
+  players from further deals. A match winner must own all 6,000 chips after
+  settlement. An already-all-in quitter who wins the full total still wins the
+  match, and a completed winner keeps that result after leaving. With at least
+  two funded seats that have not left, Next hand rotates the dealer and deals
+  again. With fewer than two such seats and no full-total owner, play ends
+  without a match winner. Departed stacks stay with their owners. Settle hand
+  pays the current hand before the match outcome is determined. Tests using
+  other valid settings require the full configured chip total for victory.
 
 ## Deal and betting order
 
