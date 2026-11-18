@@ -8,6 +8,34 @@ no `ignoreFailures`, global suppression or baseline hiding existing warnings. Re
 CI uploads test, coverage, mutation and static-analysis reports even after a
 failed step.
 
+## W8-E01 background settlement — November 18, 2026
+
+Based on merged main `9932bcd`. The English and Chinese blocked-save
+regressions first failed because Swing could not process a second event while
+the save was paused. Both passed after moving the storage operation off the
+event thread. Queued-executor integration cases verify publication on the
+owner, duplicate/restart/departure rejection, worker submission failure and
+retry before or after a durable write. The profile screen tests also verify
+localized status, disabled controls and retry. See the
+[session BVA](bva/SetupSession.md#week-8-background-settlement) and
+[profile screen BVA](bva/ProfileScreen.md#w8-e01-background-settlement).
+
+Full `build pitest --warning-mode all` passed in 12m53s (Gradle JDK 25,
+Java 11 compilation/tests). No measurement selectors or exclusions changed.
+
+| Check | Final local result |
+| --- | --- |
+| JUnit | 1,551 passed; zero failures, errors or skips. |
+| Checkstyle / SpotBugs | Zero style findings or unexcluded bugs; no analysis errors or missing classes. |
+| Shared scope | 66 parent components / 69 reported classes; the additional class is the nested pending settlement. |
+| JaCoCo | 2,926/2,927 lines; 1,515/1,516 branches; 1,578/1,579 complexity; 14,241/14,246 instructions; 815/815 methods; 69/69 classes. |
+| PIT | 1,837/1,851 killed; the same 14 baseline survivors; no uncovered, timed-out or error mutants. |
+
+The sole missed line is the existing GameState enum default. Survivor
+class, method, descriptor, operator and description match the prior baseline.
+Survivor equivalence and basis-path review remain separate. The native
+desktop walkthrough, peer review, remote CI and merge remain pending.
+
 ## I07 full-chip match victory — November 16, 2026
 
 The confirmed departure policy preserves each retired stack. After payment, a

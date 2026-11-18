@@ -21,6 +21,8 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.Set;
@@ -38,6 +40,7 @@ public final class SetupSession implements BotSession {
     private Optional<GameState> state = Optional.empty();
     private Optional<ShowdownResult> result = Optional.empty();
     private Optional<Settlement> settlement = Optional.empty();
+    private boolean savingSettlement;
     private Optional<MatchStatistics> totals = Optional.empty();
     private Optional<ProfileMatch> profileMatch = Optional.empty();
     private final PotSettlement payoutService = new PotSettlement();
@@ -164,6 +167,7 @@ public final class SetupSession implements BotSession {
      */
     public void quit(String playerId) {
         hideCards();
+        requireNoSettlementSave();
         GameState match = requireMatch();
         PlayerState departing = requireRemainingHuman(match, playerId);
         long nextRevision = Math.incrementExact(revision);
@@ -202,6 +206,7 @@ public final class SetupSession implements BotSession {
      */
     public void start(int humanCount) {
         hideCards();
+        requireNoSettlementSave();
         startMatch(initializer.start(humanCount), Optional.empty());
     }
 
@@ -220,6 +225,7 @@ public final class SetupSession implements BotSession {
     /** Starts a fresh match bound to password-verified local human accounts. */
     public void startProfiles(ProfileService profiles, List<AuthenticatedProfile> humans) {
         hideCards();
+        requireNoSettlementSave();
         ProfileMatch.requireAccounts(profiles, humans);
         GameState started = initializer.start(humans.size());
         ProfileMatch binding = new ProfileMatch(profiles, humans, started);
@@ -327,18 +333,78 @@ public final class SetupSession implements BotSession {
      * @throws java.io.UncheckedIOException if lifetime storage fails before publication
      */
     public Settlement settleHand() {
+        PendingSettlement pending = prepareSettlement();
+        pending.save.run();
+        return publishSettlement(pending);
+    }
+
+    /**
+     * Saves completed profiles on a worker, then publishes and reports completion on the owner.
+     * Unprofiled hands require no worker. Failed saves leave the same hand available to retry.
+     * The owner executor must deliver callbacks on the same thread that owns this session.
+     */
+    public void settleHand(Executor worker, Executor owner, Consumer<Boolean> finished) {
+        PendingSettlement pending = prepareSettlement();
+        if (profileMatch.isEmpty()) {
+            publishSettlement(pending);
+            finished.accept(true);
+            return;
+        }
+        CompletableFuture<Void> save = CompletableFuture.runAsync(pending.save, worker);
+        savingSettlement = true;
+        save.whenCompleteAsync((ignored, failure) ->
+                finishSettlement(pending, Optional.ofNullable(failure).isEmpty(), finished), owner);
+    }
+
+    private void finishSettlement(PendingSettlement pending, boolean saved,
+            Consumer<Boolean> finished) {
+        savingSettlement = false;
+        if (saved) {
+            publishSettlement(pending);
+        }
+        finished.accept(saved);
+    }
+
+    private PendingSettlement prepareSettlement() {
         hideCards();
+        requireNoSettlementSave();
         GameState hand = requireMatch();
         long nextRevision = Math.incrementExact(revision);
         Settlement paid = payoutService.settle(hand);
         MatchStatistics delta = MatchStatistics.start(hand).complete(hand, paid, acceptedActions);
         MatchStatistics completed = totals.orElseThrow().addHand(delta);
-        profileMatch.ifPresent(binding -> binding.save(delta));
-        state = Optional.of(paid.getState());
-        totals = Optional.of(completed);
-        settlement = Optional.of(paid);
-        revision = nextRevision;
-        return paid;
+        Optional<ProfileMatch> accounts = profileMatch;
+        return new PendingSettlement(paid, completed, nextRevision,
+                () -> accounts.ifPresent(binding -> binding.save(delta)));
+    }
+
+    private Settlement publishSettlement(PendingSettlement pending) {
+        state = Optional.of(pending.paid.getState());
+        totals = Optional.of(pending.completed);
+        settlement = Optional.of(pending.paid);
+        revision = pending.revision;
+        return pending.paid;
+    }
+
+    private void requireNoSettlementSave() {
+        if (savingSettlement) {
+            throw new IllegalStateException("Wait for the completed hand to save.");
+        }
+    }
+
+    private static final class PendingSettlement {
+        private final Settlement paid;
+        private final MatchStatistics completed;
+        private final long revision;
+        private final Runnable save;
+
+        private PendingSettlement(Settlement paid, MatchStatistics completed, long revision,
+                Runnable save) {
+            this.paid = paid;
+            this.completed = completed;
+            this.revision = revision;
+            this.save = save;
+        }
     }
 
     /** Continues a settled match with stable identities, carried stacks and fresh private cards. */

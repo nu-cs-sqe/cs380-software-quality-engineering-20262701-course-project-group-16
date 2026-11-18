@@ -23,13 +23,16 @@ public final class Main {
             JFrame frame = new JFrame((String) panel.getClientProperty("windowTitle"));
             panel.addPropertyChangeListener("windowTitle",
                     event -> frame.setTitle((String) event.getNewValue()));
-            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
             frame.setContentPane(panel);
             frame.setMinimumSize(new Dimension(1080, 780));
             frame.addWindowListener(new WindowAdapter() {
                 @Override public void windowClosing(WindowEvent event) {
                     panel.hidePrivateCards();
-                    panel.stopBots();
+                    if (!panel.isSavingHand()) {
+                        panel.stopBots();
+                        frame.dispose();
+                    }
                 }
                 @Override public void windowDeactivated(WindowEvent event) {
                     panel.hidePrivateCards();

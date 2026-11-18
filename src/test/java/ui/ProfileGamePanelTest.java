@@ -16,6 +16,7 @@ import java.util.Random;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import javax.swing.*;
@@ -225,22 +226,86 @@ class ProfileGamePanelTest {
         SetupSession session = session();
         GamePanel panel = panel(profiles, session, language);
         registerAndLogin(panel, "Player");
-        event(() -> {
+        long pot = edt(() -> {
             find(panel, "start", JButton.class).doClick();
             find(panel, "fold", JButton.class).doClick();
-            long pot = session.getView().orElseThrow().getPot();
             repo.fail = true;
-            find(panel, "settle", JButton.class).doClick();
+            find(panel, "settle", JButton.class).doClick(0);
+            return session.getView().orElseThrow().getPot();
+        });
+        idle(panel);
+        event(() -> {
             assertTrue(session.getSettlement().isEmpty());
             assertEquals(pot, session.getView().orElseThrow().getPot());
+            assertEquals("0", find(panel, "lifetimeTable", JTable.class).getValueAt(0, 1));
             assertTrue(find(panel, "settle", JButton.class).isEnabled());
             assertTrue(find(panel, "error", JLabel.class).getText()
                     .contains(language == 0 ? "saved profiles" : "本地账号"));
             repo.fail = false;
-            find(panel, "settle", JButton.class).doClick();
+            find(panel, "settle", JButton.class).doClick(0);
         });
         idle(panel);
-        event(() -> assertEquals("1", find(panel, "lifetimeTable", JTable.class).getValueAt(0, 1)));
+        event(() -> {
+            assertTrue(session.getSettlement().isPresent());
+            assertEquals(" ", find(panel, "error", JLabel.class).getText());
+            assertEquals("1", find(panel, "lifetimeTable", JTable.class).getValueAt(0, 1));
+        });
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1})
+    void w8E01SlowSettlementLeavesSwingResponsiveAndPublishesOnce(int language)
+            throws InterruptedException, InvocationTargetException {
+        GatedSettlementRepository repo =
+                new GatedSettlementRepository(new FileProfileRepository(directory));
+        ProfileService profiles = new ProfileService(repo, new FixedHasher(), () -> "profile");
+        SetupSession session = session();
+        GamePanel panel = panel(profiles, session, language);
+        registerAndLogin(panel, "Player");
+        long pot = edt(() -> {
+            find(panel, "start", JButton.class).doClick();
+            find(panel, "fold", JButton.class).doClick();
+            return session.getView().orElseThrow().getPot();
+        });
+        repo.holdSettlement = true;
+        SwingUtilities.invokeLater(() -> find(panel, "settle", JButton.class).doClick(0));
+
+        CountDownLatch responsive = new CountDownLatch(1);
+        try {
+            assertTrue(repo.entered.await(5, TimeUnit.SECONDS), "Settlement must attempt a save");
+            SwingUtilities.invokeLater(responsive::countDown);
+            assertTrue(responsive.await(2, TimeUnit.SECONDS), "Save must leave Swing responsive");
+            event(() -> assertSettlementPending(panel, session, pot, language));
+            assertEquals(1, repo.attempts.get());
+        } finally {
+            repo.release.countDown();
+            idle(panel);
+        }
+        event(() -> {
+            assertTrue(session.getSettlement().isPresent());
+            assertEquals(0, session.getView().orElseThrow().getPot());
+            assertFalse(find(panel, "settle", JButton.class).isEnabled());
+            find(panel, "settle", JButton.class).doClick(0);
+            assertEquals("1", find(panel, "lifetimeTable", JTable.class).getValueAt(0, 1));
+        });
+        assertEquals(1, repo.attempts.get());
+    }
+
+    private static void assertSettlementPending(GamePanel panel, SetupSession session, long pot,
+            int language) {
+        for (String control : List.of("start", "quit", "reveal", "fold", "call", "check", "wager",
+                "settle", "nextHand", "createProfile", "loginProfile", "reloadProfiles",
+                "refreshLifetime", "removeProfile")) {
+            assertFalse(find(panel, control, JButton.class).isEnabled(), control);
+        }
+        find(panel, "settle", JButton.class).doClick(0);
+        find(panel, "humanCount", JTextField.class).postActionEvent();
+        assertTrue(session.getSettlement().isEmpty());
+        assertEquals(pot, session.getView().orElseThrow().getPot());
+        assertTrue(session.getStatistics().values().stream().allMatch(s -> s.getHandsPlayed() == 0));
+        assertEquals("--", find(panel, "hole0", JLabel.class).getText());
+        assertTrue(find(panel, "status", JLabel.class).getText()
+                .contains(language == 0 ? "Saving hand result" : "正在保存本手结果"));
     }
 
     @Test
@@ -438,10 +503,15 @@ class ProfileGamePanelTest {
     private static void idle(GamePanel panel) throws InterruptedException, InvocationTargetException {
         CountDownLatch done = new CountDownLatch(1);
         event(() -> {
-            if (!Boolean.TRUE.equals(panel.getClientProperty("profileBusy"))) done.countDown();
-            else panel.addPropertyChangeListener("profileBusy", change -> {
-                if (Boolean.FALSE.equals(change.getNewValue())) done.countDown();
-            });
+            Runnable signalIfIdle = () -> {
+                if (!Boolean.TRUE.equals(panel.getClientProperty("profileBusy"))
+                        && !Boolean.TRUE.equals(panel.getClientProperty("settlementBusy"))) {
+                    done.countDown();
+                }
+            };
+            panel.addPropertyChangeListener("profileBusy", change -> signalIfIdle.run());
+            panel.addPropertyChangeListener("settlementBusy", change -> signalIfIdle.run());
+            signalIfIdle.run();
         });
         assertTrue(done.await(15, TimeUnit.SECONDS), "Profile work must finish");
         event(() -> { });
@@ -518,6 +588,36 @@ class ProfileGamePanelTest {
         @Override public List<StoredProfile> load() throws IOException { return delegate.load(); }
         @Override public void save(List<StoredProfile> profiles) throws IOException {
             if (fail) throw new IOException("Disk full");
+            delegate.save(profiles);
+        }
+    }
+
+    private static final class GatedSettlementRepository implements ProfileRepository {
+        private final ProfileRepository delegate;
+        private final CountDownLatch entered = new CountDownLatch(1);
+        private final CountDownLatch release = new CountDownLatch(1);
+        private final AtomicInteger attempts = new AtomicInteger();
+        private volatile boolean holdSettlement;
+
+        private GatedSettlementRepository(ProfileRepository delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override public List<StoredProfile> load() throws IOException {
+            return delegate.load();
+        }
+
+        @Override public void save(List<StoredProfile> profiles) throws IOException {
+            if (holdSettlement) {
+                attempts.incrementAndGet();
+                entered.countDown();
+                try {
+                    assertTrue(release.await(10, TimeUnit.SECONDS), "Save gate must be released");
+                } catch (InterruptedException failure) {
+                    Thread.currentThread().interrupt();
+                    throw new IOException("Save interrupted", failure);
+                }
+            }
             delegate.save(profiles);
         }
     }

@@ -907,6 +907,30 @@ push was created. Existing BVA/design records and issue #20 retain review/CI/
 merge gates; neither this review nor green local checks establish whole-backend
 or final-grade completion.
 
+## Week 8 (11/16/2026–11/22/2026)
+
+[Plan and live checklist: issue #28](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/issues/28).
+
+Estella is addressing W8-E01 on the merged baseline `9932bcd` (PRs #26 and
+#27). Profile saves now run in the background; the Swing thread publishes the
+payout and match statistics only after successful storage. During a save,
+play and profile controls stay disabled and the table shows the saving
+status in English or Chinese. A failure leaves the original hand available
+for retry, including when a durable write was followed by a reported error.
+
+The blocked-save regression first failed in both languages on the old
+synchronous handler. Those cases now pass, along with the storage retry and
+duplicate request boundaries in [session BVA](bva/SetupSession.md#week-8-background-settlement)
+and [UI BVA](bva/ProfileScreen.md#w8-e01-background-settlement).
+
+Local `build pitest` passed: 1,551 tests, clean Checkstyle and SpotBugs,
+2,926/2,927 measured lines, and 1,837/1,851 mutants killed with the same
+14 baseline survivors. See [quality evidence](quality.md#w8-e01-background-settlement--november-18-2026).
+Peer review, remote CI, the native desktop walkthrough and merge remain pending.
+
+Kevin owns W8-K01, the separate side pot failure. The shared settlement
+contract (W8-I01) and SQLite migration (W8-E02) remain follow-ups.
+
 ## Future weekly report template
 
 ### Week N (MM/DD/YYYY–MM/DD/YYYY)

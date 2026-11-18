@@ -246,6 +246,8 @@ Callbacks update Swing state only on the event thread. A busy guard disables
 match mutation while account work runs, preserving the serialized-writer contract.
 Settlement continues to use the synchronous backend boundary; UncheckedIOException
 is translated into a localized, retryable error instead of escaping the UI.
+This describes the original desktop integration. See W8-E01 below for the
+current background save flow.
 
 GamePanel snapshots profile names for the active match, so roster removal affects
 only future setup. It does not implement departure/quit-as-fold (K04). Cards stay
@@ -254,6 +256,24 @@ and when a signed-in profile is selected. Both match and lifetime tables remain
 read-only; existing OptionalDouble/N/A and AF/percentage formatting are reused.
 All new labels/errors use the validated locale resources. User names are escaped
 where Swing labels interpret HTML.
+
+### W8-E01 background settlement
+
+SetupSession prepares the payout and completed match totals on the owning
+thread. The save task captures the profile binding and completed hand delta;
+it does not access or mutate live session or Swing state. Swing runs the save
+on a worker and receives the completion back on the event thread. Only
+success publishes the paid hand and updates the match totals. The synchronous
+settleHand entry point still supports existing non-UI callers, and hands with
+no profiles finish without scheduling a save.
+
+Pending settlement locks hand progression and profile operations so catalog
+writes stay serialized. The table shows a localized saving status and conceals
+private cards; closing the window is deferred by ignoring the close request
+until the save finishes. Failure restores the settlement button for the same
+hand. The existing completed-hand ID deduplication also makes retry safe if the
+save was durable before an error was reported. No payout rules or catalog format
+change in this step.
 
 The view model holds services, authenticated handles and callbacks and is never
 serialized. One exact SE_BAD_FIELD filter for ProfilePanel.model follows the

@@ -64,3 +64,16 @@ November 16 integration retains both match-scoped BotTable/revision initializati
 and profile binding in startMatch. PM-C07-before/after and PM-C08 in
 ProfiledMatchIntegrationTest cover adaptive decisions through retryable settlement,
 continued learning/binding and stale-turn rejection after profile-bound restart.
+
+## Week 8 background settlement
+
+| ID | Methods | State/input boundary | Expected result |
+| --- | --- | --- | --- |
+| W8-E01-A1 | settleHand(worker, owner, finished); start; startProfiles; quit; nextHand | Completed but unpaid profiled hand, save queued | Reject a second settlement, restart, departure and next deal; keep exactly one worker task and the same unpaid hand. |
+| W8-E01-A2 | settleHand(worker, owner, finished) | Save fails before the write or after the durable write | Owner reports failure, chips and match totals remain unchanged, and retry uses the same hand ID. Only the owner's successful callback publishes the payout; both lifetime and match counts finish at one. |
+| W8-E01-A3 | settleHand(worker, owner, finished) | Worker rejects submission before any save | No callback or payment; the existing hand can be submitted again. |
+| W8-E01-A4 | settleHand(worker, owner, finished) | Ready hand without profiles | Pay and report success immediately without invoking either executor. |
+
+ProfiledMatchIntegrationTest uses queued executors to control ordering and a real
+temporary catalog to verify durable counts. ProfileGamePanelTest verifies the
+actual worker and event thread with a gated save.
