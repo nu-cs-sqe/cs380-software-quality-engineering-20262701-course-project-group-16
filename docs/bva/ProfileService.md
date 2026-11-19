@@ -25,6 +25,11 @@ getLifetimeStatistics requires that handle. Application-only saveCompleted merge
 one completed hand per bound human and saves all updates atomically. See
 [lifetime BVA](LifetimeStatistics.md) for LS-C01–05 and PM-C01–04.
 
+W8-E02 adds `getChipBalance(AuthenticatedProfile)`. A handle from the current
+service can read its saved balance (including zero); a foreign handle is
+rejected. Completed statistics writes retain the existing balance. See the
+[SQLite integration cases](SqliteProfileRepository.md).
+
 ## Cases
 
 A fresh service and in-memory repository are used unless stated otherwise.

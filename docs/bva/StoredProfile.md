@@ -16,3 +16,8 @@ constructor accepts an immutable completed snapshot. getStatistics exposes that
 snapshot without pending match data. ST-C04 in LifetimeStorageTest checks exact immutable
 identity/credential/statistics retention under the non-null caller contract;
 ST-C01/02/05 cover save/reload and legacy empty totals.
+
+| ID | Method | Input / state | Expected outcome |
+| --- | --- | --- | --- |
+| SP-W8-01 | Constructor; getChipBalance | New or legacy record without an explicit balance | Start with 2,000 virtual chips. |
+| SP-W8-02 | Constructor; getChipBalance | Explicit balance of −1 or 0 | Reject negative balance; preserve zero. |

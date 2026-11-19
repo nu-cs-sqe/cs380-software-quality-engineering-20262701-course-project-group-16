@@ -2,7 +2,7 @@ package ui;
 
 import application.SetupSession;
 import application.ProfileService;
-import persistence.FileProfileRepository;
+import persistence.SqliteProfileRepository;
 import java.nio.file.Path;
 import java.awt.Dimension;
 import java.awt.event.WindowAdapter;
@@ -18,18 +18,21 @@ public final class Main {
         SwingUtilities.invokeLater(() -> {
             Path directory = Path.of(System.getProperty("cs380.profileDirectory",
                     Path.of(System.getProperty("user.home"), ".cs380-holdem").toString()));
-            ProfileService profiles = new ProfileService(new FileProfileRepository(directory));
+            ProfileService profiles = new ProfileService(new SqliteProfileRepository(directory));
             GamePanel panel = new GamePanel(new SetupSession(), profiles);
             JFrame frame = new JFrame((String) panel.getClientProperty("windowTitle"));
             panel.addPropertyChangeListener("windowTitle",
                     event -> frame.setTitle((String) event.getNewValue()));
-            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
             frame.setContentPane(panel);
             frame.setMinimumSize(new Dimension(1080, 780));
             frame.addWindowListener(new WindowAdapter() {
                 @Override public void windowClosing(WindowEvent event) {
                     panel.hidePrivateCards();
-                    panel.stopBots();
+                    if (!panel.isSavingHand()) {
+                        panel.stopBots();
+                        frame.dispose();
+                    }
                 }
                 @Override public void windowDeactivated(WindowEvent event) {
                     panel.hidePrivateCards();

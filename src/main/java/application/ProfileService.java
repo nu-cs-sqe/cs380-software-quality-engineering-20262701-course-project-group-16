@@ -71,10 +71,18 @@ public final class ProfileService {
 
     /** Returns immutable completed lifetime rates for a password-verified account. */
     public StatisticsView getLifetimeStatistics(AuthenticatedProfile account) throws IOException {
+        return new StatisticsView(PlayStats.fromCompleted(requireStored(account).getStatistics()));
+    }
+
+    /** Returns the saved virtual chips for a password-verified account. */
+    public long getChipBalance(AuthenticatedProfile account) throws IOException {
+        return requireStored(account).getChipBalance();
+    }
+
+    private StoredProfile requireStored(AuthenticatedProfile account) throws IOException {
         requireAccount(account);
-        StoredProfile stored = findStored(account.getProfile().getProfileId()).orElseThrow(() ->
+        return findStored(account.getProfile().getProfileId()).orElseThrow(() ->
                 new IllegalArgumentException("The authenticated account no longer exists."));
-        return new StatisticsView(PlayStats.fromCompleted(stored.getStatistics()));
     }
 
     void requireAccount(AuthenticatedProfile account) {
@@ -111,7 +119,7 @@ public final class ProfileService {
             CompletedStatistics next = before.getStatistics().addHand(hand.get(binding.getKey()));
             changed |= next != before.getStatistics();
             records.set(index, new StoredProfile(before.getProfile(),
-                    before.getPasswordHash(), next));
+                    before.getPasswordHash(), next, before.getChipBalance()));
         }
         return changed;
     }

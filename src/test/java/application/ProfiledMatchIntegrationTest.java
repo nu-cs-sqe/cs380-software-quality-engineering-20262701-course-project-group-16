@@ -8,14 +8,19 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Random;
+import java.util.concurrent.RejectedExecutionException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import persistence.FileProfileRepository;
+import persistence.SqliteProfileRepository;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ProfiledMatchIntegrationTest {
@@ -25,9 +30,13 @@ class ProfiledMatchIntegrationTest {
     @Test
     void pmC01CompletedShowdownSurvivesRestartWhileNewMatchesResetStacks()
             throws IOException, GeneralSecurityException {
-        ProfileService profiles = new ProfileService(new FileProfileRepository(directory));
+        ProfileRepository repository = new SqliteProfileRepository(directory);
+        ProfileService profiles = new ProfileService(repository);
         PlayerProfile profile = profiles.create("玩家", PASSWORD);
         AuthenticatedProfile account = profiles.login(profile.getProfileId(), PASSWORD).orElseThrow();
+        StoredProfile stored = repository.load().get(0);
+        repository.save(List.of(new StoredProfile(profile, stored.getPasswordHash(),
+                stored.getStatistics(), 0)));
         SetupSession session = session();
         session.startProfiles(profiles, List.of(account));
         String playerId = session.getView().orElseThrow().getPlayers().get(0).getId();
@@ -46,11 +55,12 @@ class ProfiledMatchIntegrationTest {
         session.nextHand();
         assertEquals(Map.of(playerId, profile.getProfileId()), session.getProfileIds());
         assertEquals(1, session.getLifetimeStatistics().get(playerId).getHandsPlayed());
-        ProfileService reopened = new ProfileService(new FileProfileRepository(directory));
+        ProfileService reopened = new ProfileService(new SqliteProfileRepository(directory));
         AuthenticatedProfile login = reopened.login(profile.getProfileId(), PASSWORD).orElseThrow();
         assertEquals(1, reopened.getLifetimeStatistics(login).getHandsPlayed());
+        assertEquals(0, reopened.getChipBalance(login));
         assertEquals(100, reopened.getLifetimeStatistics(login).getRates().get(9).orElseThrow());
-        assertTrue(new FileProfileRepository(directory).load().get(0).getStatistics()
+        assertTrue(repository.load().get(0).getStatistics()
                 .getCompletedHandIds().contains(completed));
         SetupSession nextMatch = session();
         nextMatch.startProfiles(reopened, List.of(login));
@@ -279,6 +289,85 @@ class ProfiledMatchIntegrationTest {
                 .allMatch(b -> b.getObservedDecisions() == 0));
         assertEquals(profile.getProfileId(), bindings.values().iterator().next());
         assertEquals(0, profiles.getLifetimeStatistics(account).getHandsPlayed());
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void w8E01AsyncFailureAndRetryPublishOnlyFromTheOwner(boolean afterSave)
+            throws IOException, GeneralSecurityException {
+        FailingRepository repo = new FailingRepository(new FileProfileRepository(directory));
+        ProfileService profiles = new ProfileService(repo);
+        PlayerProfile profile = profiles.create("Player", PASSWORD);
+        AuthenticatedProfile account =
+                profiles.login(profile.getProfileId(), PASSWORD).orElseThrow();
+        SetupSession session = session();
+        session.startProfiles(profiles, List.of(account));
+        for (int index = 0; index < 5; index++) {
+            act(session, ActionType.FOLD);
+        }
+        verifyAsyncRetry(session, profiles, account, repo, afterSave);
+    }
+
+    private static void verifyAsyncRetry(SetupSession session, ProfileService profiles,
+            AuthenticatedProfile account, FailingRepository repo, boolean afterSave)
+            throws IOException {
+        Queue<Runnable> worker = new ArrayDeque<>();
+        Queue<Runnable> owner = new ArrayDeque<>();
+        List<Boolean> outcomes = new ArrayList<>();
+        SetupView original = session.getView().orElseThrow();
+        String player = original.getPlayers().get(0).getId();
+        repo.fail = !afterSave;
+        repo.failAfterSave = afterSave;
+        assertThrows(RejectedExecutionException.class, () -> session.settleHand(task -> {
+            throw new RejectedExecutionException("Worker unavailable");
+        }, owner::add, outcomes::add));
+        assertTrue(outcomes.isEmpty());
+
+        session.settleHand(worker::add, owner::add, outcomes::add);
+        assertThrows(IllegalStateException.class,
+                () -> session.settleHand(worker::add, owner::add, outcomes::add));
+        assertThrows(IllegalStateException.class, session::settleHand);
+        assertThrows(IllegalStateException.class, () -> session.start(1));
+        assertThrows(IllegalStateException.class,
+                () -> session.startProfiles(profiles, List.of(account)));
+        assertThrows(IllegalStateException.class, () -> session.quit(player));
+        assertThrows(IllegalStateException.class, session::nextHand);
+        assertEquals(1, worker.size());
+
+        worker.remove().run();
+        assertTrue(outcomes.isEmpty());
+        owner.remove().run();
+        assertEquals(List.of(false), outcomes);
+        assertTrue(session.getSettlement().isEmpty());
+        assertEquals(original.getPot(), session.getView().orElseThrow().getPot());
+        assertEquals(0, session.getStatistics().get(player).getHandsPlayed());
+        assertEquals(afterSave ? 1 : 0, profiles.getLifetimeStatistics(account).getHandsPlayed());
+
+        repo.fail = false;
+        session.settleHand(worker::add, owner::add, outcomes::add);
+        worker.remove().run();
+        assertTrue(session.getSettlement().isEmpty());
+        assertEquals(1, profiles.getLifetimeStatistics(account).getHandsPlayed());
+        owner.remove().run();
+        assertEquals(List.of(false, true), outcomes);
+        assertTrue(session.getSettlement().isPresent());
+        assertEquals(1, session.getStatistics().get(player).getHandsPlayed());
+        assertEquals(6000, session.getView().orElseThrow().getPlayers().stream()
+                .mapToLong(Player::getChipStack).sum());
+    }
+
+    @Test
+    void w8E01UnprofiledHandPublishesWithoutWorkerOrDeferredCallback() {
+        SetupSession session = session();
+        session.start(1);
+        for (int index = 0; index < 5; index++) {
+            act(session, ActionType.FOLD);
+        }
+        List<Boolean> outcomes = new ArrayList<>();
+        session.settleHand(task -> fail("No profile work"), task -> fail("No callback to queue"),
+                outcomes::add);
+        assertEquals(List.of(true), outcomes);
+        assertTrue(session.getSettlement().isPresent());
     }
 
     private static void playAdaptiveHand(SetupSession session) {

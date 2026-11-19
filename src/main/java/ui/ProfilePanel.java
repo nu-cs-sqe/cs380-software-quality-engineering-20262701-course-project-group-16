@@ -62,6 +62,7 @@ final class ProfilePanel extends JPanel {
     private final JPanel selection = new JPanel(new BorderLayout(8, 8));
     private final StatisticsPanel lifetime = new StatisticsPanel("lifetimeTable");
     private boolean rendering;
+    private boolean savingHand;
 
     ProfilePanel(ProfileService profiles, Localizations messages, Consumer<Boolean> busy,
             Runnable changed) {
@@ -81,7 +82,7 @@ final class ProfilePanel extends JPanel {
             }
         });
         joined.addListSelectionListener(event -> {
-            if (!rendering && !event.getValueIsAdjusting() && !model.busy) {
+            if (!rendering && !event.getValueIsAdjusting() && !isBusy()) {
                 refreshLifetime();
             }
         });
@@ -173,8 +174,17 @@ final class ProfilePanel extends JPanel {
 
     int humanCount() { return model.humans.size(); }
 
+    void settlementBusy(boolean busy) {
+        savingHand = busy;
+        renderButtons();
+    }
+
+    private boolean isBusy() {
+        return model.busy || savingHand;
+    }
+
     void startMatch(SetupSession session) {
-        if (model.busy) {
+        if (isBusy()) {
             throw new IllegalStateException("Account operation is still running.");
         }
         session.startProfiles(model.profiles, List.copyOf(model.humans));
@@ -188,7 +198,7 @@ final class ProfilePanel extends JPanel {
     }
 
     void loadProfiles() {
-        if (model.busy) {
+        if (isBusy()) {
             return;
         }
         String selected = selectedSavedId();
@@ -200,7 +210,7 @@ final class ProfilePanel extends JPanel {
     }
 
     private void createProfile() {
-        if (model.busy) {
+        if (isBusy()) {
             return;
         }
         String displayName = name.getText();
@@ -218,7 +228,7 @@ final class ProfilePanel extends JPanel {
     }
 
     private void loginProfile() {
-        if (model.busy || saved.getSelectedIndex() < 0 || model.humans.size() >= 6) {
+        if (isBusy() || saved.getSelectedIndex() < 0 || model.humans.size() >= 6) {
             return;
         }
         PlayerProfile selected = model.saved.get(saved.getSelectedIndex());
@@ -254,7 +264,7 @@ final class ProfilePanel extends JPanel {
     }
 
     private void removeProfile() {
-        if (model.busy || joined.getSelectedIndex() < 0) {
+        if (isBusy() || joined.getSelectedIndex() < 0) {
             return;
         }
         AuthenticatedProfile removed = model.humans.remove(joined.getSelectedIndex());
@@ -269,7 +279,7 @@ final class ProfilePanel extends JPanel {
 
     void refreshLifetime() {
         int index = joined.getSelectedIndex();
-        if (model.busy || index < 0) {
+        if (isBusy() || index < 0) {
             return;
         }
         model.selectedJoined = index;
@@ -404,7 +414,7 @@ final class ProfilePanel extends JPanel {
     }
 
     private void renderButtons() {
-        boolean ready = !model.busy;
+        boolean ready = !isBusy();
         name.setEnabled(ready);
         createPassword.setEnabled(ready);
         loginPassword.setEnabled(ready);
