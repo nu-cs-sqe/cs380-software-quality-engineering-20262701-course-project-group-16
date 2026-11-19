@@ -8,6 +8,47 @@ no `ignoreFailures`, global suppression or baseline hiding existing warnings. Re
 CI uploads test, coverage, mutation and static-analysis reports even after a
 failed step.
 
+## W8-E02 SQLite account migration — November 18, 2026
+
+Based on W8-E01 commit `6d8aa08`. The new migration cases first failed at
+compilation because the SQLite adapter and balance API did not exist. They
+then passed against the real driver and temporary catalogs. The checks cover
+v2 and v3 imports, existing passwords, preservation of completion IDs,
+reopening a zero balance, invalid storage and atomic rollback. The two
+language desktop tests use SQLite through the existing profile flow.
+See [SQLite BVA](bva/SqliteProfileRepository.md).
+
+The first full build passed 1,559 tests and PIT killed 1,871/1,886 mutants.
+One new mutant skipped the unsupported-schema check. The first test used
+an existing table, which still caused initialization to fail when that
+check was removed. The new boundary starts with an empty database bearing
+an unsupported version, so it can distinguish version rejection from a
+table conflict. This was mutation hardening after implementation.
+
+Before the style review, `build pitest --warning-mode all` passed in 13m52s with Gradle on
+JDK 25 and tests on Java 11. SQLite is included in both measurement tools;
+no prior selectors, mutators, rules or exclusions were removed.
+
+| Check | Final local result |
+| --- | --- |
+| JUnit | 1,560 passed; zero failures, errors or skips. |
+| Checkstyle and SpotBugs | Zero style findings and unexcluded bugs. |
+| Shared scope | 67 parent components / 70 reported classes. |
+| JaCoCo | 3,008/3,009 lines, 1,529/1,530 branches, 1,605/1,606 complexity, 14,595/14,600 instructions, 835/835 methods and 70/70 classes. |
+| PIT | 1,872/1,886 killed. The same 14 survivors match by class, method, descriptor, operator and description; zero uncovered, timeout or error mutants. |
+
+The new schema-version case killed the additional survivor. The only missed
+JaCoCo line remains the existing GameState enum default; the baseline survivor
+equivalence and independent basis-path review remain separate. Native desktop
+review, remote CI and merge are pending.
+
+The style review separated the version check from the legacy import, named the
+uninitialized schema version, and wrapped the rollback test's long line.
+The full build and PIT then passed in 13m38s: 1,560 tests, clean Checkstyle
+and SpotBugs, 3,012/3,013 measured lines, and 1,874/1,888 mutants killed.
+The same 14 baseline survivors remain, with none in the SQLite adapter.
+The measurement scope is unchanged.
+
 ## W8-E01 background settlement — November 18, 2026
 
 Based on merged main `9932bcd`. The English and Chinese blocked-save

@@ -20,6 +20,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import persistence.FileProfileRepository;
+import persistence.SqliteProfileRepository;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ProfiledMatchIntegrationTest {
@@ -29,9 +30,13 @@ class ProfiledMatchIntegrationTest {
     @Test
     void pmC01CompletedShowdownSurvivesRestartWhileNewMatchesResetStacks()
             throws IOException, GeneralSecurityException {
-        ProfileService profiles = new ProfileService(new FileProfileRepository(directory));
+        ProfileRepository repository = new SqliteProfileRepository(directory);
+        ProfileService profiles = new ProfileService(repository);
         PlayerProfile profile = profiles.create("玩家", PASSWORD);
         AuthenticatedProfile account = profiles.login(profile.getProfileId(), PASSWORD).orElseThrow();
+        StoredProfile stored = repository.load().get(0);
+        repository.save(List.of(new StoredProfile(profile, stored.getPasswordHash(),
+                stored.getStatistics(), 0)));
         SetupSession session = session();
         session.startProfiles(profiles, List.of(account));
         String playerId = session.getView().orElseThrow().getPlayers().get(0).getId();
@@ -50,11 +55,12 @@ class ProfiledMatchIntegrationTest {
         session.nextHand();
         assertEquals(Map.of(playerId, profile.getProfileId()), session.getProfileIds());
         assertEquals(1, session.getLifetimeStatistics().get(playerId).getHandsPlayed());
-        ProfileService reopened = new ProfileService(new FileProfileRepository(directory));
+        ProfileService reopened = new ProfileService(new SqliteProfileRepository(directory));
         AuthenticatedProfile login = reopened.login(profile.getProfileId(), PASSWORD).orElseThrow();
         assertEquals(1, reopened.getLifetimeStatistics(login).getHandsPlayed());
+        assertEquals(0, reopened.getChipBalance(login));
         assertEquals(100, reopened.getLifetimeStatistics(login).getRates().get(9).orElseThrow());
-        assertTrue(new FileProfileRepository(directory).load().get(0).getStatistics()
+        assertTrue(repository.load().get(0).getStatistics()
                 .getCompletedHandIds().contains(completed));
         SetupSession nextMatch = session();
         nextMatch.startProfiles(reopened, List.of(login));

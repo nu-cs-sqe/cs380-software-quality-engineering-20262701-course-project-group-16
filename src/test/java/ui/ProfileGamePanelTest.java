@@ -3,6 +3,7 @@ package ui;
 import application.*;
 import domain.model.*;
 import persistence.FileProfileRepository;
+import persistence.SqliteProfileRepository;
 import java.awt.Component;
 import java.awt.Container;
 import java.io.IOException;
@@ -75,7 +76,7 @@ class ProfileGamePanelTest {
     @ValueSource(ints = {0, 1})
     void uiAc03RealProfileFlowDisplaysSavedLifetimeTotalsAfterRestart(int language)
             throws InterruptedException, InvocationTargetException {
-        ProfileService profiles = new ProfileService(new FileProfileRepository(directory));
+        ProfileService profiles = new ProfileService(new SqliteProfileRepository(directory));
         SetupSession session = session();
         GamePanel panel = panel(profiles, session, language);
         registerAndLogin(panel, "Estella 玩家");
@@ -94,7 +95,8 @@ class ProfileGamePanelTest {
             assertFalse(lifetime.isCellEditable(0, 1));
         });
         SetupSession restarted = session();
-        GamePanel reopened = panel(new ProfileService(new FileProfileRepository(directory)), restarted, language);
+        ProfileService saved = new ProfileService(new SqliteProfileRepository(directory));
+        GamePanel reopened = panel(saved, restarted, language);
         event(() -> {
             assertEquals(0, find(reopened, "joinedProfiles", JList.class).getModel().getSize());
             assertEquals(1, find(reopened, "savedProfiles", JComboBox.class).getItemCount());

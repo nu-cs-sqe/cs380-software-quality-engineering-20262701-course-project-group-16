@@ -275,6 +275,28 @@ hand. The existing completed-hand ID deduplication also makes retry safe if the
 save was durable before an error was reported. No payout rules or catalog format
 change in this step.
 
+### W8-E02 SQLite account migration
+
+The desktop uses `SqliteProfileRepository` through the existing application-owned
+`ProfileRepository` port. Its constructor does no I/O, so the initial open and
+legacy import run as part of the existing background profile load. The pinned
+[Xerial SQLite JDBC driver](https://github.com/xerial/sqlite-jdbc/releases/tag/3.54.1.0)
+ships with the application.
+
+`profiles.db` stores one row per stable profile ID: display name, salt, password
+hash, completed statistics and an integer chip balance. Completed statistics
+reuse the existing codec for raw counts and hand IDs. The first open validates
+and imports the legacy catalog, publishing the rows and SQLite schema version
+in one transaction. The legacy file remains untouched. Reopening a versioned
+database skips import, including for accounts whose balance has reached zero.
+Unsupported versions and invalid stored records report storage errors.
+
+New and imported records start with 2,000 virtual chips. Queries for a balance
+require the same authenticated handle as lifetime statistics. Existing
+settlement writes preserve the stored balance, and the desktop continues to
+serialize account operations and settlement. W8-E03 will connect per-hand
+balance changes and history to the game and UI.
+
 The view model holds services, authenticated handles and callbacks and is never
 serialized. One exact SE_BAD_FIELD filter for ProfilePanel.model follows the
 existing GamePanel live-state exceptions; persisted data remains the explicit

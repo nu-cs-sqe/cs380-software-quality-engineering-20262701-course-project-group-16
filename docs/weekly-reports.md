@@ -928,8 +928,27 @@ Local `build pitest` passed: 1,551 tests, clean Checkstyle and SpotBugs,
 14 baseline survivors. See [quality evidence](quality.md#w8-e01-background-settlement--november-18-2026).
 Peer review, remote CI, the native desktop walkthrough and merge remain pending.
 
-Kevin owns W8-K01, the separate side pot failure. The shared settlement
-contract (W8-I01) and SQLite migration (W8-E02) remain follow-ups.
+### W8-E02 SQLite account migration
+
+Estella added the SQLite adapter on top of E01 (`6d8aa08`) so desktop database
+operations use the existing background account and settlement flows. The
+legacy catalog is imported once when `profiles.db` is initialized. Account
+identity, credentials and completed statistics are retained, and new and
+migrated accounts each start with 2,000 virtual chips. Reopening an account
+preserves its saved balance, including zero.
+
+The initial [SQLite migration tests](bva/SqliteProfileRepository.md) failed to
+compile before the adapter and balance API existed, then passed with the
+implementation. Existing profile composition tests now also exercise SQLite
+settlement and restart. The W8-E03 history and balance UI, W8-I01 shared
+settlement contract and Kevin's W8-K01 side pot fix remain separate.
+
+Local `build pitest` passed: 1,560 tests, clean Checkstyle and SpotBugs,
+3,012/3,013 measured lines and 1,874/1,888 mutants killed after the style
+review, with the same 14 baseline survivors.
+See [quality evidence](quality.md#w8-e02-sqlite-account-migration--november-18-2026).
+E02 is uncommitted; E01 is its pushed prerequisite and has not yet merged.
+Peer review, remote CI and merge remain pending.
 
 ## Future weekly report template
 

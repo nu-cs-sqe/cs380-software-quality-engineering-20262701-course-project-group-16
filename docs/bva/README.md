@@ -43,6 +43,7 @@ case. No new null-input tests were introduced. See the [shared API contract](../
 | `Pbkdf2PasswordHasher` | [Pbkdf2PasswordHasher.md](Pbkdf2PasswordHasher.md) |
 | `ProfileService` | [ProfileService.md](ProfileService.md) |
 | `FileProfileRepository` | [FileProfileRepository.md](FileProfileRepository.md) |
+| `SqliteProfileRepository` | [SqliteProfileRepository.md](SqliteProfileRepository.md) |
 | `GameConfig` | [GameConfig.md](GameConfig.md) |
 | `ActionRequest` | [ActionRequest.md](ActionRequest.md) |
 | `AcceptedAction` | [AcceptedAction.md](AcceptedAction.md) |
