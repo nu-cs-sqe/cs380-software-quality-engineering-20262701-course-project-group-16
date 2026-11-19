@@ -1,5 +1,9 @@
 package persistence;
 
+import application.AccountHandResult;
+import application.ChipHistoryEntry;
+import application.ProfileHandSettlement;
+import application.ProfileHandStore;
 import application.ProfileRepository;
 import domain.model.CompletedStatistics;
 import domain.model.PasswordHash;
@@ -16,17 +20,21 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.Clock;
+import java.time.DateTimeException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 
 /** Persists local accounts and lazily imports the legacy catalog in a single transaction. */
-public final class SqliteProfileRepository implements ProfileRepository {
+public final class SqliteProfileRepository implements ProfileRepository, ProfileHandStore {
     private static final int UNINITIALIZED_SCHEMA_VERSION = 0;
-    private static final int SCHEMA_VERSION = 1;
+    private static final int PROFILE_SCHEMA_VERSION = 1;
+    private static final int SCHEMA_VERSION = 2;
     private static final String CREATE_PROFILES = "CREATE TABLE profiles ("
             + "id TEXT NOT NULL PRIMARY KEY, display_name TEXT NOT NULL, salt TEXT NOT NULL, "
             + "password_hash TEXT NOT NULL, completed_statistics TEXT NOT NULL, "
@@ -43,10 +51,16 @@ public final class SqliteProfileRepository implements ProfileRepository {
     private final Path directory;
     private final String databaseUrl;
     private final ProfileRepository legacy;
+    private final Clock clock;
     private final StatisticsProperties statistics = new StatisticsProperties();
 
     public SqliteProfileRepository(Path directory) {
+        this(directory, Clock.systemUTC());
+    }
+
+    SqliteProfileRepository(Path directory, Clock clock) {
         this.directory = directory;
+        this.clock = clock;
         databaseUrl = "jdbc:sqlite:" + directory.resolve("profiles.db").toUri().toASCIIString();
         legacy = new FileProfileRepository(directory);
     }
@@ -64,15 +78,77 @@ public final class SqliteProfileRepository implements ProfileRepository {
         transaction(connection -> writeProfiles(connection, profiles));
     }
 
+    @Override
+    public void saveHand(ProfileHandSettlement hand) throws IOException {
+        transaction(connection -> applyHand(connection, hand));
+    }
+
+    @Override
+    public List<ChipHistoryEntry> loadChipHistory(String profileId) throws IOException {
+        List<ChipHistoryEntry> entries = new ArrayList<>();
+        transaction(connection -> SqliteChipLedger.readHistory(connection, profileId, entries));
+        return List.copyOf(entries);
+    }
+
+    private void applyHand(Connection connection, ProfileHandSettlement hand)
+            throws SQLException, IOException {
+        if (!SqliteChipLedger.recordHand(connection, hand, clock.instant())) {
+            return;
+        }
+        for (Map.Entry<String, AccountHandResult> entry : hand.getAccounts().entrySet()) {
+            applyAccountHand(connection, hand.getHandId(), entry.getKey(), entry.getValue());
+        }
+    }
+
+    private void applyAccountHand(Connection connection, String handId, String profileId,
+            AccountHandResult result) throws SQLException, IOException {
+        StoredProfile before = findProfile(connection, profileId);
+        StoredProfile updated = combineHand(before, result);
+        writeProfiles(connection, List.of(updated));
+        SqliteChipLedger.recordChange(connection, profileId, handId, result.getChipChange(),
+                updated.getChipBalance());
+    }
+
+    private static StoredProfile combineHand(StoredProfile before, AccountHandResult result) {
+        CompletedStatistics stats = before.getStatistics().addHand(result.getStatistics());
+        if (stats == before.getStatistics()) {
+            throw new IllegalArgumentException("The hand already appears in legacy statistics.");
+        }
+        long balance = Math.addExact(before.getChipBalance(), result.getChipChange());
+        return new StoredProfile(before.getProfile(), before.getPasswordHash(), stats, balance);
+    }
+
+    private StoredProfile findProfile(Connection connection, String id)
+            throws SQLException, IOException {
+        try (PreparedStatement query =
+                     connection.prepareStatement("SELECT * FROM profiles WHERE id = ?")) {
+            query.setString(1, id);
+            try (ResultSet row = query.executeQuery()) {
+                if (!row.next()) {
+                    throw new IOException("The settlement profile does not exist: " + id);
+                }
+                return readProfile(row);
+            }
+        }
+    }
+
     private void transaction(DatabaseWork work) throws IOException {
         Files.createDirectories(directory);
         try (Connection connection = DriverManager.getConnection(databaseUrl)) {
+            enableForeignKeys(connection);
             connection.setAutoCommit(false);
             initializeSchemaIfNeeded(connection);
             work.run(connection);
             connection.commit();
-        } catch (SQLException | IllegalArgumentException invalid) {
+        } catch (SQLException | IllegalArgumentException | ArithmeticException
+                | DateTimeException invalid) {
             throw new IOException("Could not access the local profile database.", invalid);
+        }
+    }
+
+    private static void enableForeignKeys(Connection connection) throws SQLException {
+        try (Statement statement = connection.createStatement()) {
+            statement.execute("PRAGMA foreign_keys = ON");
         }
     }
 
@@ -82,8 +158,14 @@ public final class SqliteProfileRepository implements ProfileRepository {
         if (version == SCHEMA_VERSION) {
             return;
         }
-        requireUninitializedSchema(version);
-        importLegacyCatalog(connection);
+        if (version != PROFILE_SCHEMA_VERSION) {
+            requireUninitializedSchema(version);
+            importLegacyCatalog(connection);
+        }
+        SqliteChipLedger.createTables(connection);
+        try (Statement schema = connection.createStatement()) {
+            schema.executeUpdate("PRAGMA user_version = " + SCHEMA_VERSION);
+        }
     }
 
     private static void requireUninitializedSchema(int version) throws IOException {
@@ -97,7 +179,6 @@ public final class SqliteProfileRepository implements ProfileRepository {
         try (Statement schema = connection.createStatement()) {
             schema.executeUpdate(CREATE_PROFILES);
             writeProfiles(connection, imported);
-            schema.executeUpdate("PRAGMA user_version = " + SCHEMA_VERSION);
         }
     }
 
@@ -130,7 +211,7 @@ public final class SqliteProfileRepository implements ProfileRepository {
                 balance);
     }
 
-    private static String requiredText(ResultSet row, String column) throws SQLException {
+    static String requiredText(ResultSet row, String column) throws SQLException {
         return Optional.ofNullable(row.getString(column)).orElseThrow(() ->
                 new SQLException("Missing profile field: " + column));
     }

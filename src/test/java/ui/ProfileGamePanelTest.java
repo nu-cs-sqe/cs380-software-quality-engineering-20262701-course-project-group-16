@@ -113,6 +113,40 @@ class ProfileGamePanelTest {
 
     @ParameterizedTest
     @ValueSource(ints = {0, 1})
+    void w8E03OnlySignedInProfileSeesLocalizedChipHistory(int language)
+            throws IOException, GeneralSecurityException, InterruptedException,
+            InvocationTargetException {
+        SqliteProfileRepository repository = new SqliteProfileRepository(directory);
+        ProfileService profiles = new ProfileService(repository);
+        PlayerProfile player = profiles.create("Player", PASSWORD.toCharArray());
+        PlayStats stats = new PlayStats();
+        stats.beginHand("paid-hand", true);
+        stats.completeHand("paid-hand", false, false, 0, 0);
+        repository.saveHand(new ProfileHandSettlement("paid-hand", "match",
+                java.util.Map.of(player.getProfileId(),
+                        new AccountHandResult(40, stats.completedSnapshot()))));
+        GamePanel panel = panel(profiles, session(), language);
+        event(() -> assertEquals(0, find(panel, "chipHistory", JTable.class).getRowCount()));
+        login(panel, PASSWORD);
+        event(() -> {
+            JTable history = find(panel, "chipHistory", JTable.class);
+            assertEquals(1, history.getRowCount());
+            String event = language == 0 ? "Hand settlement" : "手牌结算";
+            assertEquals(event, history.getValueAt(0, 1));
+            assertEquals("+40", history.getValueAt(0, 2));
+            assertEquals("2040", history.getValueAt(0, 3));
+            assertEquals("+40", history.getValueAt(0, 4));
+            assertFalse(history.isCellEditable(0, 2));
+            String balance = language == 0 ? "Saved balance:" : "账户余额：";
+            assertTrue(find(panel, "accountChipBalance", JLabel.class).getText()
+                    .contains(balance));
+            find(panel, "removeProfile", JButton.class).doClick();
+            assertEquals(0, history.getRowCount());
+        });
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1})
     void uiAc04WrongPasswordIsLocalizedAndDuplicateLoginIsDisabled(int language)
             throws IOException, GeneralSecurityException, InterruptedException, InvocationTargetException {
         ProfileService profiles = service();

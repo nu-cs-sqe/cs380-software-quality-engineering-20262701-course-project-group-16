@@ -79,6 +79,13 @@ public final class ProfileService {
         return requireStored(account).getChipBalance();
     }
 
+    /** Reads saved chip data without disclosing another account's history. */
+    public ProfileOverview getOverview(AuthenticatedProfile account) throws IOException {
+        StoredProfile stored = requireStored(account);
+        return new ProfileOverview(stored.getChipBalance(),
+                repository.loadChipHistory(stored.getProfile().getProfileId()));
+    }
+
     private StoredProfile requireStored(AuthenticatedProfile account) throws IOException {
         requireAccount(account);
         return findStored(account.getProfile().getProfileId()).orElseThrow(() ->

@@ -1,6 +1,7 @@
 package ui;
 
 import application.AuthenticatedProfile;
+import application.ProfileOverview;
 import application.ProfileService;
 import application.SetupSession;
 import application.StatisticsView;
@@ -28,6 +29,7 @@ import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JScrollPane;
+import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
 import javax.swing.JTextArea;
 import javax.swing.SwingWorker;
@@ -61,6 +63,8 @@ final class ProfilePanel extends JPanel {
     private final JPanel signIn = new JPanel(new GridLayout(0, 1, 0, 7));
     private final JPanel selection = new JPanel(new BorderLayout(8, 8));
     private final StatisticsPanel lifetime = new StatisticsPanel("lifetimeTable");
+    private final ChipHistoryPanel chipHistory = new ChipHistoryPanel();
+    private final JTabbedPane accountDetails = new JTabbedPane();
     private boolean rendering;
     private boolean savingHand;
 
@@ -142,7 +146,9 @@ final class ProfilePanel extends JPanel {
         rosterFooter.add(remove, BorderLayout.CENTER);
         selection.add(rosterFooter, BorderLayout.SOUTH);
         JPanel statistics = new JPanel(new BorderLayout(0, 6));
-        statistics.add(lifetime, BorderLayout.CENTER);
+        accountDetails.addTab("", lifetime);
+        accountDetails.addTab("", chipHistory);
+        statistics.add(accountDetails, BorderLayout.CENTER);
         statistics.add(refreshStats, BorderLayout.SOUTH);
         JPanel bottom = new JPanel(new BorderLayout(12, 0));
         bottom.add(selection, BorderLayout.WEST);
@@ -244,7 +250,7 @@ final class ProfilePanel extends JPanel {
             }
             AccountData data = result.orElseThrow();
             model.humans.add(data.account);
-            model.statistics.put(selected.getProfileId(), data.statistics);
+            cacheAccountData(data);
             model.selectedJoined = model.humans.size() - 1;
             model.message = "profile.ready";
             model.changed.run();
@@ -259,8 +265,7 @@ final class ProfilePanel extends JPanel {
             return Optional.empty();
         }
         AuthenticatedProfile verified = account.orElseThrow();
-        return Optional.of(new AccountData(verified,
-                model.profiles.getLifetimeStatistics(verified)));
+        return Optional.of(readAccountData(verified));
     }
 
     private void removeProfile() {
@@ -268,7 +273,7 @@ final class ProfilePanel extends JPanel {
             return;
         }
         AuthenticatedProfile removed = model.humans.remove(joined.getSelectedIndex());
-        model.statistics.remove(removed.getProfile().getProfileId());
+        model.accountData.remove(removed.getProfile().getProfileId());
         model.selectedJoined = Math.min(joined.getSelectedIndex(), model.humans.size() - 1);
         clearPasswords();
         model.message = " ";
@@ -284,8 +289,16 @@ final class ProfilePanel extends JPanel {
         }
         model.selectedJoined = index;
         AuthenticatedProfile account = model.humans.get(index);
-        run(() -> model.profiles.getLifetimeStatistics(account), stats ->
-                model.statistics.put(account.getProfile().getProfileId(), stats), () -> { });
+        run(() -> readAccountData(account), this::cacheAccountData, () -> { });
+    }
+
+    private AccountData readAccountData(AuthenticatedProfile account) throws IOException {
+        return new AccountData(account, model.profiles.getLifetimeStatistics(account),
+                model.profiles.getOverview(account));
+    }
+
+    private void cacheAccountData(AccountData data) {
+        model.accountData.put(data.account.getProfile().getProfileId(), data);
     }
 
     private <T> void run(ProfileWork<T> work, Consumer<T> success, Runnable cleanup) {
@@ -396,6 +409,8 @@ final class ProfilePanel extends JPanel {
         reload.setText(text("profile.reload"));
         remove.setText(text("profile.remove"));
         refreshStats.setText(text("profile.refreshStats"));
+        accountDetails.setTitleAt(0, text("profile.lifetime"));
+        accountDetails.setTitleAt(1, text("profile.chips.history"));
         error.setText(model.error.equals(" ") ? " " : text(model.error));
         status.setText(model.busy ? text("profile.busy")
                 : model.message.equals(" ") ? " " : text(model.message));
@@ -410,7 +425,13 @@ final class ProfilePanel extends JPanel {
         int index = joined.getSelectedIndex();
         List<PlayerProfile> profiles = index < 0 ? List.of()
                 : List.of(model.humans.get(index).getProfile());
-        lifetime.renderProfiles(profiles, model.statistics, model.messages, model.language);
+        Optional<AccountData> data = profiles.stream().map(PlayerProfile::getProfileId)
+                .filter(model.accountData::containsKey).map(model.accountData::get).findFirst();
+        Map<String, StatisticsView> stats = data.map(account -> Map.of(
+                account.account.getProfile().getProfileId(), account.statistics))
+                .orElseGet(Map::of);
+        lifetime.renderProfiles(profiles, stats, model.messages, model.language);
+        chipHistory.render(data.map(account -> account.overview), model.messages, model.language);
     }
 
     private void renderButtons() {
@@ -451,9 +472,13 @@ final class ProfilePanel extends JPanel {
     private static final class AccountData {
         private final AuthenticatedProfile account;
         private final StatisticsView statistics;
-        private AccountData(AuthenticatedProfile account, StatisticsView statistics) {
+        private final ProfileOverview overview;
+
+        private AccountData(AuthenticatedProfile account, StatisticsView statistics,
+                ProfileOverview overview) {
             this.account = account;
             this.statistics = statistics;
+            this.overview = overview;
         }
     }
 
@@ -465,7 +490,7 @@ final class ProfilePanel extends JPanel {
         private final Runnable changed;
         private final List<AuthenticatedProfile> humans = new ArrayList<>();
         private List<PlayerProfile> saved = List.of();
-        private final Map<String, StatisticsView> statistics = new LinkedHashMap<>();
+        private final Map<String, AccountData> accountData = new LinkedHashMap<>();
         private String language;
         private String selectedSaved = "";
         private int selectedJoined = -1;

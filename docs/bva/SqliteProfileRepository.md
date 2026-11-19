@@ -18,3 +18,22 @@ profiles are accessed. The application serializes the read/modify/write flow.
 `ProfiledMatchIntegrationTest` verifies that completed settlement and restart
 preserve a zero balance while advancing lifetime statistics. UI-AC03 uses SQLite
 in both locales to verify registration, sign-in, settlement and reopen.
+
+## W8-E03 storage, handoff and profile history
+
+| ID | Methods / types | State or boundary | Expected outcome |
+| --- | --- | --- | --- |
+| SQL-H01 | ProfileHandStore.saveHand; SqliteProfileRepository.loadChipHistory; SqliteChipLedger | Two accounts, positive/negative/zero changes, repeated hand and two sessions | Update each account and statistics once; retain timestamp, type, IDs, resulting balance and signed session net. Reopen shows the same private history in reverse settlement order. |
+| SQL-H02 | saveHand | Failure on the second history row; retry twice | No account, marker or event commits on failure. Retry commits both accounts exactly once. |
+| SQL-H03 | saveHand | Unknown account, debit beyond balance, overflow, or already recorded statistics without a ledger marker | Storage error and no changes. Exact debit to zero succeeds. |
+| SQL-H04 | load, saveHand | Existing version 1 database with saved accounts | Upgrade preserves balances and starts with empty history. The next ledger settlement persists normally. |
+| SQL-H05 | ProfileService.getOverview; ProfileOverview | Two signed-in accounts and a handle from another service | Return a read-only view of only the caller's account and reject the foreign handle. |
+| SQL-H06 | loadChipHistory | Malformed saved timestamp | Storage error; the saved balance and statistics are not reset. |
+| SQL-H07 | ProfileHandSettlement; AccountHandResult | Blank ID, mismatched or absent completed hand, zero, six or seven accounts | Require one to six accounts with matching completion IDs; retain an immutable copy. |
+| SQL-H08 | saveHand | A database trigger tries to delete an account as its history is saved | Foreign key enforcement rejects an orphaned event; both accounts and their histories remain unchanged. |
+| UI-H01 | Profiles chip history | Before sign-in, after sign-in, after roster removal; English and Chinese | No history before sign-in or after removal. Signed-in account sees its balance and read-only localized changes. |
+
+SqliteHandSettlementTest uses the real database with an injected clock.
+ProfileHandSettlementTest checks the proposed command without database I/O.
+The UI integration case seeds a committed hand directly through the storage
+port; it does not claim that live game settlement is connected.

@@ -313,3 +313,26 @@ boundary. Removing those guards would weaken the established contract rather
 than prevent null flow. Internal code uses validated identities/types and explicit
 absence; Swing's setLocationRelativeTo(null) remains a documented JDK API request
 to center the window, not a missing application value.
+
+## Proposed Week 8 settlement handoff (W8-I01)
+
+For review with Kevin before enabling balance writes from live play:
+
+- Deliver one immutable `ProfileHandSettlement` for a completed hand.
+  Its globally unique hand ID is the retry key; its session ID stays fixed
+  across hands in the same play session and changes when a new session starts.
+- The account map uses stable profile IDs. Each entry carries the signed net chip
+  change and the completed statistics for that same hand. Compute the chip
+  change as ending stack after payouts/refunds minus the stack before blinds.
+  Exclude buy-ins, top-ups and bots. Include zero-change participants and resolve
+  quit/all-in ownership before preparing the payload. Human deltas alone need
+  not sum to zero because chips can move between a person and a bot.
+- Call `ProfileHandStore.saveHand` through the existing E01 background save.
+  Retry with the same IDs and payload. Publish paid game state only once storage
+  succeeds. SQLite commits balances, history, statistics and the hand marker
+  together; a committed hand ID is a no-op on retry.
+
+This is the proposed storage contract, not an agreed or connected live game
+contract. W8-K04 still owns calculation from table stacks. Until that boundary
+is agreed, the desktop still saves lifetime statistics using E01, and hands
+played through that path do not create chip history.

@@ -8,6 +8,37 @@ no `ignoreFailures`, global suppression or baseline hiding existing warnings. Re
 CI uploads test, coverage, mutation and static-analysis reports even after a
 failed step.
 
+## W8-E03 account settlement storage and history — November 19, 2026
+
+The first integration tests failed to compile before the storage handoff and
+ledger API existed. The initial executable tests and the full build passed
+after implementation and formatting corrections. They cover schema upgrade,
+atomic balance/history/statistics updates, replay and rollback. The bilingual
+Profiles screen cases use saved hand records from the storage API; live play
+still needs the W8-I01 contract agreement and W8-K04 inputs.
+
+The first full run passed 1,574 tests and killed 1,928/1,944 mutants. Two new
+survivors revealed missing assertions: a missing account must report the
+domain-specific storage error, and a write that would leave orphaned history
+must fail and roll back. The additional assertions were added after this run.
+
+Final `build pitest --warning-mode all` passed in 14m29s (Gradle on JDK 25,
+tests on Java 11).
+
+| Check | Final local result |
+| --- | --- |
+| JUnit | 1,575 passing; zero failures, errors or skips. |
+| Checkstyle and SpotBugs | Zero style findings and unexcluded bugs. |
+| JaCoCo | 3,130/3,131 lines; 1,555/1,556 branches; 1,658/1,659 complexity; 76 reported classes. |
+| PIT | 1,930/1,944 killed; no uncovered, timeout or error mutants. |
+
+The 14 remaining mutants match the baseline by class, method, descriptor,
+operator and description. The existing GameState enum default remains the
+sole missed JaCoCo line. New backend types are measured; prior selectors and
+exclusions are unchanged. The run verifies the storage and history increment;
+the W8-I01 agreement, live settlement integration, native walkthrough and
+remote review remain pending.
+
 ## W8-E02 SQLite account migration — November 18, 2026
 
 Based on W8-E01 commit `6d8aa08`. The new migration cases first failed at

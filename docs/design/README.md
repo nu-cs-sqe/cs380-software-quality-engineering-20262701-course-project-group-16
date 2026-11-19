@@ -297,6 +297,26 @@ settlement writes preserve the stored balance, and the desktop continues to
 serialize account operations and settlement. W8-E03 will connect per-hand
 balance changes and history to the game and UI.
 
+### W8-E03 account settlement storage and history
+
+Schema version 2 adds `settled_hands` and `chip_history`. Upgrading a version 1
+database preserves account rows and does not invent history for old
+statistics. Each new hand stores its timestamp and session ID once; its
+per-account history rows store the event type, chip change and resulting
+balance. The hand marker, balance updates, statistics and history commit in
+one transaction. A committed hand ID is ignored on redelivery. If a hand
+already appears in statistics without a ledger marker, reject it to avoid
+applying retroactive chip changes. A failed update leaves the hand retryable.
+
+On the Profiles tab, signed-in players can select Chip history to see their
+saved balance and recent changes, newest first. Each row shows the cumulative
+gain or loss for its session at that hand. Date and number formatting use the
+selected language; account reads run on the existing Swing worker.
+
+The [proposed handoff](shared-contract.md#proposed-week-8-settlement-handoff-w8-i01)
+is ready for review. Live play continues to save only statistics until W8-I01
+and Kevin's W8-K04 provide the authoritative balance inputs.
+
 The view model holds services, authenticated handles and callbacks and is never
 serialized. One exact SE_BAD_FIELD filter for ProfilePanel.model follows the
 existing GamePanel live-state exceptions; persisted data remains the explicit

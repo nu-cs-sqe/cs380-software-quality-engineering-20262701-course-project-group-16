@@ -950,6 +950,23 @@ See [quality evidence](quality.md#w8-e02-sqlite-account-migration--november-18-2
 E02 is uncommitted; E01 is its pushed prerequisite and has not yet merged.
 Peer review, remote CI and merge remain pending.
 
+### W8-E03 storage and history checkpoint — November 19
+
+[PR #29](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/pull/29)
+contains E01 and E02. E03 starts from its pushed head `e4248d9`. The SQLite
+ledger and the signed-in profile history view use a proposed completed-hand
+payload. The initial storage tests failed at compilation before the new API
+existed. The [BVA](bva/SqliteProfileRepository.md#w8-e03-storage-handoff-and-profile-history)
+covers atomic rollback, retry, old database upgrade and account isolation.
+
+Local `build pitest` passed: 1,575 tests, clean Checkstyle and SpotBugs,
+3,130/3,131 measured lines, and 1,930/1,944 mutants killed with the same 14
+baseline survivors. See the [quality record](quality.md#w8-e03-account-settlement-storage-and-history--november-19-2026).
+
+The [proposed W8-I01 handoff](design/shared-contract.md#proposed-week-8-settlement-handoff-w8-i01)
+is ready to review with Kevin. Live settlement still needs the agreed
+W8-K04 stack deltas and session ID before it can write the ledger.
+
 ## Future weekly report template
 
 ### Week N (MM/DD/YYYY–MM/DD/YYYY)
