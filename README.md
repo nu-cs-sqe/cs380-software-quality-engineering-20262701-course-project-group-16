@@ -24,10 +24,9 @@ The Week 8 application API adds account-funded, open-ended tables: chosen buy-in
 of 400+ chips with no fixed upper cap, between-hand top-ups, replacement bots and
 per-hand balance/statistics records. Funding is bounded by available account funds
 and safe numeric totals; winnings stay playable.
-`TableAccountStore` and prepared settlement support database integration and
-background saves. SQLite, recovery rewards and the desktop switch to this mode
-remain Estella's integration work; the current desktop still uses the match
-rules above. See the [account-table contract](docs/design/shared-contract.md#week-8-account-table-api).
+The desktop uses this mode with SQLite, background saves and chip recovery.
+The 6,000-chip finish applies to the legacy match API. See the
+[account-table contract](docs/design/shared-contract.md#week-8-account-table-api).
 
 ## Contributors
 
@@ -106,6 +105,13 @@ accounts/statistics are local in `~/.cs380-holdem/profiles.db`; they reopen afte
 password verification. The first database open imports an existing
 `profiles.properties` catalog and leaves the original file in place.
 Storage errors leave settlement retryable.
+
+Use **Profiles → Chip recovery** to practice the rules in either language.
+A selected account below 400 chips can earn 200 chips by answering at least
+four of five questions correctly, up to three successful rewards per local
+calendar day. A seated player can claim after the current hand is paid.
+Successful rewards appear in **Chip history** and can be used for a buy-in
+or a between-hand top-up.
 
 Select a human and choose **Leave match** to retire their seat. Active humans fold
 immediately, including out-of-turn departures. Another pending player keeps their

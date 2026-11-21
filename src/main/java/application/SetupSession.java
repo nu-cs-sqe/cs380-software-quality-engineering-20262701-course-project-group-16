@@ -647,6 +647,25 @@ public final class SetupSession implements BotSession {
         accountTable = Optional.of(table.refresh(requireMatch(), departed));
     }
 
+    /** Prevents account credits from invalidating an unsettled hand's opening balance. */
+    public boolean canRecoverAccount(String accountId) {
+        return !getProfileIds().containsValue(accountId) || settlement.isPresent();
+    }
+
+    /** Applies an already saved reward to a seated account between hands, without storage I/O. */
+    public void applyRecoveredBalance(String accountId, long balance) {
+        if (tableStopped || !getTableFunds().containsKey(accountId)) {
+            return;
+        }
+        requireNoPendingSettlement();
+        if (settlement.isEmpty()) {
+            throw new IllegalStateException("Apply recovery between settled hands.");
+        }
+        AccountTable table = requireAccountTable();
+        accountTable = Optional.of(table.withRecoveredBalance(requireMatch(), departed,
+                accountId, balance));
+    }
+
     /** Ends an account-table session between hands. Balances already contain all paid chips. */
     public void endTable() {
         requireNoPendingSettlement();

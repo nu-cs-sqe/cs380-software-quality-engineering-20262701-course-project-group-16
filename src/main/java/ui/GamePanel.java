@@ -9,6 +9,7 @@ import application.SetupView;
 import application.TableAccountStore;
 import application.TableFunds;
 import application.BuyInLimits;
+import application.RecoveryService;
 import application.ProfileService;
 import java.util.Map;
 import java.util.LinkedHashMap;
@@ -116,6 +117,27 @@ public final class GamePanel extends JPanel {
 
     public GamePanel(SetupSession session, ProfileService profiles, TableAccountStore store) {
         this(session, List.of(profiles), Optional.of(store), changed -> liveBots(session, changed));
+    }
+
+    public GamePanel(SetupSession session, ProfileService profiles, TableAccountStore store,
+            RecoveryService recovery) {
+        this(session, profiles, store, recovery, changed -> liveBots(session, changed));
+    }
+
+    GamePanel(SetupSession session, ProfileService profiles, TableAccountStore store,
+            RecoveryService recovery, Function<Runnable, BotController> factory) {
+        this(session, profiles, store, factory);
+        this.profiles.forEach(profile -> profile.enableRecovery(recovery,
+                session::canRecoverAccount, this::applyRecoveredBalance));
+    }
+
+    private void applyRecoveredBalance(String accountId, long balance) {
+        try {
+            session.applyRecoveredBalance(accountId, balance);
+        } catch (IllegalArgumentException | IllegalStateException invalid) {
+            errorMessage = ErrorMessage.INVALID_ACTION;
+        }
+        refresh();
     }
 
     GamePanel(SetupSession session, Function<Runnable, BotController> factory) {

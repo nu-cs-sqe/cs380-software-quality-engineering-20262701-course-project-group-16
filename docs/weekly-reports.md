@@ -1005,6 +1005,25 @@ The changes remain uncommitted in the original checkout, based on `4edda97`.
 Explicit initial buy-in selection and W8-E04 recovery remain separate, as
 do native desktop review, peer review and remote CI for this integration.
 
+### W8-E04 recovery — November 21
+
+Built the recovery challenge on integrated E03 (`3fd2f16`). The funded table
+contract's below-400 threshold includes players with 1–399 chips who cannot
+buy in. One shared answer key drives the English and Chinese prompts.
+Eligible accounts can earn 200 chips at four correct answers out of five;
+the SQLite claim and credit commit together. Three successful claims per local
+day are permitted. Retry, restart, and date changes do not repeat a claim.
+
+The first test failed to compile before the recovery API existed. The
+[BVA](bva/RecoveryChallenge.md) records the clock boundaries, migration,
+rollback, authenticated history and language-switch cases.
+
+Local `build pitest` passed: 1,652 tests, clean Checkstyle and SpotBugs,
+3,712/3,713 measured lines, and 2,249/2,281 mutants killed.
+See the [quality record](quality.md#w8-e04-recovery-verification--november-21-2026)
+for survivor details. E04 remains uncommitted, with native desktop review,
+peer review and remote CI pending.
+
 ## Future weekly report template
 
 ### Week N (MM/DD/YYYY–MM/DD/YYYY)

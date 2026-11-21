@@ -52,7 +52,7 @@ class SqliteTableIntegrationTest {
             List<ChipHistoryEntry> history = reopened.loadChipHistory(id);
             assertEquals(1, history.size());
             assertEquals(change.getNetChange(), history.get(0).getChange());
-            assertEquals(hand.getSessionId(), history.get(0).getSessionId());
+            assertEquals(hand.getSessionId(), history.get(0).getSessionId().orElseThrow());
         }
         verifyRejectedWrites(reopened, hand, first.getProfile().getProfileId());
         assertEquals(1, service.getLifetimeStatistics(first).getHandsPlayed());

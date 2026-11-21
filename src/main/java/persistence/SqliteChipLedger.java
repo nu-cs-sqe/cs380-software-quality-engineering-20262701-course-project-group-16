@@ -105,10 +105,12 @@ final class SqliteChipLedger {
 
     private static ChipHistoryEntry readEntry(ResultSet row) throws SQLException {
         String eventType = SqliteProfileRepository.requiredText(row, "event_type");
+        if (!eventType.equals(ChipHistoryEntry.Type.HAND_SETTLEMENT.name())) {
+            throw new SQLException("Invalid event type in hand history.");
+        }
         return new ChipHistoryEntry(SqliteProfileRepository.requiredText(row, "hand_id"),
                 SqliteProfileRepository.requiredText(row, "session_id"),
                 Instant.parse(SqliteProfileRepository.requiredText(row, "settled_at")),
-                ChipHistoryEntry.Type.valueOf(eventType),
                 row.getLong("chip_change"), row.getLong("balance"), row.getLong("session_net"));
     }
 }

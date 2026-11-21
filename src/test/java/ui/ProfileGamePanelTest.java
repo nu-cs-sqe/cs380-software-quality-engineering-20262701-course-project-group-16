@@ -31,6 +31,70 @@ class ProfileGamePanelTest {
     private static final String PASSWORD = "PokerPlayer123";
     @TempDir Path directory;
 
+    @Test
+    void recoveryKeepsAnswersOnLanguageChangeAndShowsSavedReward()
+            throws IOException, GeneralSecurityException, InterruptedException,
+            InvocationTargetException {
+        SqliteProfileRepository repository = new SqliteProfileRepository(directory);
+        ProfileService profiles = new ProfileService(repository);
+        profiles.create("Player", PASSWORD.toCharArray());
+        StoredProfile stored = repository.load().get(0);
+        repository.save(List.of(new StoredProfile(stored.getProfile(), stored.getPasswordHash(),
+                stored.getStatistics(), 250)));
+        RecoveryService recovery = recoveryFixture(profiles, repository);
+        GamePanel panel = edt(() -> UiBotFixtures.passive(session(), profiles, repository,
+                recovery));
+        idle(panel);
+        event(() -> assertFalse(find(panel, "beginRecovery", JButton.class).isEnabled()));
+        login(panel, PASSWORD);
+        event(() -> {
+            find(panel, "beginRecovery", JButton.class).doClick(0);
+            find(panel, "submitRecovery", JButton.class).doClick(0);
+            assertTrue(find(panel, "profileStatus", JLabel.class).getText()
+                    .contains("every question"));
+            List<Integer> answers = selectRecoveryAnswers(panel,
+                    recoveryFixture(profiles, repository));
+            find(panel, "language", JComboBox.class).setSelectedIndex(1);
+            assertEquals("检查答案", find(panel, "submitRecovery", JButton.class).getText());
+            for (int index = 0; index < answers.size(); index++) {
+                assertEquals(answers.get(index).intValue(),
+                        find(panel, "recoveryChoice" + index, JComboBox.class).getSelectedIndex());
+            }
+            find(panel, "submitRecovery", JButton.class).doClick(0);
+        });
+        idle(panel);
+        event(() -> {
+            assertTrue(find(panel, "profileStatus", JLabel.class).getText()
+                    .contains("恢复奖励已保存"));
+            JTable history = find(panel, "chipHistory", JTable.class);
+            assertEquals(1, history.getRowCount());
+            assertEquals("筹码恢复奖励", history.getValueAt(0, 1));
+            assertEquals("+200", history.getValueAt(0, 2));
+            assertEquals("450", history.getValueAt(0, 3));
+            assertEquals("0", find(panel, "lifetimeTable", JTable.class).getValueAt(0, 1));
+        });
+        assertEquals(450, repository.load().get(0).getChipBalance());
+    }
+
+    private static RecoveryService recoveryFixture(ProfileService profiles,
+            SqliteProfileRepository repository) {
+        return new RecoveryService(profiles, repository, java.time.Clock.systemUTC(), 17);
+    }
+
+    private static List<Integer> selectRecoveryAnswers(GamePanel panel, RecoveryService recovery) {
+        java.util.Map<String, Integer> key = java.util.Map.of("blinds", 1, "fold", 2,
+                "private", 0, "board", 1, "allIn", 2, "refund", 0, "sidePot", 1,
+                "tie", 2, "quit", 0, "topUp", 1);
+        List<Integer> answers = recovery.begin().getQuestions().stream()
+                .map(question -> key.get(question.getId()))
+                .collect(java.util.stream.Collectors.toList());
+        for (int index = 0; index < answers.size(); index++) {
+            find(panel, "recoveryChoice" + index, JComboBox.class)
+                    .setSelectedIndex(answers.get(index));
+        }
+        return answers;
+    }
+
     @ParameterizedTest
     @ValueSource(ints = {0, 1})
     void uiAc01RequiresAnAccountAndOffersLocalizedMaskedForms(int language)

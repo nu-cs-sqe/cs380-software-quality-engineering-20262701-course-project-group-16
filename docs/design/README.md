@@ -319,7 +319,26 @@ The desktop uses [Kevin's table API](shared-contract.md#week-8-account-table-api
 with SQLite. It reads balances on a worker, starts a default buy-in table on
 the Swing thread and feeds the engine's `HandCompletion` to the existing
 background settlement flow. Players can top up or close between paid hands.
-The explicit buy-in picker and recovery challenge are separate UI work.
+The explicit buy-in picker remains separate UI work.
+
+### W8-E04 recovery challenge
+
+The English resource bundle supplies ten original prompts and choice sets;
+translations retain their keys and choice indices. One shared question bank
+holds the answer key. The service shuffles the bank and grades five distinct
+questions. Changing language preserves the selected answers and the challenge ID.
+
+The service authenticates the profile and uses one clock reading for the
+timestamp and local calendar date. SQLite version 4 adds recovery claims.
+Eligibility, the daily limit, the credit and the claim row are determined in
+one transaction. The claim also supplies the reward history row, separate
+from hand statistics and session gains. An identical challenge cannot pay
+again after restart or midnight. A failed attempt consumes no daily slot.
+
+The Profiles worker saves the reward. An unpaid seat can practice but cannot
+change its durable balance. After payment, the owner thread updates the seated
+account's available funds from the saved balance without another database read.
+The player can then use the normal top-up controls.
 
 The view model holds services, authenticated handles and callbacks and is never
 serialized. One exact SE_BAD_FIELD filter for ProfilePanel.model follows the

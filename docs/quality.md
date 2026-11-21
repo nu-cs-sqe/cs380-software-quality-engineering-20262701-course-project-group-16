@@ -8,6 +8,39 @@ no `ignoreFailures`, global suppression or baseline hiding existing warnings. Re
 CI uploads test, coverage, mutation and static-analysis reports even after a
 failed step.
 
+## W8-E04 recovery verification — November 21, 2026
+
+The first recovery test failed to compile before the API existed. The first
+executable recovery test passed; two persistence fixtures needed to remove the
+new claim table before emulating versions 1 and 2. The bilingual Swing test
+preserves answers across a language change and observes the saved reward.
+The [BVA](bva/RecoveryChallenge.md) maps questions to existing rule tests.
+The first full local build passed 1,650 tests, and PIT killed 2,245/2,281
+mutants. Targeted follow-up tests checked the answer key independently,
+sampling distinct questions across challenges, timestamp order for mixed
+reward/hand history and rejection of a malformed hand event.
+
+Final local `build pitest --warning-mode all` passed in 27m33s with Gradle
+on JDK 25 and compilation and tests on Java 11.
+
+| Check | Final local result |
+| --- | --- |
+| JUnit | 1,652 passed; zero failures, errors or skips. |
+| Checkstyle and SpotBugs | Zero style findings and unexcluded bugs. |
+| JaCoCo | 3,712/3,713 lines, 1,800/1,804 branches, 1,917/1,921 complexity counters, and 86 reported classes. |
+| PIT | 2,249/2,281 killed; 32 survivors; zero uncovered, timeout or error mutants. |
+
+The four follow-up gaps were caught by the final suite. Of the 32 remaining
+survivors, 28 also appeared in the E03 checkpoint. Three additional survivors
+replace literal return values with the same values or change a transaction
+callback result that the caller discards. These are retained in the reported
+score. The fourth removes a pending-settlement guard in
+`SetupSession.applyRecoveredBalance`: the unpaid-hand check still rejects
+the balance change, but does not itself conceal cards. The additional
+concealment effect remains a test gap. The existing GameState enum default
+is the sole missed JaCoCo line. No rules or exclusions were relaxed.
+Native walkthrough, peer review, and remote CI are pending.
+
 ## W8-E03 live SQLite settlement — November 21, 2026
 
 The storage and history checkpoint `e626661` was applied to merged PR #30

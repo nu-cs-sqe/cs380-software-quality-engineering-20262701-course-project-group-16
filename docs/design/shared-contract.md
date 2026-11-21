@@ -383,8 +383,9 @@ includes account affordability and numeric room for winnings/replacement seats;
 zero means funding is unavailable. During play, after departure and after closing
 the table, the maximum is zero. A lost stack below 400 can continue playing;
 adding funds must restore at least 400. A busted balance below 400 requests recovery.
-The database reward flow must support that threshold while enforcing three
-successful claims per local day; grants/questions remain Estella's work.
+The recovery flow uses the same threshold and permits three successful
+claims per local day. Rewards change the durable total but do not change
+the reserved stack or session gain.
 
 FundingCapacity validates signed-64-bit headroom before opening/funding a hand:
 current table money plus possible account credits and replacement-seat funding

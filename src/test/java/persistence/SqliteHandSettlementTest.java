@@ -46,18 +46,18 @@ class SqliteHandSettlementTest {
         List<ChipHistoryEntry> history = reopened.loadChipHistory("winner");
         assertEquals(3, history.size());
         assertEquals(List.of("hand-3", "hand-2", "hand-1"),
-                history.stream().map(ChipHistoryEntry::getHandId)
+                history.stream().map(entry -> entry.getHandId().orElseThrow())
                         .collect(java.util.stream.Collectors.toList()));
         ChipHistoryEntry firstEntry = history.get(2);
-        assertEquals("session-a", firstEntry.getSessionId());
+        assertEquals("session-a", firstEntry.getSessionId().orElseThrow());
         assertEquals(PAID_AT, firstEntry.getTimestamp());
         assertEquals(ChipHistoryEntry.Type.HAND_SETTLEMENT, firstEntry.getType());
         assertEquals(20, firstEntry.getChange());
         assertEquals(2_020, firstEntry.getBalance());
-        assertEquals(10, history.get(1).getSessionNet());
+        assertEquals(10, history.get(1).getSessionNet().orElseThrow());
         assertEquals(-10, history.get(1).getChange());
-        assertEquals(0, history.get(0).getSessionNet());
-        assertEquals(-10, reopened.loadChipHistory("loser").get(1).getSessionNet());
+        assertEquals(0, history.get(0).getSessionNet().orElseThrow());
+        assertEquals(-10, reopened.loadChipHistory("loser").get(1).getSessionNet().orElseThrow());
         assertTrue(reopened.loadChipHistory("other").isEmpty());
         assertThrows(UnsupportedOperationException.class, history::clear);
     }
@@ -114,6 +114,7 @@ class SqliteHandSettlementTest {
         repository.save(List.of(profile("winner", 42), profile("loser", 0)));
         execute("DROP TABLE chip_history");
         execute("DROP TABLE settled_hands");
+        execute("DROP TABLE recovery_claims");
         execute("PRAGMA user_version = 1");
         SqliteProfileRepository upgraded = repository();
         assertProfile(upgraded, "winner", 42, 0);
@@ -132,12 +133,14 @@ class SqliteHandSettlementTest {
         HandCompletion original = hand("previous", "s", 10, -10);
         repository.save(original);
         execute("ALTER TABLE settled_hands DROP COLUMN receipt");
+        execute("DROP TABLE recovery_claims");
         execute("PRAGMA user_version = 2");
         assertEquals(1, repository().loadChipHistory("winner").size());
         assertThrows(IOException.class, () -> repository().save(original));
         repository().save(hand("next", "s", 2_010, 1_990, 5, -5));
         assertProfile(repository(), "winner", 2_015, 2);
-        assertEquals(15, repository().loadChipHistory("winner").get(0).getSessionNet());
+        ChipHistoryEntry latest = repository().loadChipHistory("winner").get(0);
+        assertEquals(15, latest.getSessionNet().orElseThrow());
     }
 
     @Test
@@ -171,6 +174,24 @@ class SqliteHandSettlementTest {
         execute("UPDATE settled_hands SET settled_at = 'not-an-instant'");
         assertThrows(IOException.class, () -> repository.loadChipHistory("winner"));
         assertProfile(repository, "winner", 2_010, 1);
+    }
+
+    @Test
+    void historyMergesRewardsByTimestampAndRejectsWrongEventKind()
+            throws IOException, SQLException {
+        SqliteProfileRepository repository = repository();
+        repository.save(List.of(profile("winner", 200), profile("loser", 400)));
+        repository.save(hand("paid", "s", 200, 400, 10, -10));
+        Instant rewardTime = PAID_AT.plusSeconds(1);
+        assertEquals(application.RecoveryOutcome.AWARDED, repository.grantRecovery(
+                "winner", "challenge", java.time.LocalDate.of(2026, 11, 19), rewardTime));
+        List<ChipHistoryEntry> history = repository.loadChipHistory("winner");
+        assertEquals(ChipHistoryEntry.Type.RECOVERY_REWARD, history.get(0).getType());
+        assertEquals(ChipHistoryEntry.Type.HAND_SETTLEMENT, history.get(1).getType());
+        assertEquals(10, history.get(1).getSessionNet().orElseThrow());
+        execute("UPDATE chip_history SET event_type = 'RECOVERY_REWARD'");
+        assertThrows(IOException.class, () -> repository.loadChipHistory("winner"));
+        assertProfile(repository, "winner", 410, 1);
     }
 
     @Test

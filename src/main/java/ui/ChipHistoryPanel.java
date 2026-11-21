@@ -50,8 +50,15 @@ final class ChipHistoryPanel extends JPanel {
             messages.text(language, "profile.chips.type." + entry.getType().name()),
             signed(entry.getChange(), messages, language),
             messages.text(language, "stats.count", entry.getBalance()),
-            signed(entry.getSessionNet(), messages, language)
+            sessionNet(entry, messages, language)
         }).toArray(Object[][]::new);
+    }
+
+    private static String sessionNet(ChipHistoryEntry entry, Localizations messages,
+            String language) {
+        return entry.getSessionNet().isPresent()
+                ? signed(entry.getSessionNet().orElseThrow(), messages, language)
+                : messages.text(language, "stats.unavailable");
     }
 
     private static String signed(long chips, Localizations messages, String language) {

@@ -3,6 +3,10 @@ package ui;
 import application.AuthenticatedProfile;
 import application.ProfileOverview;
 import application.ProfileService;
+import application.BuyInLimits;
+import application.RecoveryChallenge;
+import application.RecoveryOutcome;
+import application.RecoveryService;
 import application.SetupSession;
 import application.StatisticsView;
 import application.TableAccountStore;
@@ -22,6 +26,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
+import java.util.function.BiConsumer;
+import java.util.function.Predicate;
 import javax.swing.BorderFactory;
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
@@ -67,6 +73,8 @@ final class ProfilePanel extends JPanel {
     private final StatisticsPanel lifetime = new StatisticsPanel("lifetimeTable");
     private final ChipHistoryPanel chipHistory = new ChipHistoryPanel();
     private final JTabbedPane accountDetails = new JTabbedPane();
+    private final RecoveryPanel recovery = new RecoveryPanel(this::beginRecovery,
+            this::submitRecovery);
     private boolean rendering;
     private boolean savingHand;
 
@@ -89,10 +97,101 @@ final class ProfilePanel extends JPanel {
         });
         joined.addListSelectionListener(event -> {
             if (!rendering && !event.getValueIsAdjusting() && !isBusy()) {
+                clearRecovery();
                 refreshLifetime();
             }
         });
         render();
+    }
+
+    void enableRecovery(RecoveryService service, Predicate<String> mayClaim,
+            BiConsumer<String, Long> updated) {
+        model.recovery = Optional.of(service);
+        model.mayClaim = mayClaim;
+        model.recovered = updated;
+        accountDetails.addTab(text("recovery.title"), recovery);
+        render();
+    }
+
+    private void beginRecovery() {
+        if (isBusy() || selectedAccountData().isEmpty()) {
+            return;
+        }
+        model.error = " ";
+        model.message = " ";
+        recovery.clearQuestions();
+        model.challenge = model.recovery.map(RecoveryService::begin);
+        render();
+    }
+
+    private void clearRecovery() {
+        model.challenge = Optional.empty();
+        recovery.clearQuestions();
+    }
+
+    private void submitRecovery() {
+        if (isBusy() || model.challenge.isEmpty() || selectedAccountData().isEmpty()) {
+            return;
+        }
+        AccountData account = selectedAccountData().orElseThrow();
+        RecoveryChallenge challenge = model.challenge.orElseThrow();
+        List<Integer> answers = recovery.answers();
+        if (answers.stream().anyMatch(choice -> choice < 0)) {
+            showRecoveryMessage("recovery.incomplete");
+            return;
+        }
+        String id = account.account.getProfile().getProfileId();
+        if (account.overview.getBalance() >= BuyInLimits.MINIMUM
+                || !model.mayClaim.test(id)) {
+            showPracticeResult(challenge, answers, account.overview.getBalance());
+            return;
+        }
+        saveRecovery(account, challenge, answers);
+    }
+
+    private void showPracticeResult(RecoveryChallenge challenge, List<Integer> answers,
+            long balance) {
+        if (challenge.score(answers) < RecoveryChallenge.PASS_SCORE) {
+            showRecoveryMessage("recovery.WRONG_ANSWERS");
+            return;
+        }
+        clearRecovery();
+        showRecoveryMessage(balance >= BuyInLimits.MINIMUM
+                ? "recovery.FUNDED" : "recovery.waitForHand");
+    }
+
+    private void showRecoveryMessage(String key) {
+        model.error = " ";
+        model.message = key;
+        render();
+    }
+
+    private void saveRecovery(AccountData account, RecoveryChallenge challenge,
+            List<Integer> answers) {
+        RecoveryService service = model.recovery.orElseThrow();
+        run(() -> saveAndReadRecovery(service, account.account, challenge, answers), result -> {
+            cacheAccountData(result.account);
+            publishRecovery(result);
+        }, () -> { });
+    }
+
+    private void publishRecovery(RecoveryResult result) {
+        if (result.outcome == RecoveryOutcome.AWARDED
+                || result.outcome == RecoveryOutcome.ALREADY_AWARDED) {
+            model.recovered.accept(result.account.account.getProfile().getProfileId(),
+                    result.account.overview.getBalance());
+        }
+        if (result.outcome != RecoveryOutcome.WRONG_ANSWERS) {
+            clearRecovery();
+        }
+        model.message = "recovery." + result.outcome.name();
+    }
+
+    private RecoveryResult saveAndReadRecovery(RecoveryService service,
+            AuthenticatedProfile account, RecoveryChallenge challenge, List<Integer> answers)
+            throws IOException {
+        RecoveryOutcome outcome = service.claim(account, challenge, answers);
+        return new RecoveryResult(outcome, readAccountData(account));
     }
 
     private void build() {
@@ -264,6 +363,7 @@ final class ProfilePanel extends JPanel {
                 return;
             }
             AccountData data = result.orElseThrow();
+            clearRecovery();
             model.humans.add(data.account);
             cacheAccountData(data);
             model.selectedJoined = model.humans.size() - 1;
@@ -288,6 +388,7 @@ final class ProfilePanel extends JPanel {
             return;
         }
         AuthenticatedProfile removed = model.humans.remove(joined.getSelectedIndex());
+        clearRecovery();
         model.accountData.remove(removed.getProfile().getProfileId());
         model.selectedJoined = Math.min(joined.getSelectedIndex(), model.humans.size() - 1);
         clearPasswords();
@@ -426,6 +527,9 @@ final class ProfilePanel extends JPanel {
         refreshStats.setText(text("profile.refreshStats"));
         accountDetails.setTitleAt(0, text("profile.lifetime"));
         accountDetails.setTitleAt(1, text("profile.chips.history"));
+        if (model.recovery.isPresent()) {
+            accountDetails.setTitleAt(2, text("recovery.title"));
+        }
         error.setText(model.error.equals(" ") ? " " : text(model.error));
         status.setText(model.busy ? text("profile.busy")
                 : model.message.equals(" ") ? " " : text(model.message));
@@ -445,6 +549,8 @@ final class ProfilePanel extends JPanel {
                 .orElseGet(Map::of);
         lifetime.renderProfiles(profiles, stats, model.messages, model.language);
         chipHistory.render(data.map(account -> account.overview), model.messages, model.language);
+        recovery.render(model.challenge, data.isPresent() && !isBusy(),
+                model.messages, model.language);
     }
 
     private Optional<AccountData> selectedAccountData() {
@@ -504,6 +610,16 @@ final class ProfilePanel extends JPanel {
         }
     }
 
+    private static final class RecoveryResult {
+        private final RecoveryOutcome outcome;
+        private final AccountData account;
+
+        private RecoveryResult(RecoveryOutcome outcome, AccountData account) {
+            this.outcome = outcome;
+            this.account = account;
+        }
+    }
+
     // Live view state and callbacks; Swing screens are never serialized or persisted.
     private static final class Model {
         private final ProfileService profiles;
@@ -513,6 +629,10 @@ final class ProfilePanel extends JPanel {
         private final List<AuthenticatedProfile> humans = new ArrayList<>();
         private List<PlayerProfile> saved = List.of();
         private final Map<String, AccountData> accountData = new LinkedHashMap<>();
+        private Optional<RecoveryService> recovery = Optional.empty();
+        private Optional<RecoveryChallenge> challenge = Optional.empty();
+        private Predicate<String> mayClaim = id -> false;
+        private BiConsumer<String, Long> recovered = (id, balance) -> { };
         private String language;
         private String selectedSaved = "";
         private int selectedJoined = -1;
