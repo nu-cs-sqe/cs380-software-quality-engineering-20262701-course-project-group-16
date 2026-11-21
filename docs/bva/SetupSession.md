@@ -64,3 +64,12 @@ November 16 integration retains both match-scoped BotTable/revision initializati
 and profile binding in startMatch. PM-C07-before/after and PM-C08 in
 ProfiledMatchIntegrationTest cover adaptive decisions through retryable settlement,
 continued learning/binding and stale-turn rejection after profile-bound restart.
+
+## Account-table entry point — Week 8
+
+`startTable`, funding queries/top-ups, preparation/save/publication and stop/
+continuation are covered in [AccountTable](AccountTable.md),
+[TableFunds](TableFunds.md), [HandCompletion](HandCompletion.md) and
+[PreparedSettlement](PreparedSettlement.md). Existing entry points retain
+legacy match rules. These real-component tests use a fake account store;
+SQLite and desktop integration remain pending.

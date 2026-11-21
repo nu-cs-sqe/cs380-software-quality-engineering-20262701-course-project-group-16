@@ -20,6 +20,15 @@ checks reject old results. This is an adaptive heuristic; equity uses uniform
 opponent hands. Native desktop verification, broader evaluation and review/CI
 acceptance remain pending; see [quality](docs/quality.md).
 
+The Week 8 application API adds account-funded, open-ended tables: chosen buy-ins
+of 400+ chips with no fixed upper cap, between-hand top-ups, replacement bots and
+per-hand balance/statistics records. Funding is bounded by available account funds
+and safe numeric totals; winnings stay playable.
+`TableAccountStore` and prepared settlement support database integration and
+background saves. SQLite, recovery rewards and the desktop switch to this mode
+remain Estella's integration work; the current desktop still uses the match
+rules above. See the [account-table contract](docs/design/shared-contract.md#week-8-account-table-api).
+
 ## Contributors
 
 - Kevin Wang (Member A)

@@ -52,3 +52,13 @@ I07-01–04 in CompletedStatisticsIntegrationTest cover these boundaries, and th
 six UI-I07 cases cover zero/one/two playing seats in both languages, including
 real heads-up continuation. The previous stack, privacy, continuation-stop and
 restart assertions remain; the old below-total winner assertion is corrected.
+
+## Account-table departure and dead pots — Week 8
+
+DEP-W8-01: `twoDepartingHighContributorsCannotBlockPaymentOrTheNextHand`
+uses 40-chip raise/call followed by departures; the remaining player receives
+110 chips and continuation deals normally. DEP-W8-02:
+`aPlayerWhoHasNotInvestedCanWinAfterAllContributorsLeave` awards the same
+110-chip pot to a zero-investment survivor. Both implemented/GREEN.
+Account-table replacement/cash-out boundaries are in [AccountTable](AccountTable.md).
+Legacy full-total match rules above apply only to legacy session entry points.

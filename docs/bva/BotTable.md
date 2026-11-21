@@ -35,3 +35,9 @@ I03 follow-up (November 16): afterDeparture uses PublicDecision's automatic-even
 overload. It prepares model successors without constructing another actor's legal
 choices or position. DEP-10 checks failed recording, unchanged learning, a
 retryable revision and a fresh scenario that excludes the folded quitter.
+
+Week 8 `reseat`: continuing bot identities retain opponent observations and
+sequence; departed opponent IDs disappear and new bots/opponents begin with
+fresh evidence. AccountTableIntegrationTest.survivingBotsRetainTheirLearningWhenAnotherSeatIsReplaced
+and newBotsReplaceBustedBotsAndRetainOnlyActualAccountBindings cover the
+real session boundary, including a subsequent accepted action (GREEN).

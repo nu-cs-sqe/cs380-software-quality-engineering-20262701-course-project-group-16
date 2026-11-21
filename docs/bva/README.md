@@ -84,6 +84,14 @@ case. No new null-input tests were introduced. See the [shared API contract](../
 | `OpponentModel` | [OpponentModel.md](OpponentModel.md) |
 | `PotLayout` (including Layer) | [PotLayout.md](PotLayout.md) |
 | `BotTurn` | [BotTurn.md](BotTurn.md) |
+| `BuyInLimits` | [BuyInLimits.md](BuyInLimits.md) |
+| `FundingCapacity` | [FundingCapacity.md](FundingCapacity.md) |
+| `AccountTable` | [AccountTable.md](AccountTable.md) |
+| `TableRoster` | [TableRoster.md](TableRoster.md) |
+| `TableFunds` | [TableFunds.md](TableFunds.md) |
+| `HandCompletion` | [HandCompletion.md](HandCompletion.md) |
+| `PreparedSettlement` | [PreparedSettlement.md](PreparedSettlement.md) |
+| `TableAccountStore` | [TableAccountStore.md](TableAccountStore.md) |
 | `BotTable` | [BotTable.md](BotTable.md) |
 | `BotComputer` | [BotComputer.md](BotComputer.md) |
 | `BotWorker` / `BotScheduler` port | [BotWorker.md](BotWorker.md) |

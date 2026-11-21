@@ -117,7 +117,12 @@ val measuredClasses = listOf(
     "application.BotTable",
     "application.BotComputer",
     "application.BotWorker",
-    "application.BotController"
+    "application.BotController",
+    "application.AccountTable", "application.PreparedSettlement",
+    "application.BuyInLimits", "application.FundingCapacity",
+    "application.TableRoster",
+    "application.TableFunds",
+    "application.HandCompletion"
 )
 val measuredClassFiles = measuredClasses.flatMap {
     val path = it.replace('.', '/')

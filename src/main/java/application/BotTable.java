@@ -64,6 +64,23 @@ final class BotTable {
         return models;
     }
 
+    BotTable reseat(GameState hand) {
+        Set<String> current = hand.getPlayers().stream().map(Player::getId)
+                .collect(Collectors.toSet());
+        Map<String, OpponentModel> updated = new LinkedHashMap<>();
+        for (Player player : hand.getPlayers()) {
+            if (player.getType() == PlayerType.BOT) {
+                Set<String> opponents = current.stream().filter(id -> !id.equals(player.getId()))
+                        .collect(Collectors.toSet());
+                OpponentModel model = models.containsKey(player.getId())
+                        ? models.get(player.getId()).reseat(opponents)
+                        : new OpponentModel(matchId, player.getId(), opponents);
+                updated.put(player.getId(), model);
+            }
+        }
+        return new BotTable(matchId, sequence, current, updated);
+    }
+
     BotTable after(AcceptedAction action, LegalActions before, boolean position) {
         long next = Math.incrementExact(sequence);
         Set<ResolvedActionType> choices = before.getActions().stream()

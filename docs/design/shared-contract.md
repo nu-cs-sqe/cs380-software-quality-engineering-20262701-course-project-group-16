@@ -313,3 +313,84 @@ boundary. Removing those guards would weaken the established contract rather
 than prevent null flow. Internal code uses validated identities/types and explicit
 absence; Swing's setLocationRelativeTo(null) remains a documented JDK API request
 to center the window, not a missing application value.
+
+## Week 8 account table API
+
+Kevin owns settlement/departure fixes, table funding and the storage contract.
+Estella supplies SQLite/migration, recovery rewards and desktop integration.
+Existing `start`/`startProfiles` retain the desktop's legacy match rules until
+its caller switches to `startTable(profiles, humans, store)`.
+
+- Six seats; humans choose an initial buy-in of at least 400 chips, bounded
+  by their account balance, with no fixed upper limit. Without an explicit choice, use min(1,000, balance).
+  An account below 400 needs recovery before joining. Bots still start at 1,000.
+- Funding is allowed only between paid hands. Top-ups must leave the table stack
+  at or above 400, with no fixed upper limit. Stacks reduced by losses can
+  continue below 400. Winnings stay owned and playable.
+  A busted account below 400 is marked for recovery; daily rewards remain storage work.
+- Balances include reserved table chips. Buy-ins/top-ups move existing funds;
+  they create no account credits. `getTableFunds` reports balance, reservation,
+  available amount and recovery/top-up flags. `getSessionNetChanges` retains
+  gains/losses for current and former accounts; funding is excluded.
+- `addTableChips` and `refreshTableBalances` operate between paid hands.
+  Top-ups reject unavailable funds and totals that could overflow after bot
+  replacement. `endTable` releases reservations after payment. No match champion.
+- `nextHand` carries stacks and rotates the dealer. Departed humans and busted
+  bots become new 1,000-chip bots between hands. This is separate virtual house
+  funding, never a human account grant. Surviving bots retain their learning;
+  replacement identities start fresh. Departed accounts keep completed totals.
+- Matched side pots without a live contributor merge into the nearest lower
+  eligible pot. If the first layer is dead, remaining live hands can win it,
+  including a sole zero-investment survivor. Unique-contributor excess is refunded.
+
+`HandCompletion` contains session/hand IDs, human account IDs, balances before/
+after, stacks before blinds/after payment, net changes, completed statistics and
+separate bot deltas. It contains no credentials, hole cards or unfinished hand.
+`TableAccountStore.save` must atomically update all balances, history and
+statistics; verify expected balances; deduplicate identical session/hand IDs;
+reject conflicting retries; and safely retry after an ambiguous durable commit.
+Serialize writes affecting seated accounts; grant recovery between paid hands.
+SQLite chooses transaction timestamps. Initial grants and recovery rewards are
+separate storage operations owned by Estella.
+
+For asynchronous saving: call `prepareSettlement` on the session owner thread,
+run the returned `PreparedSettlement.save` on a worker, then call
+`publishSettlement(token)` on the owner thread. Preparation freezes play;
+saving alone does not publish payment. On failure retry the same token; after
+success repeated saves do nothing. Unrelated, unsaved or already published
+tokens are rejected. The existing `settleHand` performs these steps synchronously
+and must be replaced in desktop callbacks that use a slow store.
+`prepareHandCompletion` offers an immutable preview without I/O or publication.
+
+The injected in-memory store tests this boundary; it does not verify SQLite
+transactions or the future desktop flow. Unfinished hands are not resumed.
+
+### Chosen buy-in amounts
+
+Use `startTable(profiles, humans, store, buyIns)` for explicit choices. `buyIns`
+is an immutable account-ID-to-amount map containing every selected account and
+no others. Missing/extra IDs, amounts below 400 or unavailable funds reject the
+restart while preserving the prior hand and hiding cards. The three-argument
+entry point keeps a 1,000-chip default when affordable; 400–999 balances use their
+remaining amount. There is no fixed upper buy-in cap.
+
+`BuyInLimits.MINIMUM`/`DEFAULT` expose the policy values. `TableFunds` supplies
+`getMinimumTopUp()` and `getMaximumTopUp()` for between-hand controls. The maximum
+includes account affordability and numeric room for winnings/replacement seats;
+zero means funding is unavailable. During play, after departure and after closing
+the table, the maximum is zero. A lost stack below 400 can continue playing;
+adding funds must restore at least 400. A busted balance below 400 requests recovery.
+The database reward flow must support that threshold while enforcing three
+successful claims per local day; grants/questions remain Estella's work.
+
+FundingCapacity validates signed-64-bit headroom before opening/funding a hand:
+current table money plus possible account credits and replacement-seat funding
+must remain representable. This is numeric safety, not a fixed game buy-in cap.
+Near that technical boundary, `canStartNextHand()` returns false before another
+hand can overflow; the paid table can still be closed. Reported top-up maxima
+use the same budget as the operation that accepts the amount.
+
+Unpaid departures keep reservations; paid departures release them. Refreshing
+other accounts accepts changes to those already released balances. Unknown or
+blank account IDs never select bots. Mutations rejected during a pending save
+conceal cards even if the caller revealed them after preparing payment.

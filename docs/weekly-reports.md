@@ -907,6 +907,26 @@ push was created. Existing BVA/design records and issue #20 retain review/CI/
 merge gates; neither this review nor green local checks establish whole-backend
 or final-grade completion.
 
+## Week 8 (11/16/2026–11/22/2026)
+
+**Goal:** Fix departure settlement and supply account-funded table APIs.
+
+| Status | Owner | Work | Evidence / branch |
+| --- | --- | --- | --- |
+| Done locally | Kevin | Dead-pot settlement, including a zero-investment survivor. | PotLayoutTest / QuitIntegrationTest; `feature/week8-table-rules` |
+| Done locally | Kevin | Open-ended tables, chosen 400+ buy-ins with no fixed cap, top-ups, replacement bots and retained statistics/learning. | AccountTableIntegrationTest; same branch |
+| Done locally | Kevin | Immutable hand changes and atomic/idempotent storage contract; background save with owner-thread publication. | TableAccountStore / PreparedSettlement; same branch |
+| Pending | Estella + Kevin | Connect SQLite, migration/recovery and desktop; verify the combined flow. | Shared account-table contract |
+
+**Progress evaluation:** Departure, funding, privacy and save/retry regressions
+were observed failing before fixes. Local `build pitest` passes: **1,610 tests**,
+clean Checkstyle/SpotBugs, **2,049/2,072 PIT kills (98.89%)**.
+[Scope and 23 reviewed survivors](quality.md). SQLite/new desktop integration,
+peer review and remote CI remain pending. Changes are uncommitted.
+
+**Next steps:** Estella connects storage/UI; together test sign-in, paid hands,
+top-up, departure and recovery in both languages. Kevin reviews, commits and pushes changes.
+
 ## Future weekly report template
 
 ### Week N (MM/DD/YYYY–MM/DD/YYYY)

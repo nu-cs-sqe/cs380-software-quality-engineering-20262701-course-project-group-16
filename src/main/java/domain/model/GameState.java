@@ -94,7 +94,8 @@ public final class GameState {
 
     private void validateRaiseCount() {
         // Each raise increases the preflop target by at least one chip above the big blind.
-        if (history.getPreflopRaiseCount() > config.getInitialTotalChips() - config.getBigBlind()) {
+        if (history.getPreflopRaiseCount() > Math.max(0,
+                config.getInitialTotalChips() - config.getBigBlind())) {
             throw new IllegalArgumentException("Preflop raise count exceeds the match chip limit.");
         }
     }
