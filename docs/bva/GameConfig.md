@@ -32,3 +32,11 @@ Grouped assertions exercise the public getters at the stated boundary; no mutabl
 SEAT_COUNT is the shared table-size constant. The agreed starting stack and
 blinds have named defaults; their values remain 1,000 and 10/20. Existing numeric
 boundary cases cover these unchanged rules. checkstyleSeatRules checks this class.
+
+## Account-table funded total — Week 8
+
+GC-W8: `withTableTotal` rejects 0/-1 and accepts 1/Long.MAX_VALUE while
+preserving the configured stakes. Covered by AccountTableIntegrationTest.
+`getInitialTotalChips` now describes the funded total of this hand; legacy
+constructors retain six equal starting stacks. Small all-in tables may total
+less than the big blind without inventing a preflop raise.

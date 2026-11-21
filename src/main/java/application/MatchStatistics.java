@@ -77,8 +77,12 @@ final class MatchStatistics {
 
     MatchStatistics addHand(MatchStatistics hand) {
         Map<String, PlayStats> next = new LinkedHashMap<>();
-        players.forEach((id, stats) -> next.put(id, PlayStats.fromCompleted(
-                stats.completedSnapshot().addHand(hand.players.get(id).completedSnapshot()))));
+        players.forEach((id, stats) -> next.put(id, stats.copy()));
+        hand.players.forEach((id, stats) -> {
+            PlayStats before = next.getOrDefault(id, new PlayStats());
+            next.put(id, PlayStats.fromCompleted(
+                    before.completedSnapshot().addHand(stats.completedSnapshot())));
+        });
         return new MatchStatistics(next);
     }
 

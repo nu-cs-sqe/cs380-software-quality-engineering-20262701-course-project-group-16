@@ -44,9 +44,12 @@ public final class SetupSession implements BotSession {
     private Optional<MatchStatistics> totals = Optional.empty();
     private Optional<ProfileMatch> profileMatch = Optional.empty();
     private final PotSettlement payoutService = new PotSettlement();
-    private final NextHand continuation = new NextHand(new Random());
+    private final NextHand continuation;
+    private Optional<PreparedSettlement> pendingSettlement = Optional.empty();
     private final Set<String> departed = new HashSet<>();
     private Optional<BotTable> bots = Optional.empty();
+    private Optional<AccountTable> accountTable = Optional.empty();
+    private boolean tableStopped;
     private long revision;
     private int viewerSeat;
     private boolean cardsRevealed;
@@ -67,6 +70,12 @@ public final class SetupSession implements BotSession {
     // Recorders must reject invalid observations before modifying their pending collection.
     SetupSession(GameInitializer initializer, BettingEngine engine, ShowdownResolver resolver,
             Function<GameState, Consumer<AcceptedAction>> statisticsFactory) {
+        this(initializer, engine, resolver, statisticsFactory, new Random());
+    }
+
+    SetupSession(GameInitializer initializer, BettingEngine engine, ShowdownResolver resolver,
+            Function<GameState, Consumer<AcceptedAction>> statisticsFactory, Random random) {
+        this.continuation = new NextHand(random);
         this.initializer = initializer;
         this.engine = engine;
         this.resolver = resolver;
@@ -83,6 +92,7 @@ public final class SetupSession implements BotSession {
      * @throws UnsupportedOperationException for actions outside the supported engine scope
      */
     public AcceptedAction submitAction(ActionRequest request) {
+        requireNoPendingSettlement();
         hideCards();
         GameState hand = requireOpenHand();
         BettingResult accepted = engine.apply(hand, request);
@@ -166,6 +176,7 @@ public final class SetupSession implements BotSession {
      * @throws IllegalStateException if no match exists
      */
     public void quit(String playerId) {
+        requireNoPendingSettlement();
         hideCards();
         requireNoSettlementSave();
         GameState match = requireMatch();
@@ -205,6 +216,7 @@ public final class SetupSession implements BotSession {
      * @throws IllegalArgumentException unless humanCount is between one and six
      */
     public void start(int humanCount) {
+        requireNoPendingSettlement();
         hideCards();
         requireNoSettlementSave();
         startMatch(initializer.start(humanCount), Optional.empty());
@@ -220,10 +232,13 @@ public final class SetupSession implements BotSession {
         bots = Optional.of(freshBots);
         revision = 0;
         profileMatch = binding;
+        accountTable = Optional.empty();
+        tableStopped = false;
     }
 
     /** Starts a fresh match bound to password-verified local human accounts. */
     public void startProfiles(ProfileService profiles, List<AuthenticatedProfile> humans) {
+        requireNoPendingSettlement();
         hideCards();
         requireNoSettlementSave();
         ProfileMatch.requireAccounts(profiles, humans);
@@ -234,7 +249,8 @@ public final class SetupSession implements BotSession {
 
     /** Public stable bindings; neither credentials nor private cards are included. */
     public Map<String, String> getProfileIds() {
-        return profileMatch.map(ProfileMatch::profileIds).orElseGet(Map::of);
+        return accountTable.map(AccountTable::profileIds)
+                .orElseGet(() -> profileMatch.map(ProfileMatch::profileIds).orElseGet(Map::of));
     }
 
     /** Fresh persisted lifetime totals, separate from getStatistics's match-only totals. */
@@ -333,91 +349,61 @@ public final class SetupSession implements BotSession {
      * @throws java.io.UncheckedIOException if lifetime storage fails before publication
      */
     public Settlement settleHand() {
-        PendingSettlement pending = prepareSettlement();
-        pending.save.run();
-        return publishSettlement(pending);
+        PreparedSettlement prepared = prepareSettlement();
+        prepared.save();
+        return publishSettlement(prepared);
     }
 
-    /**
-     * Saves completed profiles on a worker, then publishes and reports completion on the owner.
-     * Unprofiled hands require no worker. Failed saves leave the same hand available to retry.
-     * The owner executor must deliver callbacks on the same thread that owns this session.
-     */
+    /** Saves on the worker and publishes on the session's owner thread. */
     public void settleHand(Executor worker, Executor owner, Consumer<Boolean> finished) {
-        PendingSettlement pending = prepareSettlement();
-        if (profileMatch.isEmpty()) {
-            publishSettlement(pending);
+        PreparedSettlement prepared = prepareSettlement();
+        if (prepared.getHandCompletion().isEmpty() && profileMatch.isEmpty()) {
+            prepared.save();
+            publishSettlement(prepared);
             finished.accept(true);
             return;
         }
-        CompletableFuture<Void> save = CompletableFuture.runAsync(pending.save, worker);
+        CompletableFuture<Void> save = CompletableFuture.runAsync(prepared::save, worker);
         savingSettlement = true;
-        save.whenCompleteAsync((ignored, failure) ->
-                finishSettlement(pending, Optional.ofNullable(failure).isEmpty(), finished), owner);
+        save.whenCompleteAsync((ignored, failure) -> finishSettlement(
+                prepared, Optional.ofNullable(failure).isEmpty(), finished), owner);
     }
 
-    private void finishSettlement(PendingSettlement pending, boolean saved,
+    private void finishSettlement(PreparedSettlement prepared, boolean saved,
             Consumer<Boolean> finished) {
         savingSettlement = false;
         if (saved) {
-            publishSettlement(pending);
+            publishSettlement(prepared);
         }
         finished.accept(saved);
     }
 
-    private PendingSettlement prepareSettlement() {
-        hideCards();
-        requireNoSettlementSave();
-        GameState hand = requireMatch();
-        long nextRevision = Math.incrementExact(revision);
-        Settlement paid = payoutService.settle(hand);
-        MatchStatistics delta = MatchStatistics.start(hand).complete(hand, paid, acceptedActions);
-        MatchStatistics completed = totals.orElseThrow().addHand(delta);
-        Optional<ProfileMatch> accounts = profileMatch;
-        return new PendingSettlement(paid, completed, nextRevision,
-                () -> accounts.ifPresent(binding -> binding.save(delta)));
-    }
-
-    private Settlement publishSettlement(PendingSettlement pending) {
-        state = Optional.of(pending.paid.getState());
-        totals = Optional.of(pending.completed);
-        settlement = Optional.of(pending.paid);
-        revision = pending.revision;
-        return pending.paid;
-    }
-
     private void requireNoSettlementSave() {
         if (savingSettlement) {
+            hideCards();
             throw new IllegalStateException("Wait for the completed hand to save.");
-        }
-    }
-
-    private static final class PendingSettlement {
-        private final Settlement paid;
-        private final MatchStatistics completed;
-        private final long revision;
-        private final Runnable save;
-
-        private PendingSettlement(Settlement paid, MatchStatistics completed, long revision,
-                Runnable save) {
-            this.paid = paid;
-            this.completed = completed;
-            this.revision = revision;
-            this.save = save;
         }
     }
 
     /** Continues a settled match with stable identities, carried stacks and fresh private cards. */
     public void nextHand() {
+        requireNoPendingSettlement();
         hideCards();
         if (!canStartNextHand()) {
             throw new IllegalStateException("A paid hand and two remaining players are required.");
         }
         long nextRevision = Math.incrementExact(revision);
-        GameState started = advanceClosedRounds(continuation.start(requireMatch(), departed));
+        GameState started = advanceClosedRounds(accountTable.isPresent()
+                ? continuation.reseat(requireMatch(), accountTable.orElseThrow()
+                        .nextRoster(requireMatch(), departed), true)
+                : continuation.start(requireMatch(), departed));
         Optional<ShowdownResult> comparison = compareIfFinished(started);
         Consumer<AcceptedAction> recorder = statisticsFactory.apply(started);
+        Optional<AccountTable> nextAccounts = accountTable.map(table -> table.begin(started));
+        BotTable nextBots = bots.orElseThrow().reseat(started);
         publishStart(started, recorder);
+        accountTable = nextAccounts;
+        bots = Optional.of(nextBots);
         result = comparison;
         revision = nextRevision;
         selectActingHuman();
@@ -432,12 +418,14 @@ public final class SetupSession implements BotSession {
 
     /** A new hand requires payment and at least two funded seats that have not left. */
     public boolean canStartNextHand() {
-        return settlement.isPresent() && fundedPlayers().size() > 1;
+        return !tableStopped && settlement.isPresent()
+                && accountTable.map(table -> table.canContinue(requireMatch(), departed))
+                        .orElseGet(() -> fundedPlayers().size() > 1);
     }
 
     /** A paid match has a winner only when one player owns the full configured chip total. */
     public Optional<Player> getMatchWinner() {
-        if (settlement.isEmpty()) {
+        if (accountTable.isPresent() || settlement.isEmpty()) {
             return Optional.empty();
         }
         GameState paid = requireMatch();
@@ -515,6 +503,154 @@ public final class SetupSession implements BotSession {
                 .collect(java.util.stream.Collectors.toSet());
         return hand.getPositions().isInPosition(hand.getCurrentActorSeat().orElseThrow(), active,
                 hand.getPhase() == GamePhase.PREFLOP);
+    }
+
+    /**
+     * Starts with min(1,000, balance) per human; selected balances must be at least 400.
+     * @throws java.io.UncheckedIOException if balances cannot be read
+     */
+    public void startTable(ProfileService profiles, List<AuthenticatedProfile> humans,
+            TableAccountStore store) {
+        startAccountTable(profiles, humans, store, Optional.empty());
+    }
+
+    /** Starts with chosen 400+ buy-ins, keyed by account ID and bounded by available balances. */
+    public void startTable(ProfileService profiles, List<AuthenticatedProfile> humans,
+            TableAccountStore store, Map<String, Long> buyIns) {
+        startAccountTable(profiles, humans, store, Optional.of(Map.copyOf(buyIns)));
+    }
+
+    private void startAccountTable(ProfileService profiles, List<AuthenticatedProfile> humans,
+            TableAccountStore store, Optional<Map<String, Long>> buyIns) {
+        requireNoPendingSettlement();
+        hideCards();
+        ProfileMatch.requireAccounts(profiles, humans);
+        GameState initial = initializer.start(humans.size());
+        ProfileMatch binding = new ProfileMatch(profiles, humans, initial);
+        AccountTable table = AccountTable.open(store, binding.profileIds(), initial);
+        Map<String, Long> choices = buyIns.orElseGet(table::defaultBuyIns);
+        GameState started = advanceClosedRounds(
+                continuation.reseat(initial, table.openingRoster(initial, choices), false));
+        AccountTable startedTable = table.begin(started);
+        Optional<ShowdownResult> comparison = compareIfFinished(started);
+        startMatch(started, Optional.of(binding));
+        accountTable = Optional.of(startedTable);
+        result = comparison;
+        selectActingHuman();
+    }
+
+    /** Immutable totals and reserved funds, keyed by persistent account ID. */
+    public Map<String, TableFunds> getTableFunds() {
+        return accountTable.map(table ->
+                table.displayedFunds(requireMatch(), departed, tableStopped)).orElseGet(Map::of);
+    }
+
+    /** Per-account session gains include former seats; buy-ins and top-ups are excluded. */
+    public Map<String, Long> getSessionNetChanges() {
+        return accountTable.map(AccountTable::sessionNetChanges).orElseGet(Map::of);
+    }
+
+    /** Freezes payment for background saving; mutations wait until owner-thread publication. */
+    public PreparedSettlement prepareSettlement() {
+        hideCards();
+        requireNoSettlementSave();
+        if (pendingSettlement.isPresent()) {
+            return pendingSettlement.orElseThrow();
+        }
+        GameState hand = requireMatch();
+        long nextRevision = Math.incrementExact(revision);
+        Settlement paid = payoutService.settle(hand);
+        MatchStatistics delta = MatchStatistics.start(hand).complete(hand, paid, acceptedActions);
+        Optional<HandCompletion> completion = accountTable.map(table ->
+                table.completion(paid.getState(), delta.completedSnapshots()));
+        Optional<AccountTable> next = accountTable.map(table ->
+                table.afterPayment(completion.orElseThrow(), paid));
+        PreparedSettlement prepared = new PreparedSettlement(paid,
+                totals.orElseThrow().addHand(delta), next, completion,
+                settlementWriter(delta, completion), nextRevision);
+        pendingSettlement = Optional.of(prepared);
+        return prepared;
+    }
+
+    private Runnable settlementWriter(MatchStatistics delta, Optional<HandCompletion> completion) {
+        if (accountTable.isPresent()) {
+            AccountTable table = accountTable.orElseThrow();
+            HandCompletion hand = completion.orElseThrow();
+            return () -> table.save(hand);
+        }
+        Optional<ProfileMatch> binding = profileMatch;
+        return () -> binding.ifPresent(profile -> profile.save(delta));
+    }
+
+    /** Publishes a successfully saved token on this session's owner thread; performs no I/O. */
+    public Settlement publishSettlement(PreparedSettlement prepared) {
+        requireNoSettlementSave();
+        if (pendingSettlement.isEmpty() || pendingSettlement.orElseThrow() != prepared
+                || !prepared.isSaved()) {
+            throw new IllegalStateException("Save this session's prepared settlement first.");
+        }
+        state = Optional.of(prepared.paid().getState());
+        accountTable = prepared.nextAccounts();
+        totals = Optional.of(prepared.completed());
+        settlement = Optional.of(prepared.paid());
+        revision = prepared.nextRevision();
+        pendingSettlement = Optional.empty();
+        return prepared.paid();
+    }
+
+    /** Prepares verified account changes without storage access or session publication. */
+    public HandCompletion prepareHandCompletion() {
+        AccountTable table = requireAccountTable();
+        if (pendingSettlement.isPresent()) {
+            return pendingSettlement.orElseThrow().getHandCompletion().orElseThrow();
+        }
+        GameState hand = requireMatch();
+        Settlement paid = payoutService.settle(hand);
+        MatchStatistics delta = MatchStatistics.start(hand).complete(hand, paid, acceptedActions);
+        return table.completion(paid.getState(), delta.completedSnapshots());
+    }
+
+    /** Reserves existing account funds for the next hand, after payment. */
+    public void addTableChips(String accountId, long chips) {
+        requireNoPendingSettlement();
+        AccountTable table = requireAccountTable();
+        if (settlement.isEmpty() || tableStopped) {
+            throw new IllegalStateException("Top up between settled hands at an open table.");
+        }
+        table.addChips(requireMatch(), departed, accountId, chips);
+    }
+
+    /** Reloads durable totals after a recovery reward, between settled hands. */
+    public void refreshTableBalances() {
+        requireNoPendingSettlement();
+        AccountTable table = requireAccountTable();
+        if (settlement.isEmpty() || tableStopped) {
+            throw new IllegalStateException("Refresh balances between settled hands.");
+        }
+        accountTable = Optional.of(table.refresh(requireMatch(), departed));
+    }
+
+    /** Ends an account-table session between hands. Balances already contain all paid chips. */
+    public void endTable() {
+        requireNoPendingSettlement();
+        requireAccountTable();
+        if (settlement.isEmpty()) {
+            throw new IllegalStateException("Settle the current hand before leaving the table.");
+        }
+        hideCards();
+        tableStopped = true;
+    }
+
+    private AccountTable requireAccountTable() {
+        return accountTable.orElseThrow(() ->
+                new IllegalStateException("Start an account table first."));
+    }
+
+    private void requireNoPendingSettlement() {
+        if (pendingSettlement.isPresent()) {
+            hideCards();
+            throw new IllegalStateException("Finish the prepared settlement before changing play.");
+        }
     }
 
     private GameState requireMatch() {

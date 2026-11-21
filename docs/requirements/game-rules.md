@@ -5,7 +5,7 @@ with the match settings below. The intended full game is no-limit Hold'em;
 the current engine support and desktop controls are described separately below.
 All chips are virtual and have no cash value.
 
-## Table and match
+## Existing desktop match
 
 - Six fixed seats, with 1–6 human players and bots filling the rest. Humans share
   one computer and explicitly reveal their own cards at each handoff.
@@ -36,6 +36,31 @@ All chips are virtual and have no cash value.
   without a match winner. Departed stacks stay with their owners. Settle hand
   pays the current hand before the match outcome is determined. Tests using
   other valid settings require the full configured chip total for victory.
+
+## Account tables: Week 8 application API
+
+The new account-table entry point replaces match victory with persistent chip
+changes. The desktop switches to these rules when its SQLite integration is
+connected; the existing desktop behavior above remains available meanwhile.
+
+- Each human signs in to a local account. Storage supplies the initial 2,000
+  virtual chips. Players choose a buy-in of at least 400, up to their saved
+  balance, with no fixed upper cap. The default choice is min(1,000, balance).
+- Six seats remain. Bots fill unused seats. Between paid hands, departed humans
+  and busted bots are replaced with separately funded 1,000-chip bots.
+- Human chips carry between hands, including winnings above any starting amount.
+  A stack reduced below 400 can keep playing. Between-hand top-ups use existing
+  account funds and must leave at least 400 on the table; there is no fixed upper
+  cap. A busted account with less than 400 needs recovery before rebuying.
+  Estella's reward flow must enforce the agreed three successful claims per day.
+- Account totals include table chips. Funding reserves existing money; each paid
+  hand changes the total only by final stack minus the stack before blinds.
+  Save every affected human's balance, history and statistics atomically, once.
+- Leaving retains account ownership and the hand's all-in eligibility. Matched
+  money from departed contributors remains awardable to surviving eligible hands.
+  Only uncalled excess is refunded. Departures cannot block settlement.
+- There is no hand-count limit or overall match winner. End the table between
+  settled hands to release reservations. Closing does not resume unfinished hands.
 
 ## Deal and betting order
 
@@ -91,7 +116,7 @@ pots from contribution levels; folded chips stay in those pots, while only
 eligible live contributors can win. Split tied pots separately, giving odd
 chips clockwise after the dealer, and return uncalled excess as a refund.
 These follow the [Poker TDA payout rules](https://www.pokertda.com/view-poker-tda-rules/).
-Payouts conserve the 6,000-chip total; paid hands have zero pot and zero
+Payouts conserve the configured funded total; paid hands have zero pot and zero
 commitments. A refund alone is not a contested showdown win.
 
 Accepted voluntary actions feed pending statistics once. Blinds, queries and

@@ -19,3 +19,8 @@ Latest verification: full build 1,196 passing tests; Checkstyle/SpotBugs clean;
 new/modified E02 component mutants all killed. See the existing
 [quality record](../quality.md#completed-lifetime-statistics--november-9-2026).
 These are local results; commit/CI/review/merge gates are not marked complete.
+
+Week 8 `addHand` merges the new roster by player ID: departed players retain
+completed history, new bot identities start at zero, and surviving players gain
+one completed hand. The two-hand departure/replacement integration verifies
+both retained and continuing counts (AccountTableIntegrationTest).

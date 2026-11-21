@@ -32,7 +32,7 @@ public final class PotLayout {
                     .filter(player -> player.getHandContribution() >= level)
                     .collect(Collectors.toList());
             addLayer(contributors, Math.multiplyExact(level - previous, contributors.size()),
-                    layers, refunds);
+                    layers, refunds, players);
             previous = level;
         }
         return new PotLayout(layers, refunds);
@@ -45,7 +45,7 @@ public final class PotLayout {
     }
 
     private static void addLayer(List<PlayerState> contributors, long amount,
-            List<Layer> layers, Map<String, Long> refunds) {
+            List<Layer> layers, Map<String, Long> refunds, List<PlayerState> players) {
         if (contributors.size() == 1) {
             String id = contributors.get(0).getPlayer().getId();
             refunds.put(id, Math.addExact(refunds.get(id), amount));
@@ -54,9 +54,27 @@ public final class PotLayout {
         Set<String> eligible = contributors.stream().filter(PlayerState::isParticipating)
                 .map(player -> player.getPlayer().getId()).collect(Collectors.toSet());
         if (eligible.isEmpty()) {
-            throw new IllegalStateException("A side pot requires an eligible player.");
+            mergeIntoLowerPot(layers, amount, players);
+        } else {
+            layers.add(new Layer(amount, eligible));
         }
-        layers.add(new Layer(amount, eligible));
+    }
+
+    private static void mergeIntoLowerPot(List<Layer> layers, long amount,
+            List<PlayerState> players) {
+        if (layers.isEmpty()) {
+            Set<String> remaining = players.stream().filter(PlayerState::isParticipating)
+                    .map(player -> player.getPlayer().getId()).collect(Collectors.toSet());
+            if (remaining.isEmpty()) {
+                throw new IllegalStateException("A pot requires a remaining player.");
+            }
+            layers.add(new Layer(amount, remaining));
+            return;
+        }
+        int index = layers.size() - 1;
+        Layer lower = layers.get(index);
+        layers.set(index, new Layer(Math.addExact(lower.getAmount(), amount),
+                lower.getEligiblePlayers()));
     }
 
     public List<Layer> getLayers() { return layers; }

@@ -23,7 +23,7 @@ and injected rank comparisons to isolate pot allocation; real-evaluator played
 integration is covered at the session boundary.
 
 Additional regression cases cover safe near-long-limit total payouts, a side pot
-with no eligible contributor (reject without mutation), stronger contenders
+with no eligible contributor (merge matched dead money into a live lower pot), stronger contenders
 appearing later, nonadjacent tied seats with an odd chip, zero-pot settlement
 without ranking, and rejection for pending/raise rights, zero contenders or an
 early contested board. These extend the original TDD cases; they are not new
@@ -38,3 +38,8 @@ E06 extracts the existing contribution-level algorithm into
 [PotLayout](PotLayout.md), shared with bot call previews. PL01–05 verify pot and
 refund totals, eligibility, immutable layers and unchanged settlement payouts.
 The payout/odd-chip and completed-state rules remain here.
+
+Week 8: `orphanedSidePotIsAwardedThroughTheLowerEligiblePot` verifies the
+60-chip tied payout. The two new `QuitIntegrationTest` departure regressions
+verify payment of 110 chips, including a survivor who invested zero, and
+successful continuation. Uncalled refunds retain their original owner.

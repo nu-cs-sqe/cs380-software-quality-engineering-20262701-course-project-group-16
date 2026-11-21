@@ -94,6 +94,16 @@ public final class OpponentModel {
         return next;
     }
 
+    /** Keeps existing evidence and sequence while admitting new opponent identities. */
+    public OpponentModel reseat(Set<String> opponents) {
+        Map<String, OpponentBeliefs> retained = new HashMap<>();
+        opponents.forEach(id -> retained.put(id,
+                beliefs.getOrDefault(id, new OpponentBeliefs())));
+        OpponentModel next = new OpponentModel(matchId, observerId, retained, update);
+        next.lastSequence = lastSequence;
+        return next;
+    }
+
     public OpponentBeliefs snapshot(String opponentId) {
         if (!beliefs.containsKey(opponentId)) {
             throw new IllegalArgumentException("A registered opponent is required.");

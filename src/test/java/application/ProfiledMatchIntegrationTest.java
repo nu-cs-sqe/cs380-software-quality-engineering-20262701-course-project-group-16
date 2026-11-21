@@ -308,6 +308,36 @@ class ProfiledMatchIntegrationTest {
         verifyAsyncRetry(session, profiles, account, repo, afterSave);
     }
 
+    @Test
+    void savedAsyncHandWaitsForOwnerBeforePublishing()
+            throws IOException, GeneralSecurityException {
+        ProfileService profiles = new ProfileService(new FileProfileRepository(directory));
+        PlayerProfile profile = profiles.create("Player", PASSWORD);
+        AuthenticatedProfile account =
+                profiles.login(profile.getProfileId(), PASSWORD).orElseThrow();
+        SetupSession session = session();
+        session.startProfiles(profiles, List.of(account));
+        for (int index = 0; index < 5; index++) {
+            act(session, ActionType.FOLD);
+        }
+        PreparedSettlement prepared = session.prepareSettlement();
+        Queue<Runnable> worker = new ArrayDeque<>();
+        Queue<Runnable> owner = new ArrayDeque<>();
+        List<Boolean> outcomes = new ArrayList<>();
+        long pot = session.getView().orElseThrow().getPot();
+        session.settleHand(worker::add, owner::add, outcomes::add);
+        worker.remove().run();
+        assertTrue(prepared.isSaved());
+        assertThrows(IllegalStateException.class, () -> session.publishSettlement(prepared));
+        assertTrue(session.getSettlement().isEmpty());
+        assertEquals(pot, session.getView().orElseThrow().getPot());
+        assertTrue(outcomes.isEmpty());
+        owner.remove().run();
+        assertEquals(List.of(true), outcomes);
+        assertTrue(session.getSettlement().isPresent());
+        assertEquals(1, profiles.getLifetimeStatistics(account).getHandsPlayed());
+    }
+
     private static void verifyAsyncRetry(SetupSession session, ProfileService profiles,
             AuthenticatedProfile account, FailingRepository repo, boolean afterSave)
             throws IOException {

@@ -8,6 +8,121 @@ no `ignoreFailures`, global suppression or baseline hiding existing warnings. Re
 CI uploads test, coverage, mutation and static-analysis reports even after a
 failed step.
 
+## PR #30 settlement merge fix — November 21, 2026
+
+Restored the save-in-progress checks in `prepareSettlement` and
+`publishSettlement` and wrapped the overlong callback line. The two existing
+async retry cases failed on merged commit `b1e7765`. The new
+`savedAsyncHandWaitsForOwnerBeforePublishing` regression also failed before the
+fix; all three pass afterward. Queued executors control ordering against a real
+temporary profile catalog.
+
+Local `build pitest` passed with JDK 17 for Gradle and JDK 11 compilation/tests:
+**1,625 tests**, zero failures/errors/skips, clean Checkstyle and SpotBugs.
+Shared JaCoCo records 3,416/3,417 lines, 1,700/1,702 branches,
+1,796/1,798 complexity counters, 16,722/16,727 instructions and 941/941 methods.
+Remaining misses are the GameState enum-default path and the account-table
+branch of the asynchronous settlement fast-path decision; combined account-table
+UI/storage integration is not established by these results.
+
+PIT killed **2,096/2,123 mutants (98.73%)**, with 27 survivors and zero
+uncovered/timeout/error mutants; 102 selected test classes and 16,255 executions.
+Twenty-three survivors match the preceding checkpoint. Three additional
+start/startProfiles/quit save-guard calls overlap the earlier pending-token guard.
+The remaining `requireNoSettlementSave` card-concealment survivor is a test gap:
+the queued-publication regression does not assert concealment after a fresh
+reveal. It is retained in the score and is not claimed equivalent. No exclusions
+or quality rules were relaxed. This follow-up is local on
+`feature/week8-table-rules`; user commit/push, remote CI and peer review remain pending.
+
+## Chosen 400+ buy-ins — November 19, 2026
+
+The account-table API accepts chosen amounts of at least 400, with no fixed upper
+cap beyond affordability and safe numeric totals. The existing default overload
+uses min(1,000, balance). Funding restores at least 400 between paid hands;
+smaller post-loss stacks and larger winnings remain playable. Recovery flags
+cover busted balances below 400. SQLite/recovery rewards and desktop controls
+remain integration work; legacy desktop entry points retain their match rules.
+
+Final local `build pitest` exits 0 with JDK 17 for Gradle and JDK 11 compilation/
+tests: **1,610 tests pass**, zero failures/errors/skips; Checkstyle and SpotBugs
+have zero unexcluded main/test findings. Only documentation changed after that run.
+
+| Scope | Verified result |
+| --- | --- |
+| Shared JaCoCo: 73 parent components / 76 executable classes | 3,305/3,306 lines; 1,679/1,680 branches; 1,760/1,761 complexity counters; 16,276/16,281 instructions; 915/915 methods. |
+| BuyInLimits / FundingCapacity | 29/29 lines, 22/22 branches, 17/17 complexity counters and 6/6 methods; PIT 30/31 killed. |
+| Shared PIT | **2,049/2,072 killed (98.89%)**; 23 survivors; zero uncovered/timeout/error mutants. 101 selected test classes; 15,757 executions across mutants. |
+
+Fourteen survivors retain the documented baseline. The other nine are reviewed
+under the current public session flow, without excluding them from the score:
+
+| Survivor(s) | Remaining protection / interpretation |
+| --- | --- |
+| SetupSession pending guards in submitAction/nextHand (2) | Terminal-hand or unpaid-hand checks still reject before mutation; both paths conceal cards. |
+| AccountTable departed funding guard (1) | A paid departed account has zero funding capacity and cannot satisfy the positive minimum. |
+| AccountTable opening minimum predicate/branch (2) | Default and explicit buy-in validation independently enforce the minimum and affordability. |
+| TableFunds constructor range branch (1) | Other reservation/available-funding range checks still reject invalid values. |
+| TableRoster early total guard call/branch (2) | AccountTable's mandatory capacity check independently rejects an unrepresentable roster before publication. |
+| FundingCapacity maximumAddition boundary (1) | At total == ceiling, both branches return zero. |
+
+Overlapping guards can produce different diagnostic text. This review does not
+claim independent unit-path equivalence for every internal helper. No rule,
+suppression, target-test pattern or coverage exclusion was weakened. The lone
+JaCoCo miss remains the existing GameState enum-default path; these are scoped
+counters, not whole-backend or independent basis-path proof.
+
+Minimum/recovery cases were observed RED before implementation; chosen-amount
+cases first lacked the API and then passed. Seven review regressions were
+observed RED then GREEN: payable wallet/replacement headroom, offered funding
+limits, pending-save concealment, blank account IDs, released-balance refresh and
+safe continuation. Numeric bounds reserve signed-64-bit room for winnings and
+replacement seats; they are not a fixed game maximum. A paid table near that
+technical boundary can close instead of starting an unsafe hand.
+
+Later mutation hardening checks the selected human's actual stack and rejects
+an unsafe refreshed balance. The latter was observed failing with its capacity
+check removed, then passing after restoration. No synthetic test-first commits
+are claimed. Tests use real game components with a fake account store and stub
+hasher; actual SQLite atomicity, migration, daily recovery and Swing wiring are
+not verified here. Uncommitted branch: `feature/week8-table-rules`; user commit/
+push, peer review, remote CI and merge remain pending.
+
+## Week 8 account table APIs — November 18, 2026
+
+Local `build pitest` exits 0 using JDK 17 for Gradle and JDK 11 for compilation/
+tests. **1,568 tests pass**, zero failures/errors/skips; Checkstyle and SpotBugs
+have zero unexcluded main/test findings. Changes remain uncommitted on
+`feature/week8-table-rules`; remote CI and peer review are pending.
+
+| Scope | Verified result |
+| --- | --- |
+| Shared JaCoCo: 71 parent components / 74 executable classes | 3,249/3,250 lines; 1,639/1,640 branches; 1,723/1,724 complexity counters; 15,957/15,962 instructions; 898/898 methods. |
+| Five new parents, including AccountChange: six executable classes | 193/193 lines, 76/76 branches, 94/94 complexity counters and 56/56 methods; PIT **99/99 killed**. |
+| Shared PIT | **1,993/2,012 killed (99.06%)**; 19 survivors; zero uncovered/timeout/error mutants. 98 selected test classes; 15,118 executions across mutants. |
+
+Fourteen survivors are the existing documented baseline. Five new survivors
+remove `SetupSession.requireNoPendingSettlement` calls in `submitAction`,
+`nextHand`, `addTableChips`, `refreshTableBalances` and `endTable`. A pending
+payment already has a terminal unpaid hand: action/continuation/paid-hand guards
+still reject these operations before mutation if the extra check is removed.
+Diagnostic text may differ. The explicit lifecycle checks remain; these mutants
+remain counted as survivors. No rule, suppression or exclusion was weakened.
+
+Initial departure/API regressions were observed failing before their fixes.
+Later mutation checks added missing boundaries for zero-balance account selection,
+failed-start privacy, retained top-ups, safe replacement funding, token identity
+and turn revisions. They are additional hardening, not claimed as initial TDD
+cycles or fabricated test-first commits. Read-only review also checked the
+prepared-save lifecycle and unpaid departure reservations.
+
+The integration tests use real betting/dealing/settlement with a fake account
+store and stub password hasher. They verify the application contract, not SQLite
+transactions, migration, recovery limits or the new desktop flow. Those remain
+Estella's adapter/integration work. Existing legacy entry points retain their
+match rules. The lone JaCoCo miss is the existing GameState enum-default path;
+coverage counters do not establish independent basis-path or whole-backend proof.
+Only documentation changed after the final verification run.
 ## W8-E02 SQLite account migration — November 18, 2026
 
 Based on W8-E01 commit `6d8aa08`. The new migration cases first failed at

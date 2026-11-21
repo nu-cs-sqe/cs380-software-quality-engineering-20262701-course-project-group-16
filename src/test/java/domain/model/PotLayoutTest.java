@@ -53,9 +53,15 @@ class PotLayoutTest {
     }
 
     @Test
-    void pl04RejectsAnOrphanedContestedLayer() {
-        assertThrows(IllegalStateException.class,
-                () -> PotLayout.from(table(new long[] {10, 10, 0, 0, 0, 0}, Set.of(2, 3))));
+    void pl04DeadOpeningPotBelongsToTheRemainingLiveHands() {
+        GameState hand = table(new long[] {10, 10, 0, 0, 0, 0}, Set.of(2, 3));
+        PotLayout layout = PotLayout.from(hand);
+        assertEquals(1, layout.getLayers().size());
+        assertEquals(20, layout.getLayers().get(0).getAmount());
+        assertEquals(Set.of("p2", "p3"), layout.getLayers().get(0).getEligiblePlayers());
+        Settlement paid = new PotSettlement((first, second) -> 0).settle(hand);
+        assertEquals(10, paid.getPayouts().get("p2"));
+        assertEquals(10, paid.getPayouts().get("p3"));
     }
 
     @Test
@@ -67,6 +73,27 @@ class PotLayoutTest {
         assertEquals(20, paid.getPayouts().get("p2"));
         assertEquals(10, paid.getRefunds().get("p2"));
         assertEquals(6000, paid.getState().getTotalChips());
+    }
+
+    @Test
+    void deadSidePotMovesToTheNearestLowerEligibleLayer() {
+        GameState state = table(new long[] {10, 20, 40, 50, 0, 0}, Set.of(0, 1));
+        PotLayout layout = PotLayout.from(state);
+        assertEquals(List.of(40L, 70L), layout.getLayers().stream()
+                .map(PotLayout.Layer::getAmount).collect(java.util.stream.Collectors.toList()));
+        assertEquals(Set.of("p1"), layout.getLayers().get(1).getEligiblePlayers());
+        assertEquals(10, layout.getRefunds().get("p3"));
+        Settlement paid = new PotSettlement((first, second) -> 0).settle(state);
+        assertEquals(20, paid.getPayouts().get("p0"));
+        assertEquals(90, paid.getPayouts().get("p1"));
+        assertEquals(10, paid.getRefunds().get("p3"));
+        assertEquals(6000, paid.getState().getTotalChips());
+    }
+
+    @Test
+    void deadPotWithoutAnyRemainingHandRejectsInvalidInput() {
+        GameState hand = table(new long[] {10, 10, 0, 0, 0, 0}, Set.of());
+        assertThrows(IllegalStateException.class, () -> PotLayout.from(hand));
     }
 
     private static GameState table(long[] contributions, Set<Integer> live) {

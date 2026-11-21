@@ -8,6 +8,7 @@ public final class GameConfig {
     private final long startingChips;
     private final long smallBlind;
     private final long bigBlind;
+    private final long initialTotalChips;
 
     /** Creates the agreed 1,000-chip, 10/20-blind configuration. */
     public GameConfig() {
@@ -23,6 +24,22 @@ public final class GameConfig {
         this.startingChips = startingChips;
         this.smallBlind = smallBlind;
         this.bigBlind = bigBlind;
+        this.initialTotalChips = startingChips * SEAT_COUNT;
+    }
+
+    private GameConfig(GameConfig stakes, long tableTotal) {
+        if (tableTotal <= 0) {
+            throw new IllegalArgumentException("The table requires positive funded chips.");
+        }
+        this.startingChips = stakes.startingChips;
+        this.smallBlind = stakes.smallBlind;
+        this.bigBlind = stakes.bigBlind;
+        this.initialTotalChips = tableTotal;
+    }
+
+    /** Retains stakes while setting the funded total for the next account-table hand. */
+    public GameConfig withTableTotal(long chips) {
+        return new GameConfig(this, chips);
     }
 
     private static void validateSettings(long startingChips, long smallBlind, long bigBlind) {
@@ -39,5 +56,5 @@ public final class GameConfig {
     public int getSeatCount() { return SEAT_COUNT; }
     public long getAnte() { return 0; }
     public boolean isBlindIncreaseEnabled() { return false; }
-    public long getInitialTotalChips() { return startingChips * SEAT_COUNT; }
+    public long getInitialTotalChips() { return initialTotalChips; }
 }

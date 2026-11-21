@@ -50,3 +50,7 @@ a required stored belief; no absent-value sentinel travels to another component.
 
 Cases map to TransactionalModelTest. Session prepares all bot successors before
 publishing accepted state/statistics, so a rejected game action cannot teach.
+
+Week 8 `reseat`: retain evidence for surviving opponent IDs, remove retired
+IDs and admit fresh opponents without losing the event sequence. Verified
+through the BotTable/session replacement cases linked in [BotTable](BotTable.md).

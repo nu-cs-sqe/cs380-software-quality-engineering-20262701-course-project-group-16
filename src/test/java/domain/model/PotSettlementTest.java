@@ -109,10 +109,13 @@ class PotSettlementTest {
     }
 
     @Test
-    void invalidSidePotWithoutAnEligibleContributorRejectsWithoutLosingChips() {
+    void orphanedSidePotIsAwardedThroughTheLowerEligiblePot() {
         GameState before = table(new long[]{10, 10, 20, 20, 0, 0}, Set.of(0, 1));
-        assertThrows(IllegalStateException.class, () -> new PotSettlement().settle(before));
+        Settlement paid = new PotSettlement((first, second) -> 0).settle(before);
+        assertEquals(30, paid.getPayouts().get("p0"));
+        assertEquals(30, paid.getPayouts().get("p1"));
         assertEquals(60, before.getPot());
+        assertEquals(0, paid.getState().getPot());
     }
 
     @Test

@@ -39,6 +39,40 @@ final class NextHand {
         return dealing.deal(table(previous, players, positions));
     }
 
+    /** Deals a funded account roster, with seat identities retained or replaced explicitly. */
+    GameState reseat(GameState previous, List<Player> roster, boolean rotate) {
+        List<PlayerState> players = fundedSeats(roster);
+        SeatOrder seats = new SeatOrder(players);
+        int dealer = rotate
+                ? seats.nextDealerAfter(previous.getDealerSeat()).orElseThrow()
+                : previous.getDealerSeat();
+        GameState funded = fundedTable(previous, players);
+        HandPositions positions = seats.positionsFor(dealer);
+        postBlind(players, positions.getSmallBlindSeat(), funded.getConfig().getSmallBlind());
+        postBlind(players, positions.getBigBlindSeat(), funded.getConfig().getBigBlind());
+        return dealing.deal(table(funded, players, positions));
+    }
+
+    private static List<PlayerState> fundedSeats(List<Player> roster) {
+        List<PlayerState> players = new ArrayList<>();
+        for (Player player : roster) {
+            players.add(new PlayerState(player, player.getChipStack() == 0
+                    ? PlayerStatus.ELIMINATED : PlayerStatus.ACTIVE, List.of(), 0, 0));
+        }
+        return players;
+    }
+
+    private static GameState fundedTable(GameState previous, List<PlayerState> players) {
+        long total = 0;
+        for (PlayerState player : players) {
+            total = Math.addExact(total, player.getPlayer().getChipStack());
+        }
+        return GameState.create(previous.getConfig().withTableTotal(total), previous.getHandId(),
+                GamePhase.COMPLETION, players, previous.getPositions(), Optional.empty(),
+                List.of(), List.of(), new BettingProgress(0, previous.getConfig().getBigBlind(),
+                        Set.of(), Set.of()));
+    }
+
     private static List<PlayerState> emptyHands(GameState previous, Set<String> departed) {
         List<PlayerState> players = new ArrayList<>();
         for (PlayerState player : previous.getPlayerStates()) {

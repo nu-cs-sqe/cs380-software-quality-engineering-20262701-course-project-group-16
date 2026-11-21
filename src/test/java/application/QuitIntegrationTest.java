@@ -55,6 +55,40 @@ class QuitIntegrationTest {
     }
 
     @Test
+    void twoDepartingHighContributorsCannotBlockPaymentOrTheNextHand() {
+        SetupSession session = start(6, new GameConfig());
+        String raiser = id(session, 3);
+        String caller = id(session, 4);
+        session.submitAction(new ActionRequest(raiser, ActionType.RAISE, 40));
+        session.submitAction(new ActionRequest(caller, ActionType.CALL));
+        session.quit(raiser);
+        session.quit(caller);
+        while (session.getResult().isEmpty()) act(session, ActionType.FOLD);
+        assertEquals(110, view(session).getPot());
+        assertEquals(List.of(id(session, 2)),
+                session.getResult().orElseThrow().getWinnerIds());
+        assertEquals(110, session.settleHand().getPayouts().get(id(session, 2)));
+        assertEquals(0, view(session).getPot());
+        assertEquals(1090, view(session).getPlayers().get(2).getChipStack());
+        assertEquals(1, session.getStatistics().get(raiser).getHandsPlayed());
+        session.nextHand();
+        assertEquals(44, view(session).getRemainingCardCount());
+    }
+
+    @Test
+    void aPlayerWhoHasNotInvestedCanWinAfterAllContributorsLeave() {
+        SetupSession session = start(6, new GameConfig());
+        session.submitAction(new ActionRequest(id(session, 3), ActionType.RAISE, 40));
+        session.submitAction(new ActionRequest(id(session, 4), ActionType.CALL));
+        for (int seat : new int[] {3, 4, 0, 1, 2}) session.quit(id(session, seat));
+        assertEquals(List.of(id(session, 5)),
+                session.getResult().orElseThrow().getWinnerIds());
+        assertEquals(110, session.settleHand().getPayouts().get(id(session, 5)));
+        assertEquals(1110, view(session).getPlayers().get(5).getChipStack());
+        assertEquals(0, view(session).getPot());
+    }
+
+    @Test
     void anAllInDepartureKeepsTheCurrentHandAndItsPayout() {
         SetupSession session = start(6, new GameConfig(20, 10, 20));
         String allIn = id(session, 2);
