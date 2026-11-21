@@ -6,6 +6,7 @@ import application.BotScheduler;
 import application.BotTurn;
 import application.ProfileService;
 import application.SetupSession;
+import application.TableAccountStore;
 import domain.model.ActionRequest;
 import domain.model.ActionType;
 import java.util.function.Consumer;
@@ -21,6 +22,12 @@ final class UiBotFixtures {
 
     static GamePanel passive(SetupSession session, ProfileService profiles) {
         return new GamePanel(session, profiles, changed -> new BotController(session,
+                new PassiveScheduler(), changed));
+    }
+
+    static GamePanel passive(SetupSession session, ProfileService profiles,
+            TableAccountStore store) {
+        return new GamePanel(session, profiles, store, changed -> new BotController(session,
                 new PassiveScheduler(), changed));
     }
 

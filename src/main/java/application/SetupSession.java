@@ -522,12 +522,29 @@ public final class SetupSession implements BotSession {
 
     private void startAccountTable(ProfileService profiles, List<AuthenticatedProfile> humans,
             TableAccountStore store, Optional<Map<String, Long>> buyIns) {
+        startAccountTable(profiles, humans, store, buyIns, Optional.empty());
+    }
+
+    /** Opens a default buy-in table using balances read by the desktop's profile worker. */
+    public void startTableWithLoadedBalances(ProfileService profiles,
+            List<AuthenticatedProfile> humans, TableAccountStore store,
+            Map<String, Long> balances) {
+        startAccountTable(profiles, humans, store, Optional.empty(),
+                Optional.of(Map.copyOf(balances)));
+    }
+
+    private void startAccountTable(ProfileService profiles, List<AuthenticatedProfile> humans,
+            TableAccountStore store, Optional<Map<String, Long>> buyIns,
+            Optional<Map<String, Long>> loadedBalances) {
         requireNoPendingSettlement();
         hideCards();
         ProfileMatch.requireAccounts(profiles, humans);
         GameState initial = initializer.start(humans.size());
         ProfileMatch binding = new ProfileMatch(profiles, humans, initial);
-        AccountTable table = AccountTable.open(store, binding.profileIds(), initial);
+        Map<String, String> accounts = binding.profileIds();
+        AccountTable table = loadedBalances.map(balances ->
+                AccountTable.open(store, accounts, initial, balances))
+                .orElseGet(() -> AccountTable.open(store, accounts, initial));
         Map<String, Long> choices = buyIns.orElseGet(table::defaultBuyIns);
         GameState started = advanceClosedRounds(
                 continuation.reseat(initial, table.openingRoster(initial, choices), false));

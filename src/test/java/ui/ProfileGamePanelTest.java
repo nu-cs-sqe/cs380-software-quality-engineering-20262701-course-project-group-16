@@ -113,6 +113,130 @@ class ProfileGamePanelTest {
 
     @ParameterizedTest
     @ValueSource(ints = {0, 1})
+    void w8E03OnlySignedInProfileSeesLocalizedChipHistory(int language)
+            throws IOException, GeneralSecurityException, InterruptedException,
+            InvocationTargetException {
+        SqliteProfileRepository repository = new SqliteProfileRepository(directory);
+        ProfileService profiles = new ProfileService(repository);
+        PlayerProfile player = profiles.create("Player", PASSWORD.toCharArray());
+        PlayStats stats = new PlayStats();
+        stats.beginHand("paid-hand", true);
+        stats.completeHand("paid-hand", false, false, 0, 0);
+        repository.save(HandCompletionFixture.hand("paid-hand", "match",
+                java.util.Map.of(player.getProfileId(),
+                        HandCompletionFixture.change(player.getProfileId(), 2_000, 40,
+                                stats.completedSnapshot()))));
+        GamePanel panel = panel(profiles, session(), language);
+        event(() -> assertEquals(0, find(panel, "chipHistory", JTable.class).getRowCount()));
+        login(panel, PASSWORD);
+        event(() -> {
+            JTable history = find(panel, "chipHistory", JTable.class);
+            assertEquals(1, history.getRowCount());
+            String event = language == 0 ? "Hand settlement" : "手牌结算";
+            assertEquals(event, history.getValueAt(0, 1));
+            assertEquals("+40", history.getValueAt(0, 2));
+            assertEquals("2040", history.getValueAt(0, 3));
+            assertEquals("+40", history.getValueAt(0, 4));
+            assertFalse(history.isCellEditable(0, 2));
+            String balance = language == 0 ? "Saved balance:" : "账户余额：";
+            assertTrue(find(panel, "accountChipBalance", JLabel.class).getText()
+                    .contains(balance));
+            find(panel, "removeProfile", JButton.class).doClick();
+            assertEquals(0, history.getRowCount());
+        });
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1})
+    void fundedTableRetriesDurableSaveAndShowsOneHistoryRow(int language)
+            throws IOException, GeneralSecurityException, InterruptedException,
+            InvocationTargetException {
+        SqliteProfileRepository repository = new SqliteProfileRepository(directory);
+        ProfileService profiles = new ProfileService(repository);
+        SetupSession session = session();
+        TableAccountStore store = new AmbiguousTableStore(repository);
+        GamePanel panel = edt(() -> UiBotFixtures.passive(session, profiles, store));
+        idle(panel);
+        event(() -> find(panel, "language", JComboBox.class).setSelectedIndex(language));
+        registerAndLogin(panel, "Player");
+        event(() -> find(panel, "start", JButton.class).doClick(0));
+        idle(panel);
+        String id = edt(() -> session.getProfileIds().values().iterator().next());
+        event(() -> {
+            assertEquals(2_000, session.getTableFunds().get(id).getBalance());
+            assertEquals(1_000, session.getTableFunds().get(id).getTableChips());
+            assertFalse(find(panel, "topUp", JButton.class).isEnabled());
+            find(panel, "fold", JButton.class).doClick(0);
+            find(panel, "settle", JButton.class).doClick(0);
+        });
+        idle(panel);
+        event(() -> {
+            assertTrue(session.getSettlement().isEmpty());
+            assertTrue(find(panel, "settle", JButton.class).isEnabled());
+            assertFalse(find(panel, "nextHand", JButton.class).isEnabled());
+            find(panel, "settle", JButton.class).doClick(0);
+        });
+        idle(panel);
+        assertFundedTablePaid(panel, session, repository, id);
+    }
+
+    private static void assertFundedTablePaid(GamePanel panel, SetupSession session,
+            SqliteProfileRepository repository, String id)
+            throws IOException, InterruptedException, InvocationTargetException {
+        long savedBalance = repository.getBalances(java.util.Set.of(id)).get(id);
+        assertEquals(1, repository.loadChipHistory(id).size());
+        event(() -> {
+            assertTrue(session.getSettlement().isPresent());
+            assertEquals(1, find(panel, "chipHistory", JTable.class).getRowCount());
+            assertEquals(savedBalance, session.getTableFunds().get(id).getBalance());
+            find(panel, "topUpAmount", JTextField.class).setText("20");
+            find(panel, "topUp", JButton.class).doClick(0);
+            assertEquals(1_020, session.getTableFunds().get(id).getTableChips());
+        });
+        idle(panel);
+        event(() -> {
+            assertTrue(find(panel, "nextHand", JButton.class).isEnabled());
+            find(panel, "quit", JButton.class).doClick(0);
+            assertFalse(find(panel, "nextHand", JButton.class).isEnabled());
+        });
+        idle(panel);
+        event(() -> {
+            find(panel, "endTable", JButton.class).doClick(0);
+            assertFalse(find(panel, "nextHand", JButton.class).isEnabled());
+            assertEquals(0, session.getTableFunds().get(id).getTableChips());
+        });
+        idle(panel);
+        assertEquals(savedBalance, repository.getBalances(java.util.Set.of(id)).get(id));
+    }
+
+    private static final class AmbiguousTableStore implements TableAccountStore {
+        private final SqliteProfileRepository repository;
+        private boolean firstSave = true;
+
+        private AmbiguousTableStore(SqliteProfileRepository repository) {
+            this.repository = repository;
+        }
+
+        @Override
+        public java.util.Map<String, Long> getBalances(java.util.Set<String> ids)
+                throws IOException {
+            assertFalse(SwingUtilities.isEventDispatchThread());
+            return repository.getBalances(ids);
+        }
+
+        @Override
+        public void save(HandCompletion hand) throws IOException {
+            assertFalse(SwingUtilities.isEventDispatchThread());
+            repository.save(hand);
+            if (firstSave) {
+                firstSave = false;
+                throw new IOException("First commit acknowledgement lost");
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1})
     void uiAc04WrongPasswordIsLocalizedAndDuplicateLoginIsDisabled(int language)
             throws IOException, GeneralSecurityException, InterruptedException, InvocationTargetException {
         ProfileService profiles = service();

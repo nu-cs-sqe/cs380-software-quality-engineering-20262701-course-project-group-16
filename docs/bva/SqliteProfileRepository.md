@@ -18,3 +18,27 @@ profiles are accessed. The application serializes the read/modify/write flow.
 `ProfiledMatchIntegrationTest` verifies that completed settlement and restart
 preserve a zero balance while advancing lifetime statistics. UI-AC03 uses SQLite
 in both locales to verify registration, sign-in, settlement and reopen.
+
+## W8-E03 storage, handoff and profile history
+
+| ID | Methods / types | State or boundary | Expected outcome |
+| --- | --- | --- | --- |
+| SQL-H01 | TableAccountStore.save; SqliteProfileRepository.loadChipHistory; SqliteChipLedger | Two accounts, positive/negative/zero changes, repeated hand and two sessions | Update each account and statistics once; retain timestamp, type, IDs, resulting balance and signed session net. Reopen shows the same private history in reverse settlement order. |
+| SQL-H02 | save | Failure on the second history row; retry twice | No account, marker or event commits on failure. Retry commits both accounts exactly once. |
+| SQL-H03 | HandCompletion; save | Unknown account, debit beyond balance, overflow, or already recorded statistics without a ledger marker | Reject before payment; no changes. Exact debit to zero succeeds. |
+| SQL-H04 | load, save | Existing version 1 database with saved accounts | Upgrade preserves balances and starts with empty history. The next ledger settlement persists normally. |
+| SQL-H05 | ProfileService.getOverview; ProfileOverview | Two signed-in accounts and a handle from another service | Return a read-only view of only the caller's account and reject the foreign handle. |
+| SQL-H06 | loadChipHistory | Malformed saved timestamp | Storage error; the saved balance and statistics are not reset. |
+| SQL-H07 | HandReceipt; save; getBalances | Blank IDs, empty changes, mismatched profile or statistics ID, missing balance | Reject the invalid request; preserve the database. Empty balance query returns an empty map. |
+| SQL-H08 | save | A database trigger tries to delete an account as its history is saved | Foreign key enforcement rejects an orphaned event; both accounts and their histories remain unchanged. |
+| SQL-H09 | upgradeSchema; save | Version 2 contains existing history without a receipt | Preserve history, reject unverifiable replay, and permit a later hand. |
+| SQL-H10 | startTable; save; publishSettlement | Real two-human hand, reopen, identical retry, changed retry, stale opening balance | Publish only after save, persist each human once and reject conflicting or stale data. |
+| SQL-H11 | startTableWithLoadedBalances | 400 and 399 chips; a store that rejects owner-thread reads | Accept 400, reject 399 without replacing the prior hand, and make no balance read on the session owner. |
+| SQL-H12 | HandReceipt; save | Change one session, account, bot, balance, stack or statistics field on retry; reorder identical accounts | Reject changes; reordered identical payload succeeds without another credit. |
+| SQL-H13 | save | Six or seven accounts, invalid starting/ending stacks, or an insert that records no hand marker | Enforce the account and stack bounds; never update balances without a hand marker. |
+| UI-H01 | Profiles chip history | Before sign-in, after sign-in, after roster removal; English and Chinese | No history before sign-in or after removal. Signed-in account sees its balance and read-only localized changes. |
+| UI-H02 | Start, Settle, Add table chips, Leave, Close table | Real funded Swing session with a lost commit acknowledgement, both locales | Store access stays off Swing. Retry pays once; top-up and close change reservations without a new durable credit. The last human's departure disables Next hand. |
+
+SqliteHandSettlementTest uses the real database with an injected clock.
+SqliteTableIntegrationTest composes the game's settlement with SQLite. The Swing
+tests also exercise a storage adapter that simulates a lost commit reply.

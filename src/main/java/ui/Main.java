@@ -18,8 +18,9 @@ public final class Main {
         SwingUtilities.invokeLater(() -> {
             Path directory = Path.of(System.getProperty("cs380.profileDirectory",
                     Path.of(System.getProperty("user.home"), ".cs380-holdem").toString()));
-            ProfileService profiles = new ProfileService(new SqliteProfileRepository(directory));
-            GamePanel panel = new GamePanel(new SetupSession(), profiles);
+            SqliteProfileRepository repository = new SqliteProfileRepository(directory);
+            ProfileService profiles = new ProfileService(repository);
+            GamePanel panel = new GamePanel(new SetupSession(), profiles, repository);
             JFrame frame = new JFrame((String) panel.getClientProperty("windowTitle"));
             panel.addPropertyChangeListener("windowTitle",
                     event -> frame.setTitle((String) event.getNewValue()));

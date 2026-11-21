@@ -51,6 +51,11 @@ final class AccountTable {
         } catch (IOException failure) {
             throw new UncheckedIOException(failure);
         }
+        return open(store, accounts, initial, balances);
+    }
+
+    static AccountTable open(TableAccountStore store, Map<String, String> accounts,
+            GameState initial, Map<String, Long> balances) {
         if (!balances.keySet().equals(Set.copyOf(accounts.values()))
                 || balances.values().stream().anyMatch(chips -> chips < BuyInLimits.MINIMUM)) {
             throw new IllegalArgumentException("Selected accounts require at least 400 chips.");

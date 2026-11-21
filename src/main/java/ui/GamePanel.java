@@ -6,6 +6,9 @@ import application.BotFailure;
 import application.BotWorker;
 import application.SetupSession;
 import application.SetupView;
+import application.TableAccountStore;
+import application.TableFunds;
+import application.BuyInLimits;
 import application.ProfileService;
 import java.util.Map;
 import java.util.LinkedHashMap;
@@ -57,7 +60,9 @@ public final class GamePanel extends JPanel {
     private final Localizations messages = Localizations.load();
     private final JComboBox<String> language = named(new JComboBox<>(), "language");
     private String selectedLanguage = messages.defaultLanguage();
-    private enum ErrorMessage { NONE, INVALID_COUNT, INVALID_ACTION, STORAGE, PROFILE_SELECTION }
+    private enum ErrorMessage {
+        NONE, INVALID_COUNT, INVALID_ACTION, STORAGE, PROFILE_SELECTION, BUY_IN
+    }
 
     private ErrorMessage errorMessage = ErrorMessage.NONE;
     private final JTextField humanCount = named(new JTextField("1"), "humanCount");
@@ -76,6 +81,10 @@ public final class GamePanel extends JPanel {
     private final JLabel botStatus = named(new JLabel(" "), "botStatus");
     private final JButton retryBot = named(new JButton(), "retryBot");
     private final JButton nextHand = named(new JButton(), "nextHand");
+    private final JButton endTable = named(new JButton(), "endTable");
+    private final JButton topUp = named(new JButton(), "topUp");
+    private final JTextField topUpAmount = named(new JTextField(7), "topUpAmount");
+    private final JLabel funding = named(new JLabel(" "), "tableFunding");
     private final JTabbedPane sections = named(new JTabbedPane(), "sections");
     private final StatisticsPanel statistics = new StatisticsPanel();
     private final JLabel error = named(new JLabel(" "), "error");
@@ -92,34 +101,45 @@ public final class GamePanel extends JPanel {
     private boolean rendering;
     private boolean profileBusy;
     private boolean settlementBusy;
+    private boolean tableEnded;
     private final List<ProfilePanel> profiles;
     private Map<String, String> matchNames = Map.of();
 
     public GamePanel(SetupSession session) {
-        this(session, List.of(), changed -> liveBots(session, changed));
+        this(session, List.of(), Optional.empty(), changed -> liveBots(session, changed));
     }
 
     /** Connects the desktop to local authenticated profiles. */
     public GamePanel(SetupSession session, ProfileService profiles) {
-        this(session, List.of(profiles), changed -> liveBots(session, changed));
+        this(session, List.of(profiles), Optional.empty(), changed -> liveBots(session, changed));
+    }
+
+    public GamePanel(SetupSession session, ProfileService profiles, TableAccountStore store) {
+        this(session, List.of(profiles), Optional.of(store), changed -> liveBots(session, changed));
     }
 
     GamePanel(SetupSession session, Function<Runnable, BotController> factory) {
-        this(session, List.of(), factory);
+        this(session, List.of(), Optional.empty(), factory);
     }
 
     GamePanel(SetupSession session, ProfileService profiles,
             Function<Runnable, BotController> factory) {
-        this(session, List.of(profiles), factory);
+        this(session, List.of(profiles), Optional.empty(), factory);
+    }
+
+    GamePanel(SetupSession session, ProfileService profiles, TableAccountStore store,
+            Function<Runnable, BotController> factory) {
+        this(session, List.of(profiles), Optional.of(store), factory);
     }
 
     private GamePanel(SetupSession session, List<ProfileService> services,
+            Optional<TableAccountStore> store,
             Function<Runnable, BotController> factory) {
         this.session = session;
         bots = factory.apply(this::refresh);
         profiles = services.stream().map(service -> new ProfilePanel(service, messages,
                 this::profileBusy, this::profilesChanged)).collect(Collectors.toUnmodifiableList());
-        bindSetupControls();
+        bindSetupControls(store);
         bindPrivateControls();
         bindActionControls();
         bindProgressionControls();
@@ -134,14 +154,14 @@ public final class GamePanel extends JPanel {
                 changed);
     }
 
-    private void bindSetupControls() {
+    private void bindSetupControls(Optional<TableAccountStore> store) {
         for (String tag : messages.languages()) {
             language.addItem(messages.languageName(tag));
         }
         language.setSelectedIndex(messages.languages().indexOf(selectedLanguage));
         language.addActionListener(event -> changeLanguage());
-        start.addActionListener(event -> startGame());
-        humanCount.addActionListener(event -> startGame());
+        start.addActionListener(event -> startGame(store));
+        humanCount.addActionListener(event -> startGame(store));
     }
 
     private void changeLanguage() {
@@ -184,7 +204,18 @@ public final class GamePanel extends JPanel {
     private void bindProgressionControls() {
         quit.addActionListener(event -> advanceHand(this::leaveMatch));
         settle.addActionListener(event -> requestSettlement());
-        nextHand.addActionListener(event -> advanceHand(session::nextHand));
+        nextHand.addActionListener(event -> {
+            if (nextHand.isEnabled()) {
+                advanceHand(session::nextHand);
+            }
+        });
+        endTable.addActionListener(event -> advanceHand(this::closeFundedTable));
+        topUp.addActionListener(event -> advanceHand(this::addTableChips));
+        topUpAmount.addActionListener(event -> {
+            if (topUp.isEnabled()) {
+                advanceHand(this::addTableChips);
+            }
+        });
         retryBot.addActionListener(event -> {
             if (tableBusy()) {
                 return;
@@ -398,11 +429,40 @@ public final class GamePanel extends JPanel {
         nextHand.setText(text("nextHand"));
         controls.add(settle);
         controls.add(nextHand);
+        addFundingControls(controls);
         botStatus.setForeground(Color.WHITE);
         retryBot.setText(text("bot.retry"));
         controls.add(botStatus);
         controls.add(retryBot);
         return controls;
+    }
+
+    private void addFundingControls(JPanel controls) {
+        topUp.setText(text("table.topUp"));
+        endTable.setText(text("table.close"));
+        topUpAmount.getAccessibleContext().setAccessibleName(text("table.topUp"));
+        funding.setForeground(Color.WHITE);
+        controls.add(topUpAmount);
+        controls.add(topUp);
+        controls.add(endTable);
+        controls.add(funding);
+    }
+
+    private void closeFundedTable() {
+        session.endTable();
+        tableEnded = true;
+    }
+
+    private void addTableChips() {
+        String id = selectedAccountId().orElseThrow(IllegalStateException::new);
+        session.addTableChips(id, Long.parseLong(topUpAmount.getText().trim()));
+        topUpAmount.setText("");
+    }
+
+    private Optional<String> selectedAccountId() {
+        Map<String, String> ids = session.getProfileIds();
+        return session.getView().map(view -> view.getPlayers().get(view.getViewerSeat()).getId())
+                .filter(ids::containsKey).map(ids::get);
     }
 
     private void advanceHand(Runnable operation) {
@@ -480,21 +540,43 @@ public final class GamePanel extends JPanel {
         }
     }
 
-    private void startGame() {
+    private void startGame(Optional<TableAccountStore> accountStore) {
         if (tableBusy()) {
             return;
         }
-        bots.cancel();
         session.hideCards();
         profiles.forEach(ProfilePanel::clearPasswords);
+        if (accountStore.isPresent()) {
+            ProfilePanel profile = profiles.get(0);
+            TableAccountStore store = accountStore.orElseThrow();
+            errorMessage = ErrorMessage.NONE;
+            profile.loadTableBalances(store, balances ->
+                    startFundedTable(profile, store, balances));
+            return;
+        }
+        startAndRefresh(this::startSelectedMatch, profiles.isEmpty()
+                ? ErrorMessage.INVALID_COUNT : ErrorMessage.PROFILE_SELECTION);
+    }
+
+    private void startFundedTable(ProfilePanel profile, TableAccountStore store,
+            Map<String, Long> balances) {
+        startAndRefresh(() -> {
+            profile.startTable(session, store, balances);
+            rememberProfileNames(profile);
+        }, ErrorMessage.BUY_IN);
+    }
+
+    private void startAndRefresh(Runnable startOperation, ErrorMessage failure) {
+        bots.cancel();
         try {
-            startSelectedMatch();
+            startOperation.run();
+            tableEnded = false;
             wagerTarget.setText("");
+            topUpAmount.setText("");
             errorMessage = ErrorMessage.NONE;
             sections.setSelectedIndex(profiles.isEmpty() ? 0 : 1);
         } catch (IllegalArgumentException | IllegalStateException invalid) {
-            errorMessage = profiles.isEmpty() ? ErrorMessage.INVALID_COUNT
-                    : ErrorMessage.PROFILE_SELECTION;
+            errorMessage = failure;
         }
         bots.advance();
         refresh();
@@ -507,11 +589,15 @@ public final class GamePanel extends JPanel {
         } else {
             ProfilePanel profile = profiles.get(0);
             profile.startMatch(session);
-            Map<String, String> names = profile.profileNames();
-            Map<String, String> players = new LinkedHashMap<>();
-            session.getProfileIds().forEach((player, id) -> players.put(player, names.get(id)));
-            matchNames = Map.copyOf(players);
+            rememberProfileNames(profile);
         }
+    }
+
+    private void rememberProfileNames(ProfilePanel profile) {
+        Map<String, String> names = profile.profileNames();
+        Map<String, String> players = new LinkedHashMap<>();
+        session.getProfileIds().forEach((player, id) -> players.put(player, names.get(id)));
+        matchNames = Map.copyOf(players);
     }
 
     private void submitAction(ActionType type) {
@@ -561,7 +647,8 @@ public final class GamePanel extends JPanel {
             renderActions(view);
             renderBotStatus();
             settle.setEnabled(session.getResult().isPresent() && session.getSettlement().isEmpty());
-            nextHand.setEnabled(session.canStartNextHand());
+            nextHand.setEnabled(canDealNextHand());
+            renderFundingControls();
             statistics.render(view.map(SetupView::getPlayers).orElseGet(List::of),
                     session.getStatistics(), matchNames, messages, selectedLanguage);
             start.setEnabled(!tableBusy() && (profiles.isEmpty()
@@ -615,6 +702,43 @@ public final class GamePanel extends JPanel {
         quit.setEnabled(hasViewer);
     }
 
+    private void renderFundingControls() {
+        Map<String, TableFunds> funds = session.getTableFunds();
+        boolean hasTable = !funds.isEmpty();
+        topUp.setVisible(hasTable);
+        topUpAmount.setVisible(hasTable);
+        endTable.setVisible(hasTable);
+        funding.setVisible(hasTable);
+        Optional<TableFunds> selected = selectedAccountId().filter(funds::containsKey)
+                .map(funds::get);
+        long maximum = selected.map(TableFunds::getMaximumTopUp).orElse(0L);
+        boolean canTopUp = !tableBusy() && maximum > 0;
+        topUp.setEnabled(canTopUp);
+        topUpAmount.setEnabled(canTopUp);
+        endTable.setEnabled(hasTable && !tableBusy() && !tableEnded
+                && session.getSettlement().isPresent());
+        funding.setText(selected.map(this::fundingText).orElse(" "));
+    }
+
+    private boolean canDealNextHand() {
+        if (!session.canStartNextHand()) {
+            return false;
+        }
+        Map<String, TableFunds> funds = session.getTableFunds();
+        return funds.isEmpty() || funds.values().stream().anyMatch(
+                account -> account.getTableChips() > 0);
+    }
+
+    private String fundingText(TableFunds funds) {
+        if (!tableEnded && funds.getMaximumTopUp() > 0) {
+            return text("table.topUp.range", funds.getMinimumTopUp(), funds.getMaximumTopUp());
+        }
+        if (!tableEnded && session.getSettlement().isPresent() && funds.needsRecovery()) {
+            return text("table.recoveryNeeded", BuyInLimits.MINIMUM);
+        }
+        return " ";
+    }
+
     private String errorText() {
         switch (errorMessage) {
             case INVALID_COUNT:
@@ -625,6 +749,8 @@ public final class GamePanel extends JPanel {
                 return wrapped(text("profile.storageError"));
             case PROFILE_SELECTION:
                 return wrapped(text("profile.selectHumans"));
+            case BUY_IN:
+                return wrapped(text("table.buyIn.error", BuyInLimits.MINIMUM));
             default:
                 return bots.getFailure().map(reason -> text(reason == BotFailure.TIMED_OUT
                         ? "bot.timeout" : "bot.failed")).orElse(" ");
@@ -729,6 +855,9 @@ public final class GamePanel extends JPanel {
         }
         if (session.getSettlement().isEmpty()) {
             return text("result.awaitingSettlement");
+        }
+        if (!session.getTableFunds().isEmpty() || tableEnded) {
+            return text(tableEnded ? "table.closed" : "result.paid");
         }
         return text(session.canStartNextHand() ? "result.paid" : "match.ended");
     }
