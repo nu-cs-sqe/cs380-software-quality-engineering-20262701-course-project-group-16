@@ -353,7 +353,7 @@ public final class SetupSession implements BotSession {
         prepared.save();
         return publishSettlement(prepared);
     }
-  
+
     /** Saves on the worker and publishes on the session's owner thread. */
     public void settleHand(Executor worker, Executor owner, Consumer<Boolean> finished) {
         PreparedSettlement prepared = prepareSettlement();
@@ -365,8 +365,8 @@ public final class SetupSession implements BotSession {
         }
         CompletableFuture<Void> save = CompletableFuture.runAsync(prepared::save, worker);
         savingSettlement = true;
-        save.whenCompleteAsync((ignored, failure) ->
-                finishSettlement(prepared, Optional.ofNullable(failure).isEmpty(), finished), owner);
+        save.whenCompleteAsync((ignored, failure) -> finishSettlement(
+                prepared, Optional.ofNullable(failure).isEmpty(), finished), owner);
     }
 
     private void finishSettlement(PreparedSettlement prepared, boolean saved,
@@ -553,6 +553,7 @@ public final class SetupSession implements BotSession {
     /** Freezes payment for background saving; mutations wait until owner-thread publication. */
     public PreparedSettlement prepareSettlement() {
         hideCards();
+        requireNoSettlementSave();
         if (pendingSettlement.isPresent()) {
             return pendingSettlement.orElseThrow();
         }
@@ -583,6 +584,7 @@ public final class SetupSession implements BotSession {
 
     /** Publishes a successfully saved token on this session's owner thread; performs no I/O. */
     public Settlement publishSettlement(PreparedSettlement prepared) {
+        requireNoSettlementSave();
         if (pendingSettlement.isEmpty() || pendingSettlement.orElseThrow() != prepared
                 || !prepared.isSaved()) {
             throw new IllegalStateException("Save this session's prepared settlement first.");

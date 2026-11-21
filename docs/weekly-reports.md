@@ -919,10 +919,16 @@ or final-grade completion.
 | Pending | Estella + Kevin | Connect SQLite, migration/recovery and desktop; verify the combined flow. | Shared account-table contract |
 
 **Progress evaluation:** Departure, funding, privacy and save/retry regressions
-were observed failing before fixes. Local `build pitest` passes: **1,610 tests**,
-clean Checkstyle/SpotBugs, **2,049/2,072 PIT kills (98.89%)**.
-[Scope and 23 reviewed survivors](quality.md). SQLite/new desktop integration,
-peer review and remote CI remain pending. Changes are uncommitted.
+were observed failing before fixes. Before the PR #30 merge, local `build pitest`
+passed: **1,610 tests**, clean Checkstyle/SpotBugs and **2,049/2,072 PIT kills (98.89%)**.
+[Scope and 23 reviewed survivors](quality.md). The account-table checkpoint is
+committed in PR #30; combined SQLite/desktop integration and peer review remain pending.
+
+**November 21 — PR #30 merge fix:** Restored background-settlement guards
+and fixed line wrapping. Existing retry tests and a new owner-callback regression
+pass. Local `build pitest`: **1,625 tests**, clean static checks,
+**2,096/2,123 PIT kills (98.73%)**; [scope and 27 survivors](quality.md).
+This follow-up awaits Kevin's commit/push and remote CI.
 
 **Next steps:** Estella connects storage/UI; together test sign-in, paid hands,
 top-up, departure and recovery in both languages. Kevin reviews, commits and pushes changes.

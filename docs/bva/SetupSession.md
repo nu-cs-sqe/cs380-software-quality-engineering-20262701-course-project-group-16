@@ -73,6 +73,7 @@ continuation are covered in [AccountTable](AccountTable.md),
 [PreparedSettlement](PreparedSettlement.md). Existing entry points retain
 legacy match rules. These real-component tests use a fake account store;
 SQLite and desktop integration remain pending.
+
 ## Week 8 background settlement
 
 | ID | Methods | State/input boundary | Expected result |
@@ -81,7 +82,10 @@ SQLite and desktop integration remain pending.
 | W8-E01-A2 | settleHand(worker, owner, finished) | Save fails before the write or after the durable write | Owner reports failure, chips and match totals remain unchanged, and retry uses the same hand ID. Only the owner's successful callback publishes the payout; both lifetime and match counts finish at one. |
 | W8-E01-A3 | settleHand(worker, owner, finished) | Worker rejects submission before any save | No callback or payment; the existing hand can be submitted again. |
 | W8-E01-A4 | settleHand(worker, owner, finished) | Ready hand without profiles | Pay and report success immediately without invoking either executor. |
+| W8-E01-A5 | publishSettlement(prepared) | Worker saved successfully; owner callback still queued | Reject direct publication; retain the unpaid pot and empty result until the owner callback publishes once. |
 
 ProfiledMatchIntegrationTest uses queued executors to control ordering and a real
 temporary catalog to verify durable counts. ProfileGamePanelTest verifies the
-actual worker and event thread with a gated save.
+actual worker and event thread with a gated save. W8-E01-A5 is exercised by
+`savedAsyncHandWaitsForOwnerBeforePublishing`, observed RED before restoring the
+publication guard and GREEN afterward.

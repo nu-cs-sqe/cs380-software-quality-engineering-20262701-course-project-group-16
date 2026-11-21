@@ -8,6 +8,33 @@ no `ignoreFailures`, global suppression or baseline hiding existing warnings. Re
 CI uploads test, coverage, mutation and static-analysis reports even after a
 failed step.
 
+## PR #30 settlement merge fix — November 21, 2026
+
+Restored the save-in-progress checks in `prepareSettlement` and
+`publishSettlement` and wrapped the overlong callback line. The two existing
+async retry cases failed on merged commit `b1e7765`. The new
+`savedAsyncHandWaitsForOwnerBeforePublishing` regression also failed before the
+fix; all three pass afterward. Queued executors control ordering against a real
+temporary profile catalog.
+
+Local `build pitest` passed with JDK 17 for Gradle and JDK 11 compilation/tests:
+**1,625 tests**, zero failures/errors/skips, clean Checkstyle and SpotBugs.
+Shared JaCoCo records 3,416/3,417 lines, 1,700/1,702 branches,
+1,796/1,798 complexity counters, 16,722/16,727 instructions and 941/941 methods.
+Remaining misses are the GameState enum-default path and the account-table
+branch of the asynchronous settlement fast-path decision; combined account-table
+UI/storage integration is not established by these results.
+
+PIT killed **2,096/2,123 mutants (98.73%)**, with 27 survivors and zero
+uncovered/timeout/error mutants; 102 selected test classes and 16,255 executions.
+Twenty-three survivors match the preceding checkpoint. Three additional
+start/startProfiles/quit save-guard calls overlap the earlier pending-token guard.
+The remaining `requireNoSettlementSave` card-concealment survivor is a test gap:
+the queued-publication regression does not assert concealment after a fresh
+reveal. It is retained in the score and is not claimed equivalent. No exclusions
+or quality rules were relaxed. This follow-up is local on
+`feature/week8-table-rules`; user commit/push, remote CI and peer review remain pending.
+
 ## Chosen 400+ buy-ins — November 19, 2026
 
 The account-table API accepts chosen amounts of at least 400, with no fixed upper
