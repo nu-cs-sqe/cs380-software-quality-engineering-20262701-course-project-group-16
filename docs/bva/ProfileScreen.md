@@ -74,3 +74,14 @@ These presentation/persistence cases retain their assertions and controlled bot
 actions. GamePanelBotsTest and BotBackgroundIntegrationTest exercise scheduling
 separately; PM-C07/08 compose adaptive computation with profile persistence.
 The production constructor continues to create the bounded background worker.
+
+## W8-E01 background settlement
+
+| ID | System state | Expected result |
+| --- | --- | --- |
+| W8-E01-UI01-en/zh | Profile save paused after pressing Settle hand | Swing processes a separate event before the save is released. Both locales show a saving message. Private cards stay hidden and the pot and match totals remain unpaid. Table and profile controls stay disabled; repeated Settle and a synthetic Start event cannot replace the hand. |
+| W8-E01-UI02-en/zh | Release the save or click Settle again after payment | Publish chips and refresh lifetime statistics once; Settle stays disabled on the paid hand. |
+| UI-AC09-en/zh | Write fails before reaching storage; user retries | Preserve the original pot and lifetime count, show the localized storage error, and re-enable Settle. The successful retry clears the error and displays one completed hand. |
+
+The slow-save cases failed on the old synchronous handler because Swing could
+not process the second event. They passed after the save moved to a worker.

@@ -24,3 +24,7 @@ IDs in each StoredProfile. Identity, credential and completed data share one
 atomic replacement. ST-C01–05 and PM-C01–05 in
 [lifetime BVA](LifetimeStatistics.md) verify migration, exact round trips and
 failure/retry behavior. The port still serializes application writers.
+
+The Week 8 desktop uses the [SQLite adapter](SqliteProfileRepository.md).
+It commits the supplied rows together, updating existing IDs and leaving
+other rows in place. The properties adapter remains the legacy import reader.

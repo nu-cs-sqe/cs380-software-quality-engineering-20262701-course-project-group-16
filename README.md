@@ -99,8 +99,10 @@ After a result, choose **Settle hand**, then **Next hand**. **Statistics** shows
 current-match totals; **Profiles** shows the selected signed-in account's lifetime
 totals. N/A means no qualifying opportunity. A new match resets stacks/match totals
 and retains completed lifetime data. Closing discards unfinished play. Saved
-accounts/statistics are local in `~/.cs380-holdem/profiles.properties`; they reopen
-after password verification. Storage errors leave settlement retryable.
+accounts/statistics are local in `~/.cs380-holdem/profiles.db`; they reopen after
+password verification. The first database open imports an existing
+`profiles.properties` catalog and leaves the original file in place.
+Storage errors leave settlement retryable.
 
 Select a human and choose **Leave match** to retire their seat. Active humans fold
 immediately, including out-of-turn departures. Another pending player keeps their
@@ -130,11 +132,15 @@ new registration requires 6–15 characters. Existing longer account passwords s
 access; list/find expose public selection metadata. IDs are generated separately
 from match participants and seats.
 
-Construct it with `new FileProfileRepository(dataDirectory)` and reuse the same
+Construct it with `new SqliteProfileRepository(dataDirectory)` and reuse the same
 application-data path after restart, for example
 `Path.of(System.getProperty("user.home"), ".cs380-holdem")`. Registration saves
-identity and a salted PBKDF2 hash together in `profiles.properties`; plaintext
-passwords are never saved. Read failures reject corrupt data without resetting it.
+identity and a salted PBKDF2 hash together in SQLite; plaintext passwords are
+never saved. An imported account keeps its existing password and lifetime
+statistics. New and imported accounts receive 2,000 virtual chips once.
+`getChipBalance` takes an authenticated account handle. These saved balances
+are separate from table stacks; per-hand balance changes and display are W8-E03.
+Read failures reject corrupt data without resetting it.
 The application must serialize writes. Profile-bound matches save completed raw
 counters and duplicate-prevention IDs before publishing settlement; failed saves
 remain retryable. Lifetime data survives restarts while new matches reset stacks

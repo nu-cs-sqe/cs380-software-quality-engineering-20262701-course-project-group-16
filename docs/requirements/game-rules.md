@@ -127,6 +127,9 @@ the game discards the match. Backend profile-bound matches additionally retain
 completed lifetime counters and completed-hand IDs locally, separately from
 match totals; new matches do not reset lifetime data. Save failures leave hand
 settlement retryable without paying chips or incrementing statistics twice.
+During the profile save the table stays responsive, but hand progression and
+account actions are disabled. The payout appears after the save succeeds. If
+saving fails, fix the storage problem and choose **Settle hand** again.
 No unfinished hand is serialized. The existing desktop Statistics tab still
 shows match totals; Profiles displays the selected signed-in account's completed
 lifetime statistics. Accounts reopen on this device after password verification.

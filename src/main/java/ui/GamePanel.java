@@ -9,7 +9,6 @@ import application.SetupView;
 import application.ProfileService;
 import java.util.Map;
 import java.util.LinkedHashMap;
-import java.io.UncheckedIOException;
 import domain.model.Card;
 import domain.model.GamePhase;
 import domain.model.GameConfig;
@@ -30,6 +29,7 @@ import java.awt.Insets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.stream.Collectors;
 import java.util.function.Function;
 import javax.swing.BorderFactory;
@@ -43,6 +43,7 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.JTabbedPane;
 import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
 import localization.Localizations;
 
 /** Shared-computer played-hand screen. Construct and use on the Swing event thread. */
@@ -90,6 +91,7 @@ public final class GamePanel extends JPanel {
     private final List<Player> humanViewers = new ArrayList<>();
     private boolean rendering;
     private boolean profileBusy;
+    private boolean settlementBusy;
     private final List<ProfilePanel> profiles;
     private Map<String, String> matchNames = Map.of();
 
@@ -152,12 +154,17 @@ public final class GamePanel extends JPanel {
 
     private void bindPrivateControls() {
         viewers.addActionListener(event -> {
-            if (!rendering && !profileBusy && viewers.getSelectedIndex() >= 0) {
+            if (!rendering && !tableBusy() && viewers.getSelectedIndex() >= 0) {
                 session.selectViewer(humanViewers.get(viewers.getSelectedIndex()).getId());
                 refresh();
             }
         });
-        reveal.addActionListener(event -> { session.revealCards(); refresh(); });
+        reveal.addActionListener(event -> {
+            if (!tableBusy()) {
+                session.revealCards();
+                refresh();
+            }
+        });
         hide.addActionListener(event -> hidePrivateCards());
         sections.addChangeListener(event -> {
             if (!rendering) {
@@ -176,10 +183,10 @@ public final class GamePanel extends JPanel {
 
     private void bindProgressionControls() {
         quit.addActionListener(event -> advanceHand(this::leaveMatch));
-        settle.addActionListener(event -> advanceHand(session::settleHand));
+        settle.addActionListener(event -> requestSettlement());
         nextHand.addActionListener(event -> advanceHand(session::nextHand));
         retryBot.addActionListener(event -> {
-            if (profileBusy) {
+            if (tableBusy()) {
                 return;
             }
             session.hideCards();
@@ -199,6 +206,14 @@ public final class GamePanel extends JPanel {
         session.hideCards();
         putClientProperty("profileBusy", busy);
         refresh();
+    }
+
+    boolean isSavingHand() {
+        return settlementBusy;
+    }
+
+    private boolean tableBusy() {
+        return profileBusy || settlementBusy;
     }
 
     private void profilesChanged() {
@@ -391,7 +406,7 @@ public final class GamePanel extends JPanel {
     }
 
     private void advanceHand(Runnable operation) {
-        if (profileBusy) {
+        if (tableBusy()) {
             return;
         }
         bots.cancel();
@@ -400,13 +415,56 @@ public final class GamePanel extends JPanel {
             operation.run();
             errorMessage = ErrorMessage.NONE;
             profiles.forEach(ProfilePanel::refreshLifetime);
-        } catch (UncheckedIOException storage) {
-            errorMessage = ErrorMessage.STORAGE;
         } catch (IllegalArgumentException | IllegalStateException invalid) {
             errorMessage = ErrorMessage.INVALID_ACTION;
         }
         bots.advance();
         refresh();
+    }
+
+    private void requestSettlement() {
+        if (tableBusy() || !settle.isEnabled()) {
+            return;
+        }
+        bots.cancel();
+        session.hideCards();
+        errorMessage = ErrorMessage.NONE;
+        setSettlementBusy(true);
+        try {
+            session.settleHand(GamePanel::runSettlementSave, SwingUtilities::invokeLater,
+                    saved -> finishSettlement(saved ? ErrorMessage.NONE : ErrorMessage.STORAGE));
+        } catch (IllegalArgumentException | IllegalStateException invalid) {
+            finishSettlement(ErrorMessage.INVALID_ACTION);
+        } catch (RejectedExecutionException unavailable) {
+            finishSettlement(ErrorMessage.STORAGE);
+        }
+    }
+
+    private static void runSettlementSave(Runnable save) {
+        new SwingWorker<Boolean, Void>() {
+            @Override protected Boolean doInBackground() {
+                save.run();
+                return true;
+            }
+        }.execute();
+    }
+
+    private void finishSettlement(ErrorMessage outcome) {
+        errorMessage = outcome;
+        settlementBusy = false;
+        profiles.forEach(profile -> profile.settlementBusy(false));
+        if (outcome == ErrorMessage.NONE) {
+            profiles.forEach(ProfilePanel::refreshLifetime);
+        }
+        refresh();
+        putClientProperty("settlementBusy", false);
+    }
+
+    private void setSettlementBusy(boolean busy) {
+        settlementBusy = busy;
+        profiles.forEach(profile -> profile.settlementBusy(busy));
+        refresh();
+        putClientProperty("settlementBusy", busy);
     }
 
     private void leaveMatch() {
@@ -423,7 +481,7 @@ public final class GamePanel extends JPanel {
     }
 
     private void startGame() {
-        if (profileBusy) {
+        if (tableBusy()) {
             return;
         }
         bots.cancel();
@@ -457,7 +515,7 @@ public final class GamePanel extends JPanel {
     }
 
     private void submitAction(ActionType type) {
-        if (profileBusy) {
+        if (tableBusy()) {
             return;
         }
         Optional<SetupView> display = session.getView();
@@ -506,9 +564,9 @@ public final class GamePanel extends JPanel {
             nextHand.setEnabled(session.canStartNextHand());
             statistics.render(view.map(SetupView::getPlayers).orElseGet(List::of),
                     session.getStatistics(), matchNames, messages, selectedLanguage);
-            start.setEnabled(!profileBusy && (profiles.isEmpty()
+            start.setEnabled(!tableBusy() && (profiles.isEmpty()
                     || profiles.get(0).humanCount() > 0));
-            if (profileBusy) {
+            if (tableBusy()) {
                 for (JComponent control : List.of(viewers, reveal, hide, fold, check, call,
                         quit, wager, wagerTarget, settle, nextHand, humanCount, retryBot)) {
                     control.setEnabled(false);
@@ -663,6 +721,9 @@ public final class GamePanel extends JPanel {
     }
 
     private String completionText() {
+        if (settlementBusy) {
+            return text("result.saving");
+        }
         if (session.getMatchWinner().isPresent()) {
             return text("match.winner", playerName(session.getMatchWinner().orElseThrow()));
         }

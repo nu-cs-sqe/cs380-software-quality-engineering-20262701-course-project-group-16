@@ -96,6 +96,74 @@ Estella's adapter/integration work. Existing legacy entry points retain their
 match rules. The lone JaCoCo miss is the existing GameState enum-default path;
 coverage counters do not establish independent basis-path or whole-backend proof.
 Only documentation changed after the final verification run.
+## W8-E02 SQLite account migration — November 18, 2026
+
+Based on W8-E01 commit `6d8aa08`. The new migration cases first failed at
+compilation because the SQLite adapter and balance API did not exist. They
+then passed against the real driver and temporary catalogs. The checks cover
+v2 and v3 imports, existing passwords, preservation of completion IDs,
+reopening a zero balance, invalid storage and atomic rollback. The two
+language desktop tests use SQLite through the existing profile flow.
+See [SQLite BVA](bva/SqliteProfileRepository.md).
+
+The first full build passed 1,559 tests and PIT killed 1,871/1,886 mutants.
+One new mutant skipped the unsupported-schema check. The first test used
+an existing table, which still caused initialization to fail when that
+check was removed. The new boundary starts with an empty database bearing
+an unsupported version, so it can distinguish version rejection from a
+table conflict. This was mutation hardening after implementation.
+
+Before the style review, `build pitest --warning-mode all` passed in 13m52s with Gradle on
+JDK 25 and tests on Java 11. SQLite is included in both measurement tools;
+no prior selectors, mutators, rules or exclusions were removed.
+
+| Check | Final local result |
+| --- | --- |
+| JUnit | 1,560 passed; zero failures, errors or skips. |
+| Checkstyle and SpotBugs | Zero style findings and unexcluded bugs. |
+| Shared scope | 67 parent components / 70 reported classes. |
+| JaCoCo | 3,008/3,009 lines, 1,529/1,530 branches, 1,605/1,606 complexity, 14,595/14,600 instructions, 835/835 methods and 70/70 classes. |
+| PIT | 1,872/1,886 killed. The same 14 survivors match by class, method, descriptor, operator and description; zero uncovered, timeout or error mutants. |
+
+The new schema-version case killed the additional survivor. The only missed
+JaCoCo line remains the existing GameState enum default; the baseline survivor
+equivalence and independent basis-path review remain separate. Native desktop
+review, remote CI and merge are pending.
+
+The style review separated the version check from the legacy import, named the
+uninitialized schema version, and wrapped the rollback test's long line.
+The full build and PIT then passed in 13m38s: 1,560 tests, clean Checkstyle
+and SpotBugs, 3,012/3,013 measured lines, and 1,874/1,888 mutants killed.
+The same 14 baseline survivors remain, with none in the SQLite adapter.
+The measurement scope is unchanged.
+
+## W8-E01 background settlement — November 18, 2026
+
+Based on merged main `9932bcd`. The English and Chinese blocked-save
+regressions first failed because Swing could not process a second event while
+the save was paused. Both passed after moving the storage operation off the
+event thread. Queued-executor integration cases verify publication on the
+owner, duplicate/restart/departure rejection, worker submission failure and
+retry before or after a durable write. The profile screen tests also verify
+localized status, disabled controls and retry. See the
+[session BVA](bva/SetupSession.md#week-8-background-settlement) and
+[profile screen BVA](bva/ProfileScreen.md#w8-e01-background-settlement).
+
+Full `build pitest --warning-mode all` passed in 12m53s (Gradle JDK 25,
+Java 11 compilation/tests). No measurement selectors or exclusions changed.
+
+| Check | Final local result |
+| --- | --- |
+| JUnit | 1,551 passed; zero failures, errors or skips. |
+| Checkstyle / SpotBugs | Zero style findings or unexcluded bugs; no analysis errors or missing classes. |
+| Shared scope | 66 parent components / 69 reported classes; the additional class is the nested pending settlement. |
+| JaCoCo | 2,926/2,927 lines; 1,515/1,516 branches; 1,578/1,579 complexity; 14,241/14,246 instructions; 815/815 methods; 69/69 classes. |
+| PIT | 1,837/1,851 killed; the same 14 baseline survivors; no uncovered, timed-out or error mutants. |
+
+The sole missed line is the existing GameState enum default. Survivor
+class, method, descriptor, operator and description match the prior baseline.
+Survivor equivalence and basis-path review remain separate. The native
+desktop walkthrough, peer review, remote CI and merge remain pending.
 
 ## I07 full-chip match victory — November 16, 2026
 
