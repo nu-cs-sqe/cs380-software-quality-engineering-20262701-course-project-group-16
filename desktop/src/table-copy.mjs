@@ -1,4 +1,7 @@
 const en = {
+  saving: 'Saving hand…', retrySave: 'Retry settlement',
+  saveError: 'The hand could not be saved. Retry settlement to update the balances.',
+  dismiss: 'Dismiss',
   past: { CHECK: 'checked', CALL: 'called', FOLD: 'folded', RAISE: 'raised to', BET: 'bet' },
   title: "Texas Hold’em", stakes: "No-limit", hand: "Hand", table: "Table", manage: "Table options",
   seat: "Seat", seats: "seats", vacant: "Open seat", pot: "Total pot", board: "Community cards",
@@ -34,6 +37,17 @@ const en = {
     wtsd: "Went to showdown", wsd: "Won at showdown" },
 };
 const zh = {
+  saving: '正在保存本局…', retrySave: '重试结算',
+  saveError: '未能保存本局结果。请重试结算以更新余额。', dismiss: '关闭提示',
+  errors: {
+    hide: '无法刷新牌桌，手牌已在本机隐藏。', state: '无法刷新牌桌。请稍后重试。',
+    reveal: '无法查看手牌。请将牌桌切换到前台，再确认当前玩家。',
+    act: '未能提交操作。请重新查看手牌并选择当前可用的操作。',
+    bot: '电脑玩家的操作未完成。请重试。',
+    next: '无法开始下一局。请检查座位筹码后重试。',
+    topup: '未能补充筹码。请检查可用余额和补充金额后重试。',
+    quit: '未能离开座位。请重试。', end: '未能关闭牌桌。请重试。',
+  },
   past: { CHECK: '过牌', CALL: '跟注', FOLD: '弃牌', RAISE: '加注至', BET: '下注' },
   title: "德州扑克", stakes: "无限注", hand: "牌局", table: "牌桌", manage: "牌桌设置",
   seat: "座位", seats: "个座位", vacant: "空位", pot: "底池总额", board: "公共牌",

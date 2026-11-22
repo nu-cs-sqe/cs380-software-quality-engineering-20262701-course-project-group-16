@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { handoffGate, validTarget, publicSnapshot, chipText, seatedNames } from '../src/table-state.mjs';
+import { handoffGate, validTarget, publicSnapshot, chipText, seatedNames, needsSettlement } from '../src/table-state.mjs';
 
 const turn = { handId: 'hand-7', revision: 2, actor: 3 };
 const hole = [{ rank: 'ACE', suit: 'HEARTS' }, { rank: 'KING', suit: 'SPADES' }];
@@ -51,4 +51,13 @@ test('duplicate display names are disambiguated by physical seat, including publ
   assert.equal(view.lastAction.name, 'Alex (Seat 3)');
   assert.equal(seatedNames(game, 'zh').players[2].name, '电脑 2');
   assert.equal(game.players[0].name, 'Alex');
+});
+
+test('results trigger one automatic settlement per hand, including across state refreshes', () => {
+  const finished = { handId: 'one', paid: false, result: { winners: ['p1'] } };
+  assert.equal(needsSettlement({ ...finished, result: '' }, ''), false);
+  assert.equal(needsSettlement(finished, ''), true);
+  assert.equal(needsSettlement({ ...finished, revision: 7 }, 'one'), false);
+  assert.equal(needsSettlement({ ...finished, paid: true }, ''), false);
+  assert.equal(needsSettlement({ ...finished, handId: 'two' }, 'one'), true);
 });

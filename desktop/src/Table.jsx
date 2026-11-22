@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
-import { chipText, handoffGate, publicSnapshot, seatedNames } from './table-state.mjs';
+import { chipText, handoffGate, publicSnapshot, seatedNames, needsSettlement } from './table-state.mjs';
 import { tableCopy } from './table-copy.mjs';
 import { BettingControls, CardBacks, Results, TableSurface } from './TableSurface.jsx';
 import TableOptions from './TableOptions.jsx';
@@ -44,7 +44,7 @@ function LastAction({ game, copy, lang }) {
   </div>;
 }
 
-function TurnStrip({ game, actor, hole, copy, lang, busy, execute, conceal, openOptions }) {
+function TurnStrip({ game, actor, hole, copy, lang, busy, execute, conceal, openOptions, saveFailed }) {
   if (game.result) {
     const winners = game.players.filter(player => game.result.winners.includes(player.id));
     return <section className="rr-actions rr-outcome">
@@ -56,9 +56,11 @@ function TurnStrip({ game, actor, hole, copy, lang, busy, execute, conceal, open
         <button type="button" className="rr-secondary" disabled={busy} onClick={() => openOptions('end')}>{copy.end}</button>
         <button type="button" className="rr-primary" disabled={busy || !game.canNext}
           onClick={() => execute('next')}>{copy.next}<span aria-hidden="true">　→</span></button>
-        {!game.canNext && <small>{copy.cannotNext}</small>}</> :
+        {!game.canNext && <small>{copy.cannotNext}</small>}</> : saveFailed ? <>
+        <small className="rr-error" role="alert">{copy.saveError}</small>
         <button type="button" className="rr-primary" disabled={busy}
-          onClick={() => execute('settle')}>{lang === 'zh' ? '结算底池' : 'Settle pot'}</button>}</div>
+          onClick={() => execute('settle')}>{copy.retrySave}</button></> :
+        <small role="status">{copy.saving}</small>}</div>
     </section>;
   }
   if (!actor) return <section className="rr-actions"><p>{copy.waiting}</p></section>;
@@ -83,7 +85,9 @@ export default function Table({ lang, request, initialGame, onEnd }) {
   const game = useMemo(() => seatedNames(snapshot, lang), [snapshot, lang]);
   const [hole, setHole] = useState([]);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
+  const [failure, setFailure] = useState();
+  const [failedSaveHand, setFailedSaveHand] = useState('');
+  const lastAutoSave = useRef('');
   const [options, setOptions] = useState('');
   const [screen, setScreen] = useState(() =>
     initialGame.players.some(p => p.type === 'HUMAN' && p.seat === initialGame.actor) ? 'curtain' : 'board');
@@ -96,6 +100,7 @@ export default function Table({ lang, request, initialGame, onEnd }) {
   const api = useRef({ request, onEnd });
   api.current = { request, onEnd };
   const copy = tableCopy[lang] || tableCopy.en;
+  const error = failure ? (lang === 'zh' ? copy.errors[failure.op] : failure.detail) : '';
   const actor = game.players.find(p => p.seat === game.actor);
 
   const adopt = useCallback(snapshot => {
@@ -126,7 +131,7 @@ export default function Table({ lang, request, initialGame, onEnd }) {
     });
     if (shouldHide) {
       hiding.current = api.current.request('hide').catch(err => {
-        if (mounted.current) setError(err.message);
+        if (mounted.current) setFailure({ op: 'hide', detail: err.message });
       });
     }
   }, [clearPrivate]);
@@ -149,7 +154,7 @@ export default function Table({ lang, request, initialGame, onEnd }) {
 
   const refresh = useCallback(async () => {
     try { adopt(await api.current.request('state')); }
-    catch (err) { if (mounted.current) setError(err.message); }
+    catch (err) { if (mounted.current) setFailure({ op: 'state', detail: err.message }); }
   }, [adopt]);
 
   const execute = useCallback(async (op, fields = {}) => {
@@ -158,9 +163,11 @@ export default function Table({ lang, request, initialGame, onEnd }) {
     const turn = latest.current;
     const ticket = gate.current.begin(turn);
     if (op === 'reveal') privatePending.current = true;
-    else flushSync(clearPrivate);
+    else if (op === 'act') flushSync(clearPrivate);
+    else clearPrivate();
+    if (op === 'settle') setFailedSaveHand('');
     setBusy(true);
-    setError('');
+    setFailure(undefined);
     try {
       await hiding.current;
       if (op === 'reveal' && !gate.current.accepts(ticket, latest.current)) return false;
@@ -183,7 +190,8 @@ export default function Table({ lang, request, initialGame, onEnd }) {
       if (mounted.current) {
         clearPrivate();
         await refresh();
-        setError(err.message);
+        if (op === 'settle') setFailedSaveHand(turn.handId);
+        else setFailure({ op, detail: err.message });
       }
       return false;
     } finally {
@@ -191,6 +199,12 @@ export default function Table({ lang, request, initialGame, onEnd }) {
       if (mounted.current) setBusy(false);
     }
   }, [adopt, clearPrivate, refresh]);
+
+  useEffect(() => {
+    if (busy || locked.current || !needsSettlement(game, lastAutoSave.current)) return;
+    lastAutoSave.current = game.handId;
+    void execute('settle');
+  }, [busy, execute, game]);
 
   useEffect(() => {
     if (actor?.type !== 'BOT' || busy || options || error || game.result) return;
@@ -223,7 +237,7 @@ export default function Table({ lang, request, initialGame, onEnd }) {
     </header>
     <TableSurface game={game} copy={copy} lang={lang} privateView={hole.length > 0} />
     {error && !options && <div className="rr-alert" role="alert">{error}
-      <button type="button" onClick={() => setError('')}>{copy.retry}</button></div>}
+      <button type="button" onClick={() => setFailure(undefined)}>{failure.op === 'bot' ? copy.retry : copy.dismiss}</button></div>}
     <LastAction game={game} copy={copy} lang={lang} />
     {actor?.type === 'HUMAN' && screen === 'curtain' && !options
       ? <HandoffCurtain game={game} actor={actor} copy={copy} lang={lang} busy={busy} error={error}
@@ -232,7 +246,7 @@ export default function Table({ lang, request, initialGame, onEnd }) {
         ? <section className="rr-actions"><div className="rr-turn-copy"><small>{copy.ready}</small>
           <h2>{copy.pass(actor.name)}</h2></div></section>
         : <TurnStrip game={game} actor={actor} hole={hole} copy={copy} lang={lang} busy={busy}
-      execute={execute} conceal={conceal} openOptions={openOptions} />}
+      execute={execute} conceal={conceal} openOptions={openOptions} saveFailed={failedSaveHand === game.handId} />}
     {game.paid && game.result && <Results key={game.handId} game={game} copy={copy} lang={lang} />}
     {options && <TableOptions game={game} copy={copy} lang={lang} request={request} initialPage={options}
       execute={execute} refresh={refresh} busy={busy} error={error} close={() => setOptions('')} />}

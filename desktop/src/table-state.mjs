@@ -40,3 +40,7 @@ export function seatedNames(game, lang) {
   const lastAction = action && { ...action, name: players.find(p => p.id === action.playerId)?.name ?? action.name };
   return { ...game, players, lastAction };
 }
+
+export function needsSettlement(game, lastAttemptedHand) {
+  return Boolean(game.result) && !game.paid && game.handId !== lastAttemptedHand;
+}
