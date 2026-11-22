@@ -46,3 +46,11 @@ export function availableProfiles(profiles, seats) {
   return profiles.filter(profile => !seats.some(seat => seat.id === profile.id))
     .map(({id, name}) => ({id, label: repeated.has(name) ? name + ' · ' + id : name}));
 }
+
+export function nextUnreadySeat(seats, count, current) {
+  for (let offset = 1; offset < count; offset++) {
+    const index = (current + offset) % count;
+    if (!seats[index].buyIn) return index;
+  }
+  return current;
+}

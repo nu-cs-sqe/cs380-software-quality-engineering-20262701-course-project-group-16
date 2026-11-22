@@ -1,6 +1,6 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {AccessForm, PrivateAccount} from './LobbyAccount.jsx';
-import {availableProfiles, emptySeats, minimumPlayerCount, occupy, readyPlayers, SEAT_COUNT} from './lobby-model.mjs';
+import {availableProfiles, emptySeats, minimumPlayerCount, nextUnreadySeat, occupy, readyPlayers, SEAT_COUNT} from './lobby-model.mjs';
 import {lobbyLanguage} from './lobby-language.mjs';
 import './lobby.css';
 
@@ -28,7 +28,7 @@ function PlayerSlots({t, seats, count, slot, busy, onSelect}) {
         <i className={seat.buyIn ? 'rr-ready-dot' : ''}></i>{status}</small></span>
       {human && <span className="rr-select-arrow" aria-hidden="true">›</span>}
     </>;
-    return human ? <button key={index} type="button" className="rr-slot rr-human" disabled={busy}
+    return human ? <button key={index} type="button" className={'rr-slot rr-human' + (seat.buyIn ? ' is-ready' : '')} disabled={busy}
       aria-pressed={slot === index} onClick={() => onSelect(index)}>{content}</button>
       : <div key={index} className="rr-slot rr-computer">{content}</div>;
   })}</div>;
@@ -42,6 +42,8 @@ export default function Lobby({lang = 'en', request, onStart}) {
   const [profiles, setProfiles] = useState([]);
   const [loadState, setLoadState] = useState('pending');
   const [reload, setReload] = useState(0);
+  const [unlocking, setUnlocking] = useState(false);
+  const roster = useRef();
   const [account, setAccount] = useState();
   const [epoch, setEpoch] = useState(0);
   const [error, setError] = useState('');
@@ -56,6 +58,7 @@ export default function Lobby({lang = 'en', request, onStart}) {
     generation.current++;
     setEpoch(generation.current);
     setAccount(undefined);
+    setUnlocking(false);
     setError('');
   }, []);
   useEffect(() => {
@@ -122,6 +125,16 @@ export default function Lobby({lang = 'en', request, onStart}) {
     });
   }
 
+  function confirmBuyIn(buyIn) {
+    const updated = seats.map((entry, index) => index === slot ? {...entry, buyIn} : entry);
+    setSeats(updated);
+    if (!buyIn) return;
+    conceal();
+    const next = nextUnreadySeat(updated, count, slot);
+    setSlot(next);
+    roster.current.querySelectorAll('.rr-human')[next].focus();
+  }
+
   function signOut() {
     return perform('logout', async () => {
       await request('logout', {id:seat.id});
@@ -139,8 +152,11 @@ export default function Lobby({lang = 'en', request, onStart}) {
   const available = availableProfiles(profiles, seats);
   return <main className="rr-lobby"><Hero t={t}/>
     <div className="rr-lobby-grid">
-      <section className="rr-panel rr-roster" aria-label={t.roster}>
-        <h2>{t.roster}</h2>
+      <section ref={roster} className="rr-panel rr-roster" aria-label={t.roster}>
+        <div className="rr-roster-title"><h2>{t.roster}</h2>
+          <div className="rr-ready-track" aria-hidden="true">{seats.map((entry, index) =>
+            <i key={index} className={entry.buyIn ? 'filled' : index < count ? 'open' : ''}/>)}</div>
+        </div>
         <div className="rr-count">
           <span id="rr-count-label">{t.local}</span>
           <div className="rr-stepper" role="group" aria-labelledby="rr-count-label">
@@ -165,9 +181,13 @@ export default function Lobby({lang = 'en', request, onStart}) {
           account ? <PrivateAccount key={account.id} lang={lang} account={account} seat={seat} slot={slot}
             request={request} onAccount={updated => {
               if (epoch === generation.current) setAccount(updated);
-            }} onReady={buyIn => replaceSeat(slot, {...seat, buyIn})}
+            }} onReady={confirmBuyIn}
             onLock={conceal} onLeave={signOut} busy={busy}/> :
-          <AccessForm key={slot + '-' + epoch} t={t} slot={slot} seat={seat} profiles={available}
+          seat.buyIn && !unlocking ? <div className="rr-ready-receipt" role="status">
+            <span className="rr-ready-seal" aria-hidden="true">✓</span>
+            <h2>{t.seatReady(seat.name)}</h2><p>{t.readyPrivate}</p>
+            <button className="rr-secondary" type="button" onClick={() => setUnlocking(true)}>{t.manageSeat}</button>
+          </div> : <AccessForm key={slot + '-' + epoch} t={t} slot={slot} seat={seat} profiles={available}
             busy={busy} onAuth={authenticate}/>}
         {error && error !== 'start' && <p className="rr-error" role="alert">{t.errors[error]}</p>}
       </section>

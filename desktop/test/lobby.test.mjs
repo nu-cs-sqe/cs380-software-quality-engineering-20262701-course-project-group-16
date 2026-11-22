@@ -50,3 +50,14 @@ test('same-name login choices keep distinct identifiers even when one account is
   seats[1] = lobby.occupy(seats, 1, profiles[0]);
   assert.deepEqual(labels(), [['common-0002','Jules · common-0002'], ['s','Sam']]);
 });
+
+test('ready hands the computer to the next unready human and skips bot seats', () => {
+  const seats = lobby.emptySeats();
+  seats[1] = {id:'p2', name:'P2', buyIn:'400'};
+  assert.equal(lobby.nextUnreadySeat(seats, 3, 1), 2);
+  seats[2] = {id:'p3', name:'P3', buyIn:'800'};
+  assert.equal(lobby.nextUnreadySeat(seats, 3, 2), 0);
+  seats[0] = {id:'p1', name:'P1', buyIn:'500'};
+  assert.equal(lobby.nextUnreadySeat(seats, 3, 0), 0);
+  assert.equal(lobby.nextUnreadySeat(seats, 1, 0), 0);
+});

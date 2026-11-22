@@ -1,5 +1,6 @@
 export const lobbyLanguage = {
   en: {
+    seatReady: name => name + ' is ready', readyPrivate: 'Account details are locked. You can start the game or select another player.', manageSeat: 'Manage this seat',
     kicker: 'Texas Hold’em', title: 'Table lobby', hero: 'Gather your players and set the opening stacks.',
     format: 'No-limit', blinds: '10 / 20 blinds', sixMax: '6 seats', roster: 'Table setup',
     local: 'Local players', countHelp: 'Choose how many people are sharing this computer.',
@@ -46,6 +47,7 @@ export const lobbyLanguage = {
     gapUnit: ' pp'
   },
   zh: {
+    seatReady: name => name + ' 已准备好', readyPrivate: '账户信息已锁定。现在可以开始游戏，或选择另一位玩家。', manageSeat: '管理此座位',
     kicker: '德州扑克', title: '牌桌大厅', hero: '邀请玩家入座，设置各自的起始筹码。',
     format: '无限注', blinds: '小盲 10 / 大盲 20', sixMax: '6 人桌', roster: '牌桌设置',
     local: '本地玩家人数', countHelp: '选择共用这台电脑的玩家人数。',

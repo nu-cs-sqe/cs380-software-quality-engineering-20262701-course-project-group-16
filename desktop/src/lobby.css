@@ -95,6 +95,17 @@
 .rr-bot-face::after { content: ''; position: absolute; top: -4px; left: 5px; width: 1px; height: 3px; background: currentColor; }
 .rr-slot-copy { display: grid; gap: 4px; flex: 1; min-width: 0; }
 .rr-slot-copy strong { font-weight: 600; font-size: 14px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
+.rr-roster-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.rr-ready-track { display: flex; gap: 4px; }
+.rr-ready-track i { width: 11px; height: 5px; border-radius: 3px; background: #39463d; }
+.rr-ready-track .open { background: #786e54; }
+.rr-ready-track .filled { background: #b0cda1; }
+.rr-slot.is-ready { border-color: #617858; background: #25392b; }
+.rr-slot.is-ready .rr-slot-icon { color: #c7e0b5; border-color: #758a68; }
+.rr-ready-receipt { padding: clamp(15px, 3vw, 48px) 8px; display: grid; justify-items: center; text-align: center; gap: 15px; }
+.rr-ready-seal { display: grid; place-items: center; width: 54px; aspect-ratio: 1; border-radius: 50%;
+  color: #e6d3a1; border: 1px solid #b5a375; background: #334736; box-shadow: inset 0 0 0 4px #27382a; font-size: 25px; }
+.rr-ready-receipt p { max-width: 32ch; margin: 0; line-height: 1.5; color: var(--rr-muted); }
 .rr-computer strong { color: #b4c1b7; }
 .rr-slot-copy small { display: flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 400; color: var(--rr-muted); }
 .rr-human small i { width: 5px; height: 5px; border: 1px solid #9b9e86; border-radius: 50%; }
