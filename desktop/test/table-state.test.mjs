@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { handoffGate, validTarget, publicSnapshot, chipText, seatedNames, needsSettlement } from '../src/table-state.mjs';
+import { handoffGate, validTarget, publicSnapshot, chipText, seatedNames, needsSettlement, wagerPreview } from '../src/table-state.mjs';
 
 const turn = { handId: 'hand-7', revision: 2, actor: 3 };
 const hole = [{ rank: 'ACE', suit: 'HEARTS' }, { rank: 'KING', suit: 'SPADES' }];
@@ -60,4 +60,15 @@ test('results trigger one automatic settlement per hand, including across state 
   assert.equal(needsSettlement({ ...finished, revision: 7 }, 'one'), false);
   assert.equal(needsSettlement({ ...finished, paid: true }, ''), false);
   assert.equal(needsSettlement({ ...finished, handId: 'two' }, 'one'), true);
+});
+
+test('a raise previews only the extra chips and handles all-ins and oversized integers', () => {
+  const limits = {min:'40', max:'500'};
+  assert.deepEqual(wagerPreview('60', limits, '10', '490'), {cost:'50', remaining:'440'});
+  assert.deepEqual(wagerPreview('500', limits, '10', '490'), {cost:'490', remaining:'0'});
+  assert.equal(wagerPreview('', limits, '10', '490'), undefined);
+  assert.equal(wagerPreview('501', limits, '10', '490'), undefined);
+  const max = '9007199254740993';
+  assert.deepEqual(wagerPreview(max, {min:max,max}, '1', max),
+    {cost:'9007199254740992', remaining:'1'});
 });

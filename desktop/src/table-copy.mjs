@@ -1,4 +1,6 @@
 const en = {
+  streets: 'Hand progress', addNow: 'Add now', leftBehind: 'Stack after', statsGuide: 'Statistics guide',
+  sizingRange: (min, max) => 'Enter ' + min + '–' + max + ' chips.',
   saving: 'Saving hand…', retrySave: 'Retry settlement',
   saveError: 'The hand could not be saved. Retry settlement to update the balances.',
   dismiss: 'Dismiss',
@@ -37,6 +39,8 @@ const en = {
     wtsd: "Went to showdown", wsd: "Won at showdown" },
 };
 const zh = {
+  streets: '本手进度', addNow: '本次投入', leftBehind: '下注后剩余', statsGuide: '统计指标说明',
+  sizingRange: (min, max) => '请输入 ' + min + ' 至 ' + max + ' 筹码。',
   saving: '正在保存本局…', retrySave: '重试结算',
   saveError: '未能保存本局结果。请重试结算以更新余额。', dismiss: '关闭提示',
   errors: {

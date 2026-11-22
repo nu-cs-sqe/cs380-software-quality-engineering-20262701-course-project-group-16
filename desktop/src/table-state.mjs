@@ -44,3 +44,9 @@ export function seatedNames(game, lang) {
 export function needsSettlement(game, lastAttemptedHand) {
   return Boolean(game.result) && !game.paid && game.handId !== lastAttemptedHand;
 }
+
+export function wagerPreview(target, limits, committed, stack) {
+  if (!validTarget(target, limits.min, limits.max)) return undefined;
+  const cost = BigInt(target) - BigInt(committed);
+  return {cost: cost.toString(), remaining: (BigInt(stack) - cost).toString()};
+}

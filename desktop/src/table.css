@@ -76,7 +76,7 @@
 }
 .rr-game .rr-pot { display: flex; align-items: center; justify-content: center; gap: 10px; color: #fbefd5; }
 .rr-game .rr-pot > div { display: grid; gap: 1px; }
-.rr-game .rr-pot small, .rr-game .rr-street {
+.rr-game .rr-pot small {
   color: #e0dfbd; font-weight: 650; font-size: 9px; text-transform: uppercase; letter-spacing: .17em;
 }
 .rr-game .rr-pot strong { font-size: clamp(17px, 1.6vw, 23px); line-height: 1; }
@@ -104,8 +104,6 @@
 .rr-game .rr-corner small { display: block; font-family: Georgia, serif; text-align: center; font-size: .64em; }
 .rr-game .rr-corner.reverse { top: auto; left: auto; right: 8%; bottom: 6%; transform: rotate(180deg); font-size: calc(var(--card-width) * .24); }
 .rr-game .rr-pip { position: absolute; top: 52%; left: 54%; transform: translate(-50%, -50%); font-size: calc(var(--card-width) * .72); }
-.rr-game .rr-street { display: flex; align-items: center; gap: 8px; font-size: 8px; }
-.rr-game .rr-street span { width: 15px; height: 1px; background: #d3cb8f65; }
 .rr-game .rr-seat { position: absolute; z-index: 1; width: clamp(102px, 12vw, 170px); transform: translate(-50%, -50%); }
 .rr-game .pos-0 { left: 30%; top: 84%; }
 .rr-game .pos-1 { left: 11.5%; top: 51%; }
@@ -208,8 +206,7 @@
 .rr-game th:first-child { text-align: left; }
 .rr-game thead th { color: var(--quiet); font-size: 11px; font-weight: 550; }
 .rr-game tbody tr { border-top: 1px solid #313c32; }
-.rr-game td.positive { color: #a1d1ae; }
-.rr-game td.negative { color: #e2ad9b; }
+
 @keyframes rr-deal { from { opacity: 0; translate: 0 -5px; } to { opacity: 1; translate: 0; } }
 @keyframes rr-think { to { opacity: .35; translate: 0 -2px; } }
 @media (max-height: 700px) and (min-width: 701px) {
@@ -295,4 +292,63 @@
   .rr-game .from-actor .pos-3 { left: 50%; top: 15%; }
   .rr-game .from-actor .pos-4 { left: 81%; top: 19%; }
   .rr-game .from-actor .pos-5 { left: 81%; top: 82%; }
+}
+
+/* The seat colors stay with the players when the private view rotates. */
+.rr-game .rr-seat { --enamel: #65543a; --edge: #d8bc82; }
+.rr-game .rr-seat[data-seat="1"] { --enamel: #344c55; --edge: #a3c7cc; }
+.rr-game .rr-seat[data-seat="2"] { --enamel: #564145; --edge: #d2a7a3; }
+.rr-game .rr-seat[data-seat="3"] { --enamel: #3a5045; --edge: #a9c9ad; }
+.rr-game .rr-seat[data-seat="4"] { --enamel: #484358; --edge: #bcb1ce; }
+.rr-game .rr-seat[data-seat="5"] { --enamel: #594635; --edge: #d8b696; }
+.rr-game .rr-seat-number {
+  width: clamp(24px, 2.5vw, 35px); height: auto; aspect-ratio: 1;
+  border: 2px dashed var(--edge); color: #faf3df; background: var(--enamel);
+  box-shadow: 0 0 0 1px #151e19, inset 0 0 0 2px var(--enamel), inset 0 0 0 3px #fff4;
+}
+.rr-game .is-folded .rr-seat-number { filter: saturate(.25); opacity: .65; }
+.rr-game .is-active .rr-seatplate { border-color: #f4d39b; box-shadow: 0 0 0 3px #cab17e3d, 0 5px 15px #06120dbc; }
+.rr-game .rr-seat-status { font-size: 10px; }
+.rr-game .rr-round-chips { display: inline-flex; align-items: center; gap: 4px; margin-inline-start: 6px; }
+.rr-game .rr-round-chips::before { content: ''; width: 9px; height: 6px; border-radius: 50%;
+  box-shadow: 0 2px 0 #805034; background: repeating-conic-gradient(#d5b88a 0 35deg, #955d47 35deg 60deg); }
+.rr-game .rr-felt { background-color: #225940; }
+.rr-game .rr-felt::after { content: ''; position: absolute; inset: 13% 8%; border-radius: inherit;
+  border: 1px dashed #e6d59e39; pointer-events: none; }
+.rr-game .rr-pip-field { display: grid; position: absolute; inset: 15% 21%;
+  grid-template-columns: repeat(3, 1fr); place-items: center; font: calc(var(--card-width) * .24)/.68 Georgia, serif; }
+.rr-game .rr-pip-field i { font-style: normal; }
+.rr-game .rr-pip.court { display: grid; place-items: center; width: 46%; height: 62%;
+  font-size: calc(var(--card-width) * .44); background: #d1af6320; border: 1px solid #b89a5d;
+  border-radius: 50% 50% 42% 42%; box-shadow: 0 0 0 2px #f5eedd, 0 0 0 3px #bfaa7e88; }
+.rr-game .rr-street-progress { display: flex; align-items: center; gap: 8px; list-style: none;
+  margin: 1px 0 0; padding: 4px 8px; border-radius: 12px; background: #102e22b3; }
+.rr-game .rr-street-progress li { display: flex; align-items: center; gap: 4px; color: #b0c5b4; font-size: 10px; }
+.rr-game .rr-street-progress i { width: 5px; height: 5px; border: 1px solid #9daf9b; border-radius: 50%; }
+.rr-game .rr-street-progress li[data-reached=true] i { background: #ddd0a5; border-color: #ddd0a5; }
+.rr-game .rr-street-progress [aria-current=step] { color: #fff1c9; font-weight: 700; }
+.rr-game .rr-street-progress [aria-current=step] i { box-shadow: 0 0 0 2px #dbc68838; }
+.rr-game .rr-wager-preview { display: flex; gap: 10px; flex-basis: 100%; justify-content: end;
+  color: #c0cbbd; font-size: 12px; font-variant-numeric: tabular-nums; }
+.rr-game .rr-wager-preview b { color: #f4e7c8; }
+.rr-game .rr-target { justify-content: end; }
+.rr-game .rr-target button { min-height: 30px; }
+.rr-game .rr-target input { font-variant-numeric: tabular-nums; }
+.rr-game .rr-target input[aria-invalid=true] { border-color: #dbab98; }
+.rr-game .rr-net-pill { display: inline-block; border-radius: 5px; padding: 2px 8px; font-weight: 650; }
+.rr-game .rr-net-pill.gain { background: #2c4839; color: #c3e5c6; }
+.rr-game .rr-net-pill.loss { background: #412f2b; color: #edb9a9; }
+.rr-game .rr-net-pill.even { color: var(--quiet); }
+.rr-game .rr-results th:first-child { position: sticky; left: 0; z-index: 1; background: #202b24; }
+.rr-game .rr-results tbody tr:hover { background: #28332a; }
+.rr-game .rr-stats-guide { border-top: 1px solid var(--line); padding: 11px 15px; font-size: 13px; }
+.rr-game .rr-stats-guide summary { cursor: pointer; color: #d8c396; width: fit-content; }
+.rr-game .rr-stats-guide dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 8px 20px; margin: 12px 0 2px; }
+.rr-game .rr-stats-guide dl div { display: flex; gap: 8px; }
+.rr-game .rr-stats-guide dt { color: var(--paper); }
+.rr-game .rr-stats-guide dd { margin: 0; color: var(--quiet); }
+@media (max-width: 620px) {
+  .rr-game .rr-street-progress { gap: 4px; }
+  .rr-game .rr-street-progress li { font-size: 9px; }
 }

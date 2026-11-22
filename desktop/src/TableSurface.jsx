@@ -1,10 +1,27 @@
 import React, { useState } from 'react';
-import { chipText, validTarget } from './table-state.mjs';
+import { chipText, wagerPreview } from './table-state.mjs';
 import { metrics } from './table-copy.mjs';
 
 const ranks = { TWO: '2', THREE: '3', FOUR: '4', FIVE: '5', SIX: '6', SEVEN: '7', EIGHT: '8',
   NINE: '9', TEN: '10', JACK: 'J', QUEEN: 'Q', KING: 'K', ACE: 'A' };
 const suits = { SPADES: '♠', HEARTS: '♥', DIAMONDS: '♦', CLUBS: '♣' };
+
+const pipRows = {
+  TWO: [[1], [], [1]], THREE: [[1], [1], [1]], FOUR: [[0, 2], [], [0, 2]],
+  FIVE: [[0, 2], [1], [0, 2]], SIX: [[0, 2], [0, 2], [0, 2]],
+  SEVEN: [[0, 2], [1], [0, 2], [], [0, 2]], EIGHT: [[0, 2], [1], [0, 2], [1], [0, 2]],
+  NINE: [[0, 2], [0, 2], [1], [0, 2], [0, 2]], TEN: [[0, 2], [1], [0, 2], [0, 2], [1], [0, 2]],
+};
+
+function CardFace({ card }) {
+  const rows = pipRows[card.rank];
+  if (!rows) return <span aria-hidden="true" className={'rr-pip ' + (card.rank === 'ACE' ? 'ace' : 'court')}>
+    {suits[card.suit]}</span>;
+  return <span aria-hidden="true" className="rr-pip-field" style={{gridTemplateRows:'repeat(' + rows.length + ', 1fr)'}}>
+    {rows.flatMap((columns, row) => columns.map(col => <i key={row + '-' + col}
+      style={{gridColumn: col + 1, gridRow: row + 1}}>{suits[card.suit]}</i>))}
+  </span>;
+}
 
 export function PlayingCard({ card, copy }) {
   const rank = ranks[card.rank] ?? card.rank;
@@ -12,7 +29,7 @@ export function PlayingCard({ card, copy }) {
   return <span className={'rr-card' + (red ? ' is-red' : '')}
     role="img" aria-label={copy.card(rank, copy[card.suit])}>
     <span className="rr-corner" aria-hidden="true">{rank}<small>{suits[card.suit]}</small></span>
-    <span className="rr-pip" aria-hidden="true">{suits[card.suit]}</span>
+    <CardFace card={card} />
     <span className="rr-corner reverse" aria-hidden="true">{rank}</span>
   </span>;
 }
@@ -34,7 +51,7 @@ function Seat({ player, index, position, active, winner, lang, copy }) {
   const live = ['ACTIVE', 'ALL_IN'].includes(player.status);
   const stateLabel = winner ? copy.winner : active ? copy.acting : copy[player.status];
   return <div className={['rr-seat', 'pos-' + position, active && 'is-active', winner && 'is-winner',
-    !live && 'is-folded'].filter(Boolean).join(' ')} data-testid={'seat-' + index}>
+    !live && 'is-folded'].filter(Boolean).join(' ')} data-seat={index} data-testid={'seat-' + index}>
     {live && <CardBacks />}
     <div className="rr-seatplate">
       <span className="rr-seat-number" title={copy.seat + ' ' + (index + 1)}>
@@ -46,8 +63,21 @@ function Seat({ player, index, position, active, winner, lang, copy }) {
     </div>
     <span className="rr-seat-status"><i />{active || !live || winner || player.status === 'ALL_IN'
       ? stateLabel : copy[player.type]}{BigInt(player.round) > 0n &&
-      <span title={copy.contributed}>{' · ' + chipText(player.round, lang)}</span>}</span>
+      <span className="rr-round-chips" title={copy.contributed}
+        aria-label={copy.contributed + ' ' + chipText(player.round, lang)}>{chipText(player.round, lang)}</span>}</span>
   </div>;
+}
+
+const streets = ['PREFLOP', 'FLOP', 'TURN', 'RIVER'];
+
+function StreetProgress({ game, copy }) {
+  const reached = game.board.length === 0 ? 0 : game.board.length - 2;
+  return <ol className="rr-street-progress" aria-label={copy.streets}>
+    {streets.map((street, index) => <li key={street} data-reached={index <= reached}
+      aria-current={street === game.phase ? 'step' : undefined}>
+      <i aria-hidden="true"/>{copy[street]}
+    </li>)}
+  </ol>;
 }
 
 export function TableSurface({ game, lang, copy, privateView }) {
@@ -63,7 +93,7 @@ export function TableSurface({ game, lang, copy, privateView }) {
             ? <PlayingCard key={game.handId + ':' + index} card={game.board[index]} copy={copy} />
             : <span className="rr-slot" key={index} aria-hidden="true">◇</span>)}
         </div>
-        <div className="rr-street"><span />{copy[game.phase]}<span /></div>
+        <StreetProgress game={game} copy={copy} />
       </div>
       {Array.from({ length: 6 }, (_, index) => {
         const player = game.players.find(p => p.seat === index);
@@ -79,6 +109,7 @@ export function BettingControls({ game, player, hole, copy, lang, submit, concea
   const { legal } = game;
   const [target, setTarget] = useState(legal.min);
   const wager = legal.actions.find(action => action === 'BET' || action === 'RAISE');
+  const preview = wager && wagerPreview(target, legal, player.round, player.stack);
   return <section className="rr-actions rr-private" aria-label={copy.actions}>
     <div className="rr-pocket" data-testid="private-hand" aria-label={copy.cards}>
       {hole.map((card, index) => <PlayingCard key={index} card={card} copy={copy} />)}
@@ -90,16 +121,19 @@ export function BettingControls({ game, player, hole, copy, lang, submit, concea
         <label>{wager === 'RAISE' ? copy.raiseTo : copy.betTo}
           <input inputMode="numeric" type="text" maxLength={19} value={target}
             onChange={e => setTarget(e.target.value)} spellCheck="false"
-            aria-invalid={!validTarget(target, legal.min, legal.max)} /></label>
+            aria-describedby="rr-wager-preview" aria-invalid={!preview} /></label>
         <button type="button" onClick={() => setTarget(legal.min)}>{copy.min}</button>
         <button type="button" onClick={() => setTarget(legal.max)}>{copy.max}</button>
-        <small>{copy.limits(chipText(legal.min, lang), chipText(legal.max, lang))}</small>
+        <span className="rr-wager-preview" id="rr-wager-preview" aria-live="polite">{preview
+          ? <><span>{copy.addNow} <b>{chipText(preview.cost, lang)}</b></span>
+            <span>{copy.leftBehind} <b>{chipText(preview.remaining, lang)}</b></span></>
+          : copy.sizingRange(chipText(legal.min, lang), chipText(legal.max, lang))}</span>
       </div>}
       <div className="rr-action-buttons">
         {legal.actions.filter(action => action !== wager).map(action => <button type="button"
           key={action} className={action === 'FOLD' ? 'rr-secondary fold' : 'rr-secondary'}
           onClick={() => submit(action)}>{copy[action]}{action === 'CALL' && ' ' + chipText(legal.call, lang)}</button>)}
-        {wager && <button type="button" className="rr-primary" disabled={!validTarget(target, legal.min, legal.max)}
+        {wager && <button type="button" className="rr-primary" disabled={!preview}
           onClick={() => submit(wager, BigInt(target).toString())}>{copy[wager]}</button>}
       </div>
     </div>
@@ -115,7 +149,7 @@ export function Results({ game, copy, lang }) {
     </div>
     <div className="rr-scroll"><table>
       <thead><tr><th scope="col">{copy.player}</th>{tab === 'result'
-        ? ['before', 'payout', 'refund', 'after', 'net'].map(key => <th key={key} scope="col">{copy[key]}</th>)
+        ? ['net', 'before', 'payout', 'refund', 'after'].map(key => <th key={key} scope="col">{copy[key]}</th>)
         : <><th scope="col">{copy.hands}</th>{Object.entries(metrics).map(([key, name]) =>
           <th key={key} scope="col" title={copy.metric[key]}>{name}</th>)}</>}</tr></thead>
       <tbody>{game.players.map(player => {
@@ -124,16 +158,21 @@ export function Results({ game, copy, lang }) {
         const delta = BigInt(result.after[id]) - BigInt(result.before[id]);
         const stats = game.metrics[id] || { handsPlayed: 0, rates: {} };
         return <tr key={id}><th scope="row">{player.name}</th>{tab === 'result' ? <>
+          <td><span className={'rr-net-pill ' + (delta > 0n ? 'gain' : delta < 0n ? 'loss' : 'even')}>
+            {delta > 0n && '+'}{chipText(delta, lang)}</span></td>
           <td>{chipText(result.before[id], lang)}</td>
           <td>{chipText(result.payouts[id] || '0', lang)}</td>
           <td>{chipText(result.refunds[id] || '0', lang)}</td>
           <td>{chipText(result.after[id], lang)}</td>
-          <td className={delta > 0n ? 'positive' : delta < 0n ? 'negative' : ''}>
-            {delta > 0n && '+'}{chipText(delta, lang)}</td></> : <>
+          </> : <>
           <td>{stats.handsPlayed}</td>{Object.keys(metrics).map(key => <td key={key}>
             {key in stats.rates ? stats.rates[key].toLocaleString(lang, { maximumFractionDigits: 1 })
               + (key === 'af' || key === 'gap' ? '' : '%') : '—'}</td>)}</>}</tr>;
       })}</tbody>
     </table></div>
+    {tab === 'stats' && <details className="rr-stats-guide"><summary>{copy.statsGuide}</summary>
+      <dl>{Object.entries(metrics).map(([key, short]) =>
+        <div key={key}><dt>{short}</dt><dd>{copy.metric[key]}</dd></div>)}</dl>
+    </details>}
   </section>;
 }
