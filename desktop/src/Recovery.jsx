@@ -64,7 +64,7 @@ export default function Recovery({lang = 'en', id, request, onAccount, onClose})
     {error === 'recovery' && <button className="rr-secondary" type="button" onClick={retry}>{t.retry}</button>}
     {outcome ? <div className="rr-result">
       <p role="status">{t.results[outcome]}</p>
-      <button className="rr-secondary" type="button" onClick={retry}>{t.newQuiz}</button>
+      <button className="rr-secondary" type="button" onClick={retry}>{outcome === 'WRONG_ANSWERS' ? t.retry : t.newQuiz}</button>
     </div> : challenge ? <form onSubmit={submit}>
       {challenge.questions.map((question, index) => <fieldset key={question.id} disabled={submitting}>
         <legend>{index + 1}. {question.prompt}</legend>

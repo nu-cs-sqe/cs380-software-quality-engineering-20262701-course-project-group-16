@@ -1,6 +1,6 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {AccessForm, PrivateAccount} from './LobbyAccount.jsx';
-import {emptySeats, minimumPlayerCount, occupy, readyPlayers, SEAT_COUNT} from './lobby-model.mjs';
+import {availableProfiles, emptySeats, minimumPlayerCount, occupy, readyPlayers, SEAT_COUNT} from './lobby-model.mjs';
 import {lobbyLanguage} from './lobby-language.mjs';
 import './lobby.css';
 
@@ -136,7 +136,7 @@ export default function Lobby({lang = 'en', request, onStart}) {
     });
   }
 
-  const available = profiles.filter(profile => !seats.some(other => other.id === profile.id));
+  const available = availableProfiles(profiles, seats);
   return <main className="rr-lobby"><Hero t={t}/>
     <div className="rr-lobby-grid">
       <section className="rr-panel rr-roster" aria-label={t.roster}>

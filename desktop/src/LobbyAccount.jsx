@@ -32,7 +32,7 @@ export function AccessForm({t, slot, seat, profiles, busy, onAuth}) {
       {login && !seat.id && <label>{t.account}
         <select value={id} onChange={event => setChoice(event.target.value)} disabled={busy || !profiles.length}>
           {!profiles.length && <option value="">{t.choose}</option>}
-          {profiles.map(profile => <option key={profile.id} value={profile.id}>{profile.name}</option>)}
+          {profiles.map(profile => <option key={profile.id} value={profile.id}>{profile.label}</option>)}
         </select>
       </label>}
       {!login && <label>{t.displayName}
@@ -128,7 +128,7 @@ export function PrivateAccount({lang, account, seat, slot, request, onAccount, o
         {tab === 'statistics' && <Statistics account={account} lang={lang} t={t}/>}
         {tab === 'history' && <History account={account} lang={lang} t={t}/>}
       </>}
-    <div className="rr-signout"><button type="button" className="rr-text" onClick={onLeave}
+    <div className="rr-signout"><small>{t.accountId} · {account.id}</small><button type="button" className="rr-text" onClick={onLeave}
       disabled={busy}>{t.leave}</button></div>
   </>;
 }

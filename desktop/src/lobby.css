@@ -143,6 +143,7 @@
 .rr-balance small { font: 400 13px 'DM Sans', sans-serif; color: var(--rr-muted); }
 .rr-recover-link { margin-top: 12px; }
 .rr-signout { border-top: 1px solid var(--rr-line); margin-top: 15px; padding-top: 9px; }
+.rr-signout small { display: block; font-size: 11px; color: var(--rr-muted); overflow-wrap: anywhere; margin: 1px 0 4px; }
 .rr-signout .rr-text { color: #b4c3b6; }
 .rr-error { color: #ffd0b6; background: #3b2d24; border: 1px solid #6d5040; border-radius: 6px; font-size: 13px; padding: 9px 11px; line-height: 1.5; }
 .rr-metrics dl { margin: 0; }

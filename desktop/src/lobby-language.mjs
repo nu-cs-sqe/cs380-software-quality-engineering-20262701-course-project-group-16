@@ -8,7 +8,7 @@ export const lobbyLanguage = {
     start: 'Start game', startHelp: 'Ready players join the game. Computers fill the other seats.',
     readyCount: (a, b) => a + ' ready · ' + b + (b === 1 ? ' computer' : ' computers'),
     access: 'Player access', private: 'Account', signIn: 'Sign in', register: 'Create account',
-    account: 'Saved account', displayName: 'Display name', password: 'Password',
+    account: 'Saved account', accountId: 'Account ID', displayName: 'Display name', password: 'Password',
     namePlaceholder: 'Enter a display name', passwordPlaceholder: 'Enter your password',
     policy: 'Use 6–15 characters. Passwords are case-sensitive.',
     shared: 'Only this player’s account opens on the shared screen.',
@@ -26,7 +26,7 @@ export const lobbyLanguage = {
     quizIntro: 'Score at least 4 of 5 to earn 200 chips when your balance is below 400. Up to three rewards per local day. Practice at any balance.',
     quizProgress: (n, total) => n + ' of ' + total + ' answered',
     results: {
-      WRONG_ANSWERS: 'You need at least four correct answers. Try a new challenge.',
+      WRONG_ANSWERS: 'You need at least four correct answers. Try the questions again.',
       AWARDED: '200 chips added to your account.', ALREADY_AWARDED: 'You already received this reward.',
       DAILY_LIMIT: 'You have earned all three rewards today. You can still practice.',
       FUNDED: 'Practice complete. Your balance already covers the minimum buy-in.'
@@ -54,7 +54,7 @@ export const lobbyLanguage = {
     start: '开始游戏', startHelp: '已准备的玩家将加入游戏，其余座位由电脑补齐。',
     readyCount: (a,b) => a + ' 人已准备 · ' + b + ' 位电脑玩家',
     access: '玩家登录', private: '账号', signIn: '登录', register: '注册账号',
-    account: '已保存的账号', displayName: '显示名称', password: '密码',
+    account: '已保存的账号', accountId: '账号 ID', displayName: '显示名称', password: '密码',
     namePlaceholder: '输入显示名称', passwordPlaceholder: '输入密码',
     policy: '使用 6 至 15 个字符，密码区分大小写。',
     shared: '共享屏幕上仅显示当前玩家的账号信息。', noProfiles: '暂无可用账号，请注册后加入。', choose: '选择账号',
@@ -70,7 +70,7 @@ export const lobbyLanguage = {
     quizIntro: '余额低于 400 筹码时，答对五题中的至少四题可获 200 筹码。每天最多领取三次，任何余额均可练习。',
     quizProgress: (n,total) => '已答 ' + n + ' / ' + total + ' 题',
     results: {
-      WRONG_ANSWERS: '至少需要答对四题，请开始新挑战再试一次。', AWARDED: '已向账号发放 200 筹码。',
+      WRONG_ANSWERS: '至少需要答对四题，请再作答一次。', AWARDED: '已向账号发放 200 筹码。',
       ALREADY_AWARDED: '这次挑战的奖励已领取。', DAILY_LIMIT: '您已领完今天的三次奖励，仍可继续练习。',
       FUNDED: '练习完成。您的余额已经达到最低买入额。'
     },

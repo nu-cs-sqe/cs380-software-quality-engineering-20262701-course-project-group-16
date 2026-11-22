@@ -35,3 +35,14 @@ export function minimumPlayerCount(seats) {
 export function formatChips(value, lang) {
   return BigInt(value).toLocaleString(lang === 'zh' ? 'zh-CN' : 'en-US');
 }
+
+export function availableProfiles(profiles, seats) {
+  const names = new Set();
+  const repeated = new Set();
+  for (const {name} of profiles) {
+    if (names.has(name)) repeated.add(name);
+    names.add(name);
+  }
+  return profiles.filter(profile => !seats.some(seat => seat.id === profile.id))
+    .map(({id, name}) => ({id, label: repeated.has(name) ? name + ' · ' + id : name}));
+}

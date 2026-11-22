@@ -37,3 +37,16 @@ test('only unoccupied slots can be removed when changing the local player count'
   seats[2] = lobby.occupy(seats, 2, {id:'a', name:'Alice'});
   assert.equal(lobby.minimumPlayerCount(seats), 3);
 });
+
+test('same-name login choices keep distinct identifiers even when one account is seated', () => {
+  const profiles = [
+    {id:'common-0001', name:'Jules'}, {id:'common-0002', name:'Jules'}, {id:'s', name:'Sam'}
+  ];
+  const seats = lobby.emptySeats();
+  const labels = () => lobby.availableProfiles(profiles, seats).map(p => [p.id, p.label]);
+  assert.deepEqual(labels(), [
+    ['common-0001','Jules · common-0001'], ['common-0002','Jules · common-0002'], ['s','Sam']
+  ]);
+  seats[1] = lobby.occupy(seats, 1, profiles[0]);
+  assert.deepEqual(labels(), [['common-0002','Jules · common-0002'], ['s','Sam']]);
+});
