@@ -352,3 +352,27 @@
   .rr-game .rr-street-progress { gap: 4px; }
   .rr-game .rr-street-progress li { font-size: 9px; }
 }
+
+.rr-game .rr-pocket .rr-card { animation: none; }
+.rr-game .rr-settlement-summary {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 20px 32px;
+  padding: 18px clamp(16px, 2vw, 30px); margin-top: 10px;
+  background: radial-gradient(ellipse at top left, #2d4537, #1a2d23 72%);
+  border: 1px solid #405447; border-radius: 12px;
+}
+.rr-game .rr-settlement-summary small { display: block; margin-bottom: 4px; color: #c5cebf;
+  font-size: 10px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; }
+.rr-game .rr-settlement-summary strong { display: block; color: var(--paper); font-variant-numeric: tabular-nums; }
+.rr-game .rr-settlement-value { display: flex; align-items: center; gap: 16px; }
+.rr-game .rr-settlement-value strong { color: #f1e1bd; font-size: clamp(24px, 2.4vw, 36px); line-height: 1.1; }
+.rr-game .rr-settlement-return { padding-left: 20px; border-left: 1px solid #586559; }
+.rr-game .rr-final-board { margin-left: auto; --card-width: 36px; }
+.rr-game .rr-final-board .rr-card { animation: none; }
+.rr-game .rr-final-table { color: var(--quiet); margin-top: 14px; }
+.rr-game .rr-final-table summary { width: fit-content; padding-block: 8px; cursor: pointer; }
+.rr-game .rr-final-table summary:focus-visible { outline: 2px solid var(--mint); outline-offset: 2px; }
+
+.rr-game .from-actor .pos-0 .rr-cardbacks { display: none; }
+@media (max-height: 700px) and (min-width: 621px) {
+  .rr-game .from-actor .pos-3 .rr-cardbacks { top: -12px; }
+}

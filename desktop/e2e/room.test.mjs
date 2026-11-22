@@ -33,6 +33,7 @@ async function join(page, seat, name, amount) {
   await form.locator('form button[type=submit]').click();
   await form.getByLabel('Opening buy-in').fill(amount);
   await button(form,'Ready to play').click();
+  await form.locator('.rr-balance').waitFor({state:'detached'});
 }
 
 async function startTable(page, names) {
@@ -71,10 +72,19 @@ test('six shared seats play a hand, hide private cards and keep the paid result 
         await button(page,'Fold').click();
         await hole.waitFor({state:'detached'});
       }
+      await button(page,'Hand results').waitFor();
+      assert.equal(await page.locator('.rr-arena').isVisible(),false);
+      assert.equal(await page.locator('.rr-final-board').count(),0);
+      const headers = await page.getByRole('columnheader').allTextContents();
+      assert.deepEqual(headers.slice(0,2), ['Player','Net']);
       await button(page,'Session statistics').click();
+      await page.getByText('Statistics guide',{exact:true}).click();
+      await page.getByText('Voluntarily put chips in pot',{exact:true}).waitFor();
       assert.equal(await page.getByRole('columnheader',{name:'VPIP'}).count(),1);
       const state = await page.evaluate(() => window.poker.request('state'));
       assert.equal(state.paid,true);
+      const awarded = Object.values(state.result.payouts).reduce((total, value) => total + BigInt(value), 0n);
+      assert.equal(await page.getByTestId('awarded-chips').innerText(),awarded.toLocaleString('en-US'));
       assert.deepEqual(state.hole,[]);
       const accounts = state.players.map(player => player.accountId);
       const balances = Object.values(state.funds).map(funds=>BigInt(funds.balance));
@@ -158,7 +168,14 @@ test('a raised six-player hand reaches showdown, saves the pot and returns to th
         const first = !streets.has(game.phase);
         streets.add(game.phase);
         if (first && game.phase === 'PREFLOP') {
+          await page.getByLabel('Raise to').fill('4000');
+          assert.equal(await button(page,'Raise').isDisabled(),true);
           await page.getByLabel('Raise to').fill('40');
+          const actor = game.players.find(player => player.seat === game.actor);
+          const extra = 40n - BigInt(actor.round);
+          const preview = await page.locator('#rr-wager-preview').innerText();
+          assert.ok(preview.includes('Add now ' + extra));
+          assert.ok(preview.includes('Stack after ' + (BigInt(actor.stack) - extra)));
           await button(page,'Raise').click();
         } else if (first && game.phase === 'FLOP') {
           await page.getByLabel('Bet amount').fill('20');
@@ -174,6 +191,10 @@ test('a raised six-player hand reaches showdown, saves the pot and returns to th
       const result = await page.evaluate(() => window.poker.request('state'));
       assert.deepEqual([...streets],['PREFLOP','FLOP','TURN','RIVER']);
       assert.equal(result.board.length,5);
+      assert.equal(await page.locator('.rr-final-board [role=img]').count(),5);
+      await page.getByText('Review final table',{exact:true}).click();
+      assert.equal(await page.locator('.rr-arena').isVisible(),true);
+      assert.equal(await page.locator('.rr-arena .rr-cardbacks').count(),0);
       assert.equal(result.paid,true);
       assert.ok(result.result.winners.length > 0);
       assert.equal(Object.values(result.funds).reduce((total,fund) => total+BigInt(fund.balance),0n),12000n);

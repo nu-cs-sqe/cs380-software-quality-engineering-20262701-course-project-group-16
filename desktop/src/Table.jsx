@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { flushSync } from 'react-dom';
 import { chipText, handoffGate, publicSnapshot, seatedNames, needsSettlement } from './table-state.mjs';
 import { tableCopy } from './table-copy.mjs';
-import { BettingControls, CardBacks, Results, TableSurface } from './TableSurface.jsx';
+import { BettingControls, CardBacks, Results, SettlementSummary, TableSurface } from './TableSurface.jsx';
 import TableOptions from './TableOptions.jsx';
 import './table.css';
 
@@ -224,6 +224,8 @@ export default function Table({ lang, request, initialGame, onEnd }) {
     setOptions(page);
   }
 
+  const settled = game.paid && game.result;
+  const surface = <TableSurface game={game} copy={copy} lang={lang} privateView={hole.length > 0} />;
   return <main className="rr-game" data-testid="poker-table">
     <header className="rr-table-heading">
       <div><div className="rr-kicker"><i />{copy.stakes} · {game.players.length} {copy.seats}</div>
@@ -235,10 +237,10 @@ export default function Table({ lang, request, initialGame, onEnd }) {
           aria-label={copy.manage} title={copy.manage}><i /><i /><i /></button>
       </div>
     </header>
-    <TableSurface game={game} copy={copy} lang={lang} privateView={hole.length > 0} />
+    {!settled && surface}
     {error && !options && <div className="rr-alert" role="alert">{error}
       <button type="button" onClick={() => setFailure(undefined)}>{failure.op === 'bot' ? copy.retry : copy.dismiss}</button></div>}
-    <LastAction game={game} copy={copy} lang={lang} />
+    {!settled && <LastAction game={game} copy={copy} lang={lang} />}
     {actor?.type === 'HUMAN' && screen === 'curtain' && !options
       ? <HandoffCurtain game={game} actor={actor} copy={copy} lang={lang} busy={busy} error={error}
           viewTable={() => setScreen('board')} reveal={() => execute('reveal', { id: actor.accountId })} />
@@ -247,7 +249,13 @@ export default function Table({ lang, request, initialGame, onEnd }) {
           <h2>{copy.pass(actor.name)}</h2></div></section>
         : <TurnStrip game={game} actor={actor} hole={hole} copy={copy} lang={lang} busy={busy}
       execute={execute} conceal={conceal} openOptions={openOptions} saveFailed={failedSaveHand === game.handId} />}
-    {game.paid && game.result && <Results key={game.handId} game={game} copy={copy} lang={lang} />}
+    {settled && <>
+      <SettlementSummary game={game} copy={copy} lang={lang} />
+      <Results key={game.handId} game={game} copy={copy} lang={lang} />
+      <details className="rr-final-table"><summary>{copy.finalTable}</summary>
+        {surface}<LastAction game={game} copy={copy} lang={lang} />
+      </details>
+    </>}
     {options && <TableOptions game={game} copy={copy} lang={lang} request={request} initialPage={options}
       execute={execute} refresh={refresh} busy={busy} error={error} close={() => setOptions('')} />}
   </main>;

@@ -46,13 +46,13 @@ function Chips() {
   </span>;
 }
 
-function Seat({ player, index, position, active, winner, lang, copy }) {
+function Seat({ player, index, position, active, winner, paid, lang, copy }) {
   if (!player) return <div className={'rr-seat vacant pos-' + position}>{copy.vacant}</div>;
   const live = ['ACTIVE', 'ALL_IN'].includes(player.status);
   const stateLabel = winner ? copy.winner : active ? copy.acting : copy[player.status];
   return <div className={['rr-seat', 'pos-' + position, active && 'is-active', winner && 'is-winner',
     !live && 'is-folded'].filter(Boolean).join(' ')} data-seat={index} data-testid={'seat-' + index}>
-    {live && <CardBacks />}
+    {live && !paid && <CardBacks />}
     <div className="rr-seatplate">
       <span className="rr-seat-number" title={copy.seat + ' ' + (index + 1)}>
         {String(index + 1).padStart(2, '0')}
@@ -80,13 +80,32 @@ function StreetProgress({ game, copy }) {
   </ol>;
 }
 
+function sumChips(amounts) {
+  return Object.values(amounts).reduce((total, amount) => total + BigInt(amount), 0n);
+}
+
+export function SettlementSummary({ game, copy, lang }) {
+  const returned = sumChips(game.result.refunds);
+  return <section className="rr-settlement-summary" aria-label={copy.paid}>
+    <div className="rr-settlement-value"><Chips /><div><small>{copy.awarded}</small>
+      <strong data-testid="awarded-chips">{chipText(sumChips(game.result.payouts), lang)}</strong></div></div>
+    {returned > 0n && <div className="rr-settlement-return"><small>{copy.refund}</small>
+      <strong>{chipText(returned, lang)}</strong></div>}
+    {game.board.length > 0 && <div className="rr-final-board"><small>{copy.board}</small>
+      <div className="rr-board">{game.board.map((card, index) =>
+        <PlayingCard key={index} card={card} copy={copy} />)}</div></div>}
+  </section>;
+}
+
 export function TableSurface({ game, lang, copy, privateView }) {
+  const potLabel = game.paid ? copy.awarded : copy.pot;
+  const pot = chipText(game.paid ? sumChips(game.result.payouts) : game.pot, lang);
   return <section className="rr-arena" aria-label={copy.table}>
     <div className={'rr-table-layout' + (privateView ? ' from-actor' : '')}>
       <div className="rr-rail" aria-hidden="true"><div className="rr-felt" /></div>
       <div className="rr-center">
-        <div className="rr-pot" key={game.pot} aria-label={copy.pot + ' ' + chipText(game.pot, lang)}>
-          <Chips /><div><small>{copy.pot}</small><strong>{chipText(game.pot, lang)}</strong></div>
+        <div className="rr-pot" key={game.pot} aria-label={potLabel + ' ' + pot}>
+          <Chips /><div><small>{potLabel}</small><strong>{pot}</strong></div>
         </div>
         <div className="rr-board" aria-label={copy.board} data-testid="community-cards">
           {Array.from({ length: 5 }, (_, index) => game.board[index]
@@ -99,7 +118,7 @@ export function TableSurface({ game, lang, copy, privateView }) {
         const player = game.players.find(p => p.seat === index);
         const position = privateView ? (index - game.actor + 6) % 6 : index;
         return <Seat key={index} index={index} position={position} player={player} active={game.actor === index}
-          winner={game.result && game.result.winners.includes(player?.id)} copy={copy} lang={lang} />;
+          paid={game.paid} winner={game.result && game.result.winners.includes(player?.id)} copy={copy} lang={lang} />;
       })}
     </div>
   </section>;

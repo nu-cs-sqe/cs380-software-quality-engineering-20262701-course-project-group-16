@@ -1,4 +1,5 @@
 const en = {
+  awarded: 'Chips awarded', finalTable: 'Review final table',
   streets: 'Hand progress', addNow: 'Add now', leftBehind: 'Stack after', statsGuide: 'Statistics guide',
   sizingRange: (min, max) => 'Enter ' + min + '–' + max + ' chips.',
   saving: 'Saving hand…', retrySave: 'Retry settlement',
@@ -39,6 +40,7 @@ const en = {
     wtsd: "Went to showdown", wsd: "Won at showdown" },
 };
 const zh = {
+  awarded: '已分配筹码', finalTable: '回看最终牌桌',
   streets: '本手进度', addNow: '本次投入', leftBehind: '下注后剩余', statsGuide: '统计指标说明',
   sizingRange: (min, max) => '请输入 ' + min + ' 至 ' + max + ' 筹码。',
   saving: '正在保存本局…', retrySave: '重试结算',
