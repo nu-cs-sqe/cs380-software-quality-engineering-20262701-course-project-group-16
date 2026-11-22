@@ -19,11 +19,14 @@ npm start
 ```
 
 - Choose the number of local players. Pass the computer to each person to sign in
-  or register, choose a buy-in and mark their seat ready. Select **Start game** to deal.
+  or register and choose a buy-in. **Ready to play** locks that account and selects
+  the next person. Select **Start game** to deal.
 - When a human acts, pass the computer to the player named on the screen. That player
   confirms before seeing their cards. The cards disappear after the action or when
   the game window loses focus.
-- After each hand, review payouts, refunds, net changes and session statistics.
+- Before a bet or raise, check how many chips it costs and how many you will have left.
+- After each hand, review net changes, payouts and refunds. Open **Session statistics**
+  for player metrics or **Review final table** to revisit the board.
   Use **Table options** to add chips between hands. The interface opens in English
   and also supports Chinese.
 

@@ -1026,9 +1026,9 @@ peer review and remote CI pending.
 
 ### Kevin — Shared-computer desktop table, November 21
 
-- **Goal and outcome:** Built the React/Electron desktop app locally on `feature/desktop-poker`. Players sign in, choose a buy-in and mark themselves ready. Bots fill empty seats. Each human confirms their turn before seeing cards. Each paid hand opens the chip and statistics tables.
-- **Checkpoints:** Lobby `6bc652b`, table `28b45ed`, Java/SQLite connection `2db7a8d`, packaging `01423d6`, automatic settlement `5aa7010`, desktop tests `a57dc3e`.
-- **Verification:** 1,660 Java tests and 15 desktop unit tests passed. Three tests ran against the packaged Apple Silicon app, covering private handoffs, bot seats, a raised hand through showdown, top-ups and balances after restart. Windows and Linux desktop testing remains open.
+- **Goal and outcome:** Built the React/Electron desktop app locally on `feature/desktop-poker`. Players sign in, choose a buy-in and mark themselves ready. Bots fill empty seats. Each human confirms their turn before seeing cards. Ready locks the account before handoff. A raise preview shows its cost. After settlement, the table shows each player’s net change and offers a board review.
+- **Checkpoints:** Lobby `6bc652b`, table `28b45ed`, Java/SQLite connection `2db7a8d`, packaging `01423d6`, automatic settlement `5aa7010`, desktop tests `a57dc3e`. Handoff `b7f65b1`, wager preview `282b6a8`, settlement view `572953e`.
+- **Verification:** 1,660 Java tests passed at the engine checkpoint. All 17 desktop unit tests passed after the UI changes. Three tests ran against the packaged Apple Silicon app, covering private handoffs, bot seats, a raised hand through showdown, top-ups and balances after restart. Windows and Linux desktop testing remains open.
 
 ## Future weekly report template
 
