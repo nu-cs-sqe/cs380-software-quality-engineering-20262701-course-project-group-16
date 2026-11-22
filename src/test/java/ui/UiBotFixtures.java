@@ -5,7 +5,9 @@ import application.BotFailure;
 import application.BotScheduler;
 import application.BotTurn;
 import application.ProfileService;
+import application.RecoveryService;
 import application.SetupSession;
+import application.TableAccountStore;
 import domain.model.ActionRequest;
 import domain.model.ActionType;
 import java.util.function.Consumer;
@@ -22,6 +24,18 @@ final class UiBotFixtures {
     static GamePanel passive(SetupSession session, ProfileService profiles) {
         return new GamePanel(session, profiles, changed -> new BotController(session,
                 new PassiveScheduler(), changed));
+    }
+
+    static GamePanel passive(SetupSession session, ProfileService profiles,
+            TableAccountStore store) {
+        return new GamePanel(session, profiles, store, changed -> new BotController(session,
+                new PassiveScheduler(), changed));
+    }
+
+    static GamePanel passive(SetupSession session, ProfileService profiles,
+            TableAccountStore store, RecoveryService recovery) {
+        return new GamePanel(session, profiles, store, recovery,
+                changed -> new BotController(session, new PassiveScheduler(), changed));
     }
 
     private static final class PassiveScheduler implements BotScheduler {

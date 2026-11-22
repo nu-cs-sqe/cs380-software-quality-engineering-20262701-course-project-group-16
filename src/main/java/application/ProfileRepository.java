@@ -9,4 +9,8 @@ public interface ProfileRepository {
     List<StoredProfile> load() throws IOException;
 
     void save(List<StoredProfile> profiles) throws IOException;
+
+    default List<ChipHistoryEntry> loadChipHistory(String profileId) throws IOException {
+        return List.of();
+    }
 }

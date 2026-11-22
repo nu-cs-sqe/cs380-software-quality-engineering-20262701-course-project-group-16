@@ -522,12 +522,29 @@ public final class SetupSession implements BotSession {
 
     private void startAccountTable(ProfileService profiles, List<AuthenticatedProfile> humans,
             TableAccountStore store, Optional<Map<String, Long>> buyIns) {
+        startAccountTable(profiles, humans, store, buyIns, Optional.empty());
+    }
+
+    /** Opens a default buy-in table using balances read by the desktop's profile worker. */
+    public void startTableWithLoadedBalances(ProfileService profiles,
+            List<AuthenticatedProfile> humans, TableAccountStore store,
+            Map<String, Long> balances) {
+        startAccountTable(profiles, humans, store, Optional.empty(),
+                Optional.of(Map.copyOf(balances)));
+    }
+
+    private void startAccountTable(ProfileService profiles, List<AuthenticatedProfile> humans,
+            TableAccountStore store, Optional<Map<String, Long>> buyIns,
+            Optional<Map<String, Long>> loadedBalances) {
         requireNoPendingSettlement();
         hideCards();
         ProfileMatch.requireAccounts(profiles, humans);
         GameState initial = initializer.start(humans.size());
         ProfileMatch binding = new ProfileMatch(profiles, humans, initial);
-        AccountTable table = AccountTable.open(store, binding.profileIds(), initial);
+        Map<String, String> accounts = binding.profileIds();
+        AccountTable table = loadedBalances.map(balances ->
+                AccountTable.open(store, accounts, initial, balances))
+                .orElseGet(() -> AccountTable.open(store, accounts, initial));
         Map<String, Long> choices = buyIns.orElseGet(table::defaultBuyIns);
         GameState started = advanceClosedRounds(
                 continuation.reseat(initial, table.openingRoster(initial, choices), false));
@@ -628,6 +645,25 @@ public final class SetupSession implements BotSession {
             throw new IllegalStateException("Refresh balances between settled hands.");
         }
         accountTable = Optional.of(table.refresh(requireMatch(), departed));
+    }
+
+    /** Prevents account credits from invalidating an unsettled hand's opening balance. */
+    public boolean canRecoverAccount(String accountId) {
+        return !getProfileIds().containsValue(accountId) || settlement.isPresent();
+    }
+
+    /** Applies an already saved reward to a seated account between hands, without storage I/O. */
+    public void applyRecoveredBalance(String accountId, long balance) {
+        if (tableStopped || !getTableFunds().containsKey(accountId)) {
+            return;
+        }
+        requireNoPendingSettlement();
+        if (settlement.isEmpty()) {
+            throw new IllegalStateException("Apply recovery between settled hands.");
+        }
+        AccountTable table = requireAccountTable();
+        accountTable = Optional.of(table.withRecoveredBalance(requireMatch(), departed,
+                accountId, balance));
     }
 
     /** Ends an account-table session between hands. Balances already contain all paid chips. */

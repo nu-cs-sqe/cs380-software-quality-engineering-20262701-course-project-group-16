@@ -167,6 +167,11 @@ class AccountTableIntegrationTest {
         SetupSession session = fixture.start();
         assertThrows(IllegalStateException.class, session::endTable);
         assertThrows(IllegalStateException.class, session::refreshTableBalances);
+        assertFalse(session.canRecoverAccount("account-0"));
+        assertTrue(session.canRecoverAccount("unseated"));
+        assertThrows(IllegalStateException.class,
+                () -> session.applyRecoveredBalance("account-0", 600));
+        session.applyRecoveredBalance("unseated", 600);
         session.submitAction(new ActionRequest(BotFixtures.actor(session), ActionType.RAISE, 400));
         BotFixtures.finish(session);
         session.settleHand();
@@ -182,7 +187,8 @@ class AccountTableIntegrationTest {
         assertTrue(session.getTableFunds().get(broke).needsRecovery());
         assertThrows(IllegalArgumentException.class, () -> session.addTableChips(broke, 399));
         fixture.store.balances.put(broke, 400L);
-        session.refreshTableBalances();
+        assertTrue(session.canRecoverAccount(broke));
+        session.applyRecoveredBalance(broke, 400);
         assertTrue(session.getTableFunds().get(broke).needsTopUp());
         session.addTableChips(broke, 400);
         assertEquals(400, session.getTableFunds().get(broke).getTableChips());
@@ -200,6 +206,7 @@ class AccountTableIntegrationTest {
         session.revealCards();
         assertFalse(session.getView().orElseThrow().getHoleCards().isEmpty());
         session.endTable();
+        session.applyRecoveredBalance(broke, 900);
         assertTrue(session.getView().orElseThrow().getHoleCards().isEmpty());
         assertThrows(IllegalStateException.class, session::refreshTableBalances);
         assertEquals(0, session.getTableFunds().get(broke).getTableChips());

@@ -318,8 +318,9 @@ to center the window, not a missing application value.
 
 Kevin owns settlement/departure fixes, table funding and the storage contract.
 Estella supplies SQLite/migration, recovery rewards and desktop integration.
-Existing `start`/`startProfiles` retain the desktop's legacy match rules until
-its caller switches to `startTable(profiles, humans, store)`.
+Legacy `start`/`startProfiles` retain their existing match rules. The desktop
+uses `startTableWithLoadedBalances` after reading authenticated balances on its
+profile worker. Initialization and payout publication stay on the Swing thread.
 
 - Six seats; humans choose an initial buy-in of at least 400 chips, bounded
   by their account balance, with no fixed upper limit. Without an explicit choice, use min(1,000, balance).
@@ -358,12 +359,14 @@ run the returned `PreparedSettlement.save` on a worker, then call
 `publishSettlement(token)` on the owner thread. Preparation freezes play;
 saving alone does not publish payment. On failure retry the same token; after
 success repeated saves do nothing. Unrelated, unsaved or already published
-tokens are rejected. The existing `settleHand` performs these steps synchronously
-and must be replaced in desktop callbacks that use a slow store.
+tokens are rejected. The desktop uses the asynchronous `settleHand` overload,
+which coordinates these steps without blocking Swing on SQLite.
 `prepareHandCompletion` offers an immutable preview without I/O or publication.
 
-The injected in-memory store tests this boundary; it does not verify SQLite
-transactions or the future desktop flow. Unfinished hands are not resumed.
+The in-memory store tests the game boundary. SQLite integration tests verify
+saved balances, atomic writes, reopen and same-payload retries. The Swing
+tests drive a live table through an ambiguous save and retry. Unfinished hands
+are not resumed.
 
 ### Chosen buy-in amounts
 
@@ -380,8 +383,9 @@ includes account affordability and numeric room for winnings/replacement seats;
 zero means funding is unavailable. During play, after departure and after closing
 the table, the maximum is zero. A lost stack below 400 can continue playing;
 adding funds must restore at least 400. A busted balance below 400 requests recovery.
-The database reward flow must support that threshold while enforcing three
-successful claims per local day; grants/questions remain Estella's work.
+The recovery flow uses the same threshold and permits three successful
+claims per local day. Rewards change the durable total but do not change
+the reserved stack or session gain.
 
 FundingCapacity validates signed-64-bit headroom before opening/funding a hand:
 current table money plus possible account credits and replacement-seat funding

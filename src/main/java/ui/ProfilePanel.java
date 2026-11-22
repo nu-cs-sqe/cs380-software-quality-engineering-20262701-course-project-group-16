@@ -1,9 +1,15 @@
 package ui;
 
 import application.AuthenticatedProfile;
+import application.ProfileOverview;
 import application.ProfileService;
+import application.BuyInLimits;
+import application.RecoveryChallenge;
+import application.RecoveryOutcome;
+import application.RecoveryService;
 import application.SetupSession;
 import application.StatisticsView;
+import application.TableAccountStore;
 import domain.model.PlayerProfile;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -17,8 +23,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
+import java.util.function.BiConsumer;
+import java.util.function.Predicate;
 import javax.swing.BorderFactory;
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
@@ -28,6 +37,7 @@ import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JScrollPane;
+import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
 import javax.swing.JTextArea;
 import javax.swing.SwingWorker;
@@ -61,6 +71,10 @@ final class ProfilePanel extends JPanel {
     private final JPanel signIn = new JPanel(new GridLayout(0, 1, 0, 7));
     private final JPanel selection = new JPanel(new BorderLayout(8, 8));
     private final StatisticsPanel lifetime = new StatisticsPanel("lifetimeTable");
+    private final ChipHistoryPanel chipHistory = new ChipHistoryPanel();
+    private final JTabbedPane accountDetails = new JTabbedPane();
+    private final RecoveryPanel recovery = new RecoveryPanel(this::beginRecovery,
+            this::submitRecovery);
     private boolean rendering;
     private boolean savingHand;
 
@@ -83,10 +97,101 @@ final class ProfilePanel extends JPanel {
         });
         joined.addListSelectionListener(event -> {
             if (!rendering && !event.getValueIsAdjusting() && !isBusy()) {
+                clearRecovery();
                 refreshLifetime();
             }
         });
         render();
+    }
+
+    void enableRecovery(RecoveryService service, Predicate<String> mayClaim,
+            BiConsumer<String, Long> updated) {
+        model.recovery = Optional.of(service);
+        model.mayClaim = mayClaim;
+        model.recovered = updated;
+        accountDetails.addTab(text("recovery.title"), recovery);
+        render();
+    }
+
+    private void beginRecovery() {
+        if (isBusy() || selectedAccountData().isEmpty()) {
+            return;
+        }
+        model.error = " ";
+        model.message = " ";
+        recovery.clearQuestions();
+        model.challenge = model.recovery.map(RecoveryService::begin);
+        render();
+    }
+
+    private void clearRecovery() {
+        model.challenge = Optional.empty();
+        recovery.clearQuestions();
+    }
+
+    private void submitRecovery() {
+        if (isBusy() || model.challenge.isEmpty() || selectedAccountData().isEmpty()) {
+            return;
+        }
+        AccountData account = selectedAccountData().orElseThrow();
+        RecoveryChallenge challenge = model.challenge.orElseThrow();
+        List<Integer> answers = recovery.answers();
+        if (answers.stream().anyMatch(choice -> choice < 0)) {
+            showRecoveryMessage("recovery.incomplete");
+            return;
+        }
+        String id = account.account.getProfile().getProfileId();
+        if (account.overview.getBalance() >= BuyInLimits.MINIMUM
+                || !model.mayClaim.test(id)) {
+            showPracticeResult(challenge, answers, account.overview.getBalance());
+            return;
+        }
+        saveRecovery(account, challenge, answers);
+    }
+
+    private void showPracticeResult(RecoveryChallenge challenge, List<Integer> answers,
+            long balance) {
+        if (challenge.score(answers) < RecoveryChallenge.PASS_SCORE) {
+            showRecoveryMessage("recovery.WRONG_ANSWERS");
+            return;
+        }
+        clearRecovery();
+        showRecoveryMessage(balance >= BuyInLimits.MINIMUM
+                ? "recovery.FUNDED" : "recovery.waitForHand");
+    }
+
+    private void showRecoveryMessage(String key) {
+        model.error = " ";
+        model.message = key;
+        render();
+    }
+
+    private void saveRecovery(AccountData account, RecoveryChallenge challenge,
+            List<Integer> answers) {
+        RecoveryService service = model.recovery.orElseThrow();
+        run(() -> saveAndReadRecovery(service, account.account, challenge, answers), result -> {
+            cacheAccountData(result.account);
+            publishRecovery(result);
+        }, () -> { });
+    }
+
+    private void publishRecovery(RecoveryResult result) {
+        if (result.outcome == RecoveryOutcome.AWARDED
+                || result.outcome == RecoveryOutcome.ALREADY_AWARDED) {
+            model.recovered.accept(result.account.account.getProfile().getProfileId(),
+                    result.account.overview.getBalance());
+        }
+        if (result.outcome != RecoveryOutcome.WRONG_ANSWERS) {
+            clearRecovery();
+        }
+        model.message = "recovery." + result.outcome.name();
+    }
+
+    private RecoveryResult saveAndReadRecovery(RecoveryService service,
+            AuthenticatedProfile account, RecoveryChallenge challenge, List<Integer> answers)
+            throws IOException {
+        RecoveryOutcome outcome = service.claim(account, challenge, answers);
+        return new RecoveryResult(outcome, readAccountData(account));
     }
 
     private void build() {
@@ -142,7 +247,9 @@ final class ProfilePanel extends JPanel {
         rosterFooter.add(remove, BorderLayout.CENTER);
         selection.add(rosterFooter, BorderLayout.SOUTH);
         JPanel statistics = new JPanel(new BorderLayout(0, 6));
-        statistics.add(lifetime, BorderLayout.CENTER);
+        accountDetails.addTab("", lifetime);
+        accountDetails.addTab("", chipHistory);
+        statistics.add(accountDetails, BorderLayout.CENTER);
         statistics.add(refreshStats, BorderLayout.SOUTH);
         JPanel bottom = new JPanel(new BorderLayout(12, 0));
         bottom.add(selection, BorderLayout.WEST);
@@ -188,6 +295,19 @@ final class ProfilePanel extends JPanel {
             throw new IllegalStateException("Account operation is still running.");
         }
         session.startProfiles(model.profiles, List.copyOf(model.humans));
+    }
+
+    void loadTableBalances(TableAccountStore store, Consumer<Map<String, Long>> ready) {
+        if (isBusy()) {
+            return;
+        }
+        Set<String> accounts = Set.copyOf(profileNames().keySet());
+        run(() -> store.getBalances(accounts), ready, () -> { });
+    }
+
+    void startTable(SetupSession session, TableAccountStore store, Map<String, Long> balances) {
+        session.startTableWithLoadedBalances(model.profiles, List.copyOf(model.humans),
+                store, balances);
     }
 
     Map<String, String> profileNames() {
@@ -243,8 +363,9 @@ final class ProfilePanel extends JPanel {
                 return;
             }
             AccountData data = result.orElseThrow();
+            clearRecovery();
             model.humans.add(data.account);
-            model.statistics.put(selected.getProfileId(), data.statistics);
+            cacheAccountData(data);
             model.selectedJoined = model.humans.size() - 1;
             model.message = "profile.ready";
             model.changed.run();
@@ -259,8 +380,7 @@ final class ProfilePanel extends JPanel {
             return Optional.empty();
         }
         AuthenticatedProfile verified = account.orElseThrow();
-        return Optional.of(new AccountData(verified,
-                model.profiles.getLifetimeStatistics(verified)));
+        return Optional.of(readAccountData(verified));
     }
 
     private void removeProfile() {
@@ -268,7 +388,8 @@ final class ProfilePanel extends JPanel {
             return;
         }
         AuthenticatedProfile removed = model.humans.remove(joined.getSelectedIndex());
-        model.statistics.remove(removed.getProfile().getProfileId());
+        clearRecovery();
+        model.accountData.remove(removed.getProfile().getProfileId());
         model.selectedJoined = Math.min(joined.getSelectedIndex(), model.humans.size() - 1);
         clearPasswords();
         model.message = " ";
@@ -284,8 +405,16 @@ final class ProfilePanel extends JPanel {
         }
         model.selectedJoined = index;
         AuthenticatedProfile account = model.humans.get(index);
-        run(() -> model.profiles.getLifetimeStatistics(account), stats ->
-                model.statistics.put(account.getProfile().getProfileId(), stats), () -> { });
+        run(() -> readAccountData(account), this::cacheAccountData, () -> { });
+    }
+
+    private AccountData readAccountData(AuthenticatedProfile account) throws IOException {
+        return new AccountData(account, model.profiles.getLifetimeStatistics(account),
+                model.profiles.getOverview(account));
+    }
+
+    private void cacheAccountData(AccountData data) {
+        model.accountData.put(data.account.getProfile().getProfileId(), data);
     }
 
     private <T> void run(ProfileWork<T> work, Consumer<T> success, Runnable cleanup) {
@@ -370,7 +499,7 @@ final class ProfilePanel extends JPanel {
             }
             joined.setSelectedIndex(model.selectedJoined);
             renderText();
-            renderLifetime();
+            renderAccountDetails();
             renderButtons();
         } finally {
             rendering = false;
@@ -396,6 +525,11 @@ final class ProfilePanel extends JPanel {
         reload.setText(text("profile.reload"));
         remove.setText(text("profile.remove"));
         refreshStats.setText(text("profile.refreshStats"));
+        accountDetails.setTitleAt(0, text("profile.lifetime"));
+        accountDetails.setTitleAt(1, text("profile.chips.history"));
+        if (model.recovery.isPresent()) {
+            accountDetails.setTitleAt(2, text("recovery.title"));
+        }
         error.setText(model.error.equals(" ") ? " " : text(model.error));
         status.setText(model.busy ? text("profile.busy")
                 : model.message.equals(" ") ? " " : text(model.message));
@@ -406,11 +540,26 @@ final class ProfilePanel extends JPanel {
         joined.getAccessibleContext().setAccessibleName(text("profile.nextMatch"));
     }
 
-    private void renderLifetime() {
+    private void renderAccountDetails() {
+        Optional<AccountData> data = selectedAccountData();
+        List<PlayerProfile> profiles = data.map(account -> List.of(account.account.getProfile()))
+                .orElseGet(List::of);
+        Map<String, StatisticsView> stats = data.map(account -> Map.of(
+                account.account.getProfile().getProfileId(), account.statistics))
+                .orElseGet(Map::of);
+        lifetime.renderProfiles(profiles, stats, model.messages, model.language);
+        chipHistory.render(data.map(account -> account.overview), model.messages, model.language);
+        recovery.render(model.challenge, data.isPresent() && !isBusy(),
+                model.messages, model.language);
+    }
+
+    private Optional<AccountData> selectedAccountData() {
         int index = joined.getSelectedIndex();
-        List<PlayerProfile> profiles = index < 0 ? List.of()
-                : List.of(model.humans.get(index).getProfile());
-        lifetime.renderProfiles(profiles, model.statistics, model.messages, model.language);
+        if (index < 0) {
+            return Optional.empty();
+        }
+        String id = model.humans.get(index).getProfile().getProfileId();
+        return Optional.of(model.accountData.get(id));
     }
 
     private void renderButtons() {
@@ -451,9 +600,23 @@ final class ProfilePanel extends JPanel {
     private static final class AccountData {
         private final AuthenticatedProfile account;
         private final StatisticsView statistics;
-        private AccountData(AuthenticatedProfile account, StatisticsView statistics) {
+        private final ProfileOverview overview;
+
+        private AccountData(AuthenticatedProfile account, StatisticsView statistics,
+                ProfileOverview overview) {
             this.account = account;
             this.statistics = statistics;
+            this.overview = overview;
+        }
+    }
+
+    private static final class RecoveryResult {
+        private final RecoveryOutcome outcome;
+        private final AccountData account;
+
+        private RecoveryResult(RecoveryOutcome outcome, AccountData account) {
+            this.outcome = outcome;
+            this.account = account;
         }
     }
 
@@ -465,7 +628,11 @@ final class ProfilePanel extends JPanel {
         private final Runnable changed;
         private final List<AuthenticatedProfile> humans = new ArrayList<>();
         private List<PlayerProfile> saved = List.of();
-        private final Map<String, StatisticsView> statistics = new LinkedHashMap<>();
+        private final Map<String, AccountData> accountData = new LinkedHashMap<>();
+        private Optional<RecoveryService> recovery = Optional.empty();
+        private Optional<RecoveryChallenge> challenge = Optional.empty();
+        private Predicate<String> mayClaim = id -> false;
+        private BiConsumer<String, Long> recovered = (id, balance) -> { };
         private String language;
         private String selectedSaved = "";
         private int selectedJoined = -1;

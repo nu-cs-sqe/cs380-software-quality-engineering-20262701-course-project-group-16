@@ -24,10 +24,9 @@ The Week 8 application API adds account-funded, open-ended tables: chosen buy-in
 of 400+ chips with no fixed upper cap, between-hand top-ups, replacement bots and
 per-hand balance/statistics records. Funding is bounded by available account funds
 and safe numeric totals; winnings stay playable.
-`TableAccountStore` and prepared settlement support database integration and
-background saves. SQLite, recovery rewards and the desktop switch to this mode
-remain Estella's integration work; the current desktop still uses the match
-rules above. See the [account-table contract](docs/design/shared-contract.md#week-8-account-table-api).
+The desktop uses this mode with SQLite, background saves and chip recovery.
+The 6,000-chip finish applies to the legacy match API. See the
+[account-table contract](docs/design/shared-contract.md#week-8-account-table-api).
 
 ## Contributors
 
@@ -82,7 +81,8 @@ With the JDKs configured above, run `bash ./gradlew run` (Windows:
 `.\gradlew.bat run`) on a computer with a desktop display. Choose English or
 Chinese, then use **Profiles** to create a name/password account. Enter its
 password under **Sign in**, choose **Sign in and add**, and repeat for 1–6 humans.
-Choose **Start Game**; bots fill the remaining seats. Removing a profile from the
+Choose **Start Game**; each selected account uses up to 1,000 saved chips, with
+a 400-chip minimum to join. Bots fill the remaining seats. Removing a profile from the
 next-match roster does not change an ongoing match. Bots act automatically while
 a thinking status appears. If calculation fails or times out, choose **Retry bot**.
 English is the default. Add future languages through resources/configuration;
@@ -96,19 +96,28 @@ fields. Profile authentication identifies accounts; private-card access still re
 on shared-computer handoffs.
 
 After a result, choose **Settle hand**, then **Next hand**. **Statistics** shows
-current-match totals; **Profiles** shows the selected signed-in account's lifetime
-totals. N/A means no qualifying opportunity. A new match resets stacks/match totals
-and retains completed lifetime data. Closing discards unfinished play. Saved
+current-table totals; **Profiles** shows the selected signed-in account's lifetime
+statistics, saved balance and chip history. N/A means no qualifying opportunity.
+Between paid hands, use **Add table chips** to reserve more of the selected
+account's balance or **Close table** to release reservations. Neither action
+creates chips. Closing the window discards unfinished play. Saved
 accounts/statistics are local in `~/.cs380-holdem/profiles.db`; they reopen after
 password verification. The first database open imports an existing
 `profiles.properties` catalog and leaves the original file in place.
 Storage errors leave settlement retryable.
 
+Use **Profiles → Chip recovery** to practice the rules in either language.
+A selected account below 400 chips can earn 200 chips by answering at least
+four of five questions correctly, up to three successful rewards per local
+calendar day. A seated player can claim after the current hand is paid.
+Successful rewards appear in **Chip history** and can be used for a buy-in
+or a between-hand top-up.
+
 Select a human and choose **Leave match** to retire their seat. Active humans fold
 immediately, including out-of-turn departures. Another pending player keeps their
 turn while betting remains open. All-in eligibility lasts through settlement.
-A match winner owns the full chip total. A stopped match with chips split across
-playing and departed seats displays **Match ended without a winner**. See
+Account tables have individual hand winners and continue without an overall match
+winner. See
 [quality results](docs/quality.md) for verification and acceptance status.
 Tests run headlessly with temporary catalogs, without creating real profiles.
 
@@ -139,7 +148,8 @@ identity and a salted PBKDF2 hash together in SQLite; plaintext passwords are
 never saved. An imported account keeps its existing password and lifetime
 statistics. New and imported accounts receive 2,000 virtual chips once.
 `getChipBalance` takes an authenticated account handle. These saved balances
-are separate from table stacks; per-hand balance changes and display are W8-E03.
+include table chips. Completed-hand results update balances, history and lifetime
+statistics in one transaction. Profile history shows the saved result.
 Read failures reject corrupt data without resetting it.
 The application must serialize writes. Profile-bound matches save completed raw
 counters and duplicate-prevention IDs before publishing settlement; failed saves

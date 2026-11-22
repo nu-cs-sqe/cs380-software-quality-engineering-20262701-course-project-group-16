@@ -51,6 +51,21 @@ final class AccountTable {
         } catch (IOException failure) {
             throw new UncheckedIOException(failure);
         }
+        return open(store, accounts, initial, balances);
+    }
+
+    AccountTable withRecoveredBalance(GameState paid, Set<String> departed,
+            String accountId, long balance) {
+        Map<String, Long> loaded = new LinkedHashMap<>();
+        for (String id : accounts.values()) {
+            loaded.put(id, balances.get(id));
+        }
+        loaded.put(accountId, balance);
+        return refreshWithBalances(paid, departed, loaded);
+    }
+
+    static AccountTable open(TableAccountStore store, Map<String, String> accounts,
+            GameState initial, Map<String, Long> balances) {
         if (!balances.keySet().equals(Set.copyOf(accounts.values()))
                 || balances.values().stream().anyMatch(chips -> chips < BuyInLimits.MINIMUM)) {
             throw new IllegalArgumentException("Selected accounts require at least 400 chips.");
@@ -66,6 +81,11 @@ final class AccountTable {
         } catch (IOException failure) {
             throw new UncheckedIOException(failure);
         }
+        return refreshWithBalances(paid, departed, loaded);
+    }
+
+    private AccountTable refreshWithBalances(GameState paid, Set<String> departed,
+            Map<String, Long> loaded) {
         if (!loaded.keySet().equals(Set.copyOf(accounts.values()))) {
             throw new IllegalArgumentException("Every seated account requires a saved balance.");
         }

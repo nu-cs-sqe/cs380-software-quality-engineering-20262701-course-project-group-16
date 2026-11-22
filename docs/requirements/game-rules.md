@@ -37,22 +37,24 @@ All chips are virtual and have no cash value.
   pays the current hand before the match outcome is determined. Tests using
   other valid settings require the full configured chip total for victory.
 
-## Account tables: Week 8 application API
+## Account tables: Week 8 desktop rules
 
-The new account-table entry point replaces match victory with persistent chip
-changes. The desktop switches to these rules when its SQLite integration is
-connected; the existing desktop behavior above remains available meanwhile.
+The desktop account table replaces match victory with persistent chip changes.
+The rules above still apply to the legacy match entry points.
 
 - Each human signs in to a local account. Storage supplies the initial 2,000
   virtual chips. Players choose a buy-in of at least 400, up to their saved
-  balance, with no fixed upper cap. The default choice is min(1,000, balance).
+  balance, with no fixed upper cap. The desktop uses the default
+  min(1,000, balance); explicit selection is not yet exposed there.
 - Six seats remain. Bots fill unused seats. Between paid hands, departed humans
   and busted bots are replaced with separately funded 1,000-chip bots.
 - Human chips carry between hands, including winnings above any starting amount.
   A stack reduced below 400 can keep playing. Between-hand top-ups use existing
   account funds and must leave at least 400 on the table; there is no fixed upper
   cap. A busted account with less than 400 needs recovery before rebuying.
-  Estella's reward flow must enforce the agreed three successful claims per day.
+  A signed-in account below 400 can earn 200 chips for four correct answers
+  out of five, up to three successful rewards per local calendar day.
+  A seated account can claim only between paid hands; practice is always available.
 - Account totals include table chips. Funding reserves existing money; each paid
   hand changes the total only by final stack minus the stack before blinds.
   Save every affected human's balance, history and statistics atomically, once.

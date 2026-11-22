@@ -8,6 +8,82 @@ no `ignoreFailures`, global suppression or baseline hiding existing warnings. Re
 CI uploads test, coverage, mutation and static-analysis reports even after a
 failed step.
 
+## W8-E04 recovery verification — November 21, 2026
+
+The first recovery test failed to compile before the API existed. The first
+executable recovery test passed; two persistence fixtures needed to remove the
+new claim table before emulating versions 1 and 2. The bilingual Swing test
+preserves answers across a language change and observes the saved reward.
+The [BVA](bva/RecoveryChallenge.md) maps questions to existing rule tests.
+The first full local build passed 1,650 tests, and PIT killed 2,245/2,281
+mutants. Targeted follow-up tests checked the answer key independently,
+sampling distinct questions across challenges, timestamp order for mixed
+reward/hand history and rejection of a malformed hand event.
+
+Final local `build pitest --warning-mode all` passed in 27m33s with Gradle
+on JDK 25 and compilation and tests on Java 11.
+
+| Check | Final local result |
+| --- | --- |
+| JUnit | 1,652 passed; zero failures, errors or skips. |
+| Checkstyle and SpotBugs | Zero style findings and unexcluded bugs. |
+| JaCoCo | 3,712/3,713 lines, 1,800/1,804 branches, 1,917/1,921 complexity counters, and 86 reported classes. |
+| PIT | 2,249/2,281 killed; 32 survivors; zero uncovered, timeout or error mutants. |
+
+The four follow-up gaps were caught by the final suite. Of the 32 remaining
+survivors, 28 also appeared in the E03 checkpoint. Three additional survivors
+replace literal return values with the same values or change a transaction
+callback result that the caller discards. These are retained in the reported
+score. The fourth removes a pending-settlement guard in
+`SetupSession.applyRecoveredBalance`: the unpaid-hand check still rejects
+the balance change, but does not itself conceal cards. The additional
+concealment effect remains a test gap. The existing GameState enum default
+is the sole missed JaCoCo line. No rules or exclusions were relaxed.
+Native walkthrough, peer review, and remote CI are pending.
+
+## W8-E03 live SQLite settlement — November 21, 2026
+
+The storage and history checkpoint `e626661` was applied to merged PR #30
+(`4edda97`) without committing. The first integration test did not compile:
+the SQLite adapter did not yet implement Kevin's `TableAccountStore`. The
+adapter now consumes `HandCompletion`, checks expected balances inside the
+transaction, and stores a canonical receipt to distinguish an identical
+request from a conflicting reply. Schema upgrades retain existing accounts
+and history. Tests use temporary databases and the real game session.
+
+The English and Chinese Swing cases use the funded table and a store that
+reports failure after committing. A retry pays once and shows one history
+row. The tests also check that balance loading and saving stay off Swing,
+top-ups preserve saved balances, and the last human's departure prevents a
+bot-only hand from the UI. Explicit initial buy-in selection and recovery
+are separate work.
+
+The first combined build passed 1,640 tests and killed 2,170/2,213 mutants.
+The follow-up tests vary one saved field at a time to distinguish true
+receipt comparison from generic rejection. They also exercise six versus
+seven accounts, invalid stacks, and a database that declines to record a
+hand marker. These are mutation follow-ups after implementation.
+
+The final local `build pitest --warning-mode all` succeeded on JDK 25
+with Java 11 compilation and tests. The run resumed after an interruption;
+PIT reported 21m30s for its own timed stages.
+
+| Check | Final local result |
+| --- | --- |
+| JUnit | 1,645 passed; zero failures, errors or skips. |
+| Checkstyle and SpotBugs | No style findings or unexcluded bugs; no analysis errors. |
+| JaCoCo | 3,584/3,585 lines, 1,752/1,754 branches, 1,866/1,868 complexity counters, and 82 reported classes. |
+| PIT | 2,180/2,208 killed, 28 survivors, zero uncovered, timeout or error mutants. |
+
+The SQLite integration's remaining survivor replaces the literal `return true`
+in `SqliteChipLedger.recordHand` with a true return. That branch remains
+true in the original and mutant; the distinct false return on an identical
+retry is tested. The other 27 survivors are in the existing table/game
+components; this run does not establish their equivalence. JaCoCo still misses
+the GameState enum default and reports two partially covered branches.
+No quality rules or exclusions were relaxed. Native desktop verification,
+peer review and remote CI for the integration remain pending.
+
 ## PR #30 settlement merge fix — November 21, 2026
 
 Restored the save-in-progress checks in `prepareSettlement` and
@@ -123,6 +199,38 @@ Estella's adapter/integration work. Existing legacy entry points retain their
 match rules. The lone JaCoCo miss is the existing GameState enum-default path;
 coverage counters do not establish independent basis-path or whole-backend proof.
 Only documentation changed after the final verification run.
+
+## W8-E03 account settlement storage and history — November 19, 2026
+
+The first integration tests failed to compile before the storage handoff and
+ledger API existed. The initial executable tests and the full build passed
+after implementation and formatting corrections. They cover schema upgrade,
+atomic balance/history/statistics updates, replay and rollback. The bilingual
+Profiles screen cases use saved hand records from the storage API; live play
+still needs the W8-I01 contract agreement and W8-K04 inputs.
+
+The first full run passed 1,574 tests and killed 1,928/1,944 mutants. Two new
+survivors revealed missing assertions: a missing account must report the
+domain-specific storage error, and a write that would leave orphaned history
+must fail and roll back. The additional assertions were added after this run.
+
+Final `build pitest --warning-mode all` passed in 14m29s (Gradle on JDK 25,
+tests on Java 11).
+
+| Check | Final local result |
+| --- | --- |
+| JUnit | 1,575 passing; zero failures, errors or skips. |
+| Checkstyle and SpotBugs | Zero style findings and unexcluded bugs. |
+| JaCoCo | 3,130/3,131 lines; 1,555/1,556 branches; 1,658/1,659 complexity; 76 reported classes. |
+| PIT | 1,930/1,944 killed; no uncovered, timeout or error mutants. |
+
+The 14 remaining mutants match the baseline by class, method, descriptor,
+operator and description. The existing GameState enum default remains the
+sole missed JaCoCo line. New backend types are measured; prior selectors and
+exclusions are unchanged. The run verifies the storage and history increment;
+the W8-I01 agreement, live settlement integration, native walkthrough and
+remote review remain pending.
+
 ## W8-E02 SQLite account migration — November 18, 2026
 
 Based on W8-E01 commit `6d8aa08`. The new migration cases first failed at

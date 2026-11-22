@@ -973,6 +973,57 @@ See [quality evidence](quality.md#w8-e02-sqlite-account-migration--november-18-2
 E02 is uncommitted; E01 is its pushed prerequisite and has not yet merged.
 Peer review, remote CI and merge remain pending.
 
+### W8-E03 storage and history checkpoint — November 19
+
+[PR #29](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/pull/29)
+contains E01 and E02. E03 starts from its pushed head `e4248d9`. The SQLite
+ledger and the signed-in profile history view use a proposed completed-hand
+payload. The initial storage tests failed at compilation before the new API
+existed. The [BVA](bva/SqliteProfileRepository.md#w8-e03-storage-handoff-and-profile-history)
+covers atomic rollback, retry, old database upgrade and account isolation.
+
+Local `build pitest` passed: 1,575 tests, clean Checkstyle and SpotBugs,
+3,130/3,131 measured lines, and 1,930/1,944 mutants killed with the same 14
+baseline survivors. See the [quality record](quality.md#w8-e03-account-settlement-storage-and-history--november-19-2026).
+
+### W8-E03 live integration — November 21
+
+Integrated with [PR #30](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/pull/30)
+at `4edda97`. SQLite now implements Kevin's `TableAccountStore` and validates
+the authoritative `HandCompletion`, including the expected starting balance.
+A saved receipt distinguishes an identical retry from a conflicting one.
+The desktop reads balances on a worker, opens a default buy-in table and
+publishes the payout only after background settlement succeeds. The profile
+history reflects the paid hand. Top-ups and closing change table reservations
+without adding durable chips.
+
+Local `build pitest` passed: 1,645 tests, clean Checkstyle and SpotBugs,
+3,584/3,585 measured lines, and 2,180/2,208 mutants killed. See the
+[quality record](quality.md#w8-e03-live-sqlite-settlement--november-21-2026).
+The changes remain uncommitted in the original checkout, based on `4edda97`.
+
+Explicit initial buy-in selection and W8-E04 recovery remain separate, as
+do native desktop review, peer review and remote CI for this integration.
+
+### W8-E04 recovery — November 21
+
+Built the recovery challenge on integrated E03 (`3fd2f16`). The funded table
+contract's below-400 threshold includes players with 1–399 chips who cannot
+buy in. One shared answer key drives the English and Chinese prompts.
+Eligible accounts can earn 200 chips at four correct answers out of five;
+the SQLite claim and credit commit together. Three successful claims per local
+day are permitted. Retry, restart, and date changes do not repeat a claim.
+
+The first test failed to compile before the recovery API existed. The
+[BVA](bva/RecoveryChallenge.md) records the clock boundaries, migration,
+rollback, authenticated history and language-switch cases.
+
+Local `build pitest` passed: 1,652 tests, clean Checkstyle and SpotBugs,
+3,712/3,713 measured lines, and 2,249/2,281 mutants killed.
+See the [quality record](quality.md#w8-e04-recovery-verification--november-21-2026)
+for survivor details. E04 remains uncommitted, with native desktop review,
+peer review and remote CI pending.
+
 ## Future weekly report template
 
 ### Week N (MM/DD/YYYY–MM/DD/YYYY)
