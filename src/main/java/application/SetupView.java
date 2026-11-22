@@ -16,6 +16,8 @@ public final class SetupView {
     private final int currentActorSeat;
     private final int viewerSeat;
     private final long pot;
+    private final long smallBlind;
+    private final long bigBlind;
     private final int remainingCardCount;
     private final List<Card> holeCards;
     private final String handId;
@@ -32,6 +34,8 @@ public final class SetupView {
         this.currentActorSeat = state.getCurrentActorSeat().orElse(-1);
         this.viewerSeat = viewerSeat;
         this.pot = state.getPot();
+        smallBlind = state.getConfig().getSmallBlind();
+        bigBlind = state.getConfig().getBigBlind();
         this.remainingCardCount = state.getRemainingDeck().size();
         this.handId = state.getHandId();
         this.phase = state.getPhase();
@@ -57,6 +61,8 @@ public final class SetupView {
     /** Current actor's stable seat, or -1 when there is no pending decision. */
     public int getCurrentActorSeat() { return currentActorSeat; }
     public int getViewerSeat() { return viewerSeat; }
+    public long getSmallBlind() { return smallBlind; }
+    public long getBigBlind() { return bigBlind; }
     public long getPot() { return pot; }
     public int getRemainingCardCount() { return remainingCardCount; }
     public List<Card> getHoleCards() { return holeCards; }
