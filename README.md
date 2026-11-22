@@ -1,32 +1,48 @@
 # Texas Hold'em - CS380 Group 16
 
-A Java desktop no-limit Texas Hold'em game with six seats for 1–6 humans and bots
-filling the remaining seats. Players share one computer and use virtual chips.
-Seats and chip ownership stay fixed during a match. Humans can leave. The agreed
-match winner must hold all 6,000 chips after settlement. When departures leave
-fewer than two funded playing seats and chips remain split, play ends without
-a match winner; departed stacks stay with their owners.
+River Room is a six-seat, no-limit Texas Hold’em desktop game for one shared computer.
+One to six people can sign in locally. Each ready player chooses a buy-in of at least
+400 chips from their balance. Bots fill the remaining seats. The Java engine settles
+each hand and saves account balances and statistics in SQLite.
 
-**Status:** The engine and application session support full bets/raises and
-fold/check/call on every street, settlement and continued hands with carried
-chips/statistics. Requests specify round targets; the engine calculates deductions
-and individual reopening eligibility. Swing exposes the five actions in English
-and Chinese, private-card handoffs, local password accounts and lifetime statistics.
+## Play River Room
+
+On an Apple Silicon Mac, open `desktop/release/River Room-darwin-arm64/River Room.app`
+after building the app. The package includes its Java runtime, fonts and artwork.
+
+To run from source, install Node.js 24, JDK 17 and JDK 11. From the repository root:
+
+```sh
+cd desktop
+npm ci
+npm start
+```
+
+- Choose the number of local players. Pass the computer to each person to sign in
+  or register and choose a buy-in. **Ready to play** locks that account and selects
+  the next person. Select **Start game** to deal.
+- When a human acts, pass the computer to the player named on the screen. That player
+  confirms before seeing their cards. The cards disappear after the action or when
+  the game window loses focus.
+- Before a bet or raise, check how many chips it costs and how many you will have left.
+- After each hand, review net changes, payouts and refunds. Open **Session statistics**
+  for player metrics or **Review final table** to revisit the board.
+  Use **Table options** to add chips between hands. The interface opens in English
+  and also supports Chinese.
+
+Run `npm test` for desktop unit tests. After building the renderer and engine,
+run `npm run test:desktop` for Electron tests with temporary accounts, or
+`npm run package` to create the desktop application in `desktop/release`.
+The original Swing interface is available through `bash ./gradlew run` from the
+repository root. The 6,000-chip win condition applies only to the legacy match API.
+See the [account-table contract](docs/design/shared-contract.md#week-8-account-table-api).
+
 Live bots combine Monte Carlo equity, learned public tendencies and varied legal
 decisions in a cancellable background worker.
 
 Bot inputs contain only their own cards and public information. Match/hand/state
 checks reject old results. This is an adaptive heuristic; equity uses uniform
-opponent hands. Native desktop verification, broader evaluation and review/CI
-acceptance remain pending; see [quality](docs/quality.md).
-
-The Week 8 application API adds account-funded, open-ended tables: chosen buy-ins
-of 400+ chips with no fixed upper cap, between-hand top-ups, replacement bots and
-per-hand balance/statistics records. Funding is bounded by available account funds
-and safe numeric totals; winnings stay playable.
-The desktop uses this mode with SQLite, background saves and chip recovery.
-The 6,000-chip finish applies to the legacy match API. See the
-[account-table contract](docs/design/shared-contract.md#week-8-account-table-api).
+opponent hands. See [quality checks and measurement scope](docs/quality.md).
 
 ## Contributors
 
@@ -75,7 +91,7 @@ installation directory and add
 
 Test reports appear at `build/reports/tests/test/index.html`.
 
-## Run the desktop game
+## Run the original Swing interface
 
 With the JDKs configured above, run `bash ./gradlew run` (Windows:
 `.\gradlew.bat run`) on a computer with a desktop display. Choose English or
