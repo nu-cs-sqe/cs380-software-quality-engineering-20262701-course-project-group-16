@@ -1024,6 +1024,12 @@ See the [quality record](quality.md#w8-e04-recovery-verification--november-21-20
 for survivor details. E04 remains uncommitted, with native desktop review,
 peer review and remote CI pending.
 
+### Kevin — Shared-computer desktop table, November 21
+
+- **Goal and outcome:** Built the React/Electron desktop app locally on `feature/desktop-poker`. Players sign in, choose a buy-in and mark themselves ready. Bots fill empty seats. Each human confirms their turn before seeing cards. Each paid hand opens the chip and statistics tables.
+- **Checkpoints:** Lobby `6bc652b`, table `28b45ed`, Java/SQLite connection `2db7a8d`, packaging `01423d6`, automatic settlement `5aa7010`, desktop tests `a57dc3e`.
+- **Verification:** 1,660 Java tests and 15 desktop unit tests passed. Three tests ran against the packaged Apple Silicon app, covering private handoffs, bot seats, a raised hand through showdown, top-ups and balances after restart. Windows and Linux desktop testing remains open.
+
 ## Future weekly report template
 
 ### Week N (MM/DD/YYYY–MM/DD/YYYY)
