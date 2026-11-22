@@ -177,7 +177,10 @@ final class AccountTable {
 
     boolean canContinue(GameState paid, Set<String> departed) {
         List<Player> roster = TableRoster.preview(paid, departed, topUps);
-        return roster.stream().filter(player -> player.getChipStack() > 0).count() >= 2
+        List<Player> funded = roster.stream().filter(player -> player.getChipStack() > 0)
+                .collect(Collectors.toList());
+        return funded.size() >= 2
+                && funded.stream().anyMatch(player -> player.getType() == PlayerType.HUMAN)
                 && FundingCapacity.accepts(roster, accounts, balances);
     }
 

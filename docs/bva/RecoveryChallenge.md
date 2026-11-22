@@ -18,12 +18,16 @@ so recovery is not limited to exactly zero.
 | R08 | Active hand; settled table; unseated and closed accounts | No credit may invalidate an unpaid hand's opening balance. A paid table can use a saved reward for a top-up without changing session net. Unseated/closed account credits do not reopen a table. |
 | R09 | New quiz with a known random seed; English source answers | Five distinct questions per quiz; subsequent draw differs; each answer index matches the rule. |
 | R10 | Earlier hand, later reward, malformed hand event type | Unified history lists the reward first without changing session net; malformed event type is rejected. |
+| R11 | Packaged River Room in English and Simplified Chinese, 250 chips and four correct answers | Save 200 chips and display the reward. Buy in for 400, complete a hand, and top up by 50 without changing the saved balance. Leaving releases the reservation. Sign-in after restart shows one reward and one settlement. |
+| R12 | Packaged River Room with three same-day claims and a passing fourth attempt; app restarted on the next local date | Block the fourth attempt without crediting the balance. Accept the next-date claim and save its actual date. |
 
 `RecoveryIntegrationTest` uses a real SQLite database and fixed local clock.
 The cap test restores a sub-minimum balance between successful attempts to
 model spending chips in intervening hands. `AccountTableIntegrationTest`
 exercises the paid-table balance update with a fake store.
 `ProfileGamePanelTest` drives the Swing view and repository together.
+The [Electron tests](../../desktop/e2e/room.test.mjs) use disposable SQLite
+fixtures and separate Java process time zones for the local-date transition.
 
 Question IDs and the shared answer key live in `RecoveryQuestion`. The English
 bundle is the source text; the Chinese bundle translates the same keys and

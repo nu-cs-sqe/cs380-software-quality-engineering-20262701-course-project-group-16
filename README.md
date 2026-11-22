@@ -29,10 +29,14 @@ npm start
   for player metrics or **Review final table** to revisit the board.
   Use **Table options** to add chips between hands. The interface opens in English
   and also supports Chinese.
+- A new hand needs a human player with table chips. Use **Manage seat funding**
+  when seated players need to top up or recover chips. If all humans have left,
+  choose **End session** to return to the lobby.
 
 Run `npm test` for desktop unit tests. After building the renderer and engine,
 run `npm run test:desktop` for Electron tests with temporary accounts, or
 `npm run package` to create the desktop application in `desktop/release`.
+GitHub CI runs the desktop unit tests and React build alongside the Java checks.
 The original Swing interface is available through `bash ./gradlew run` from the
 repository root. The 6,000-chip win condition applies only to the legacy match API.
 See the [account-table contract](docs/design/shared-contract.md#week-8-account-table-api).
@@ -97,9 +101,10 @@ With the JDKs configured above, run `bash ./gradlew run` (Windows:
 `.\gradlew.bat run`) on a computer with a desktop display. Choose English or
 Chinese, then use **Profiles** to create a name/password account. Enter its
 password under **Sign in**, choose **Sign in and add**, and repeat for 1–6 humans.
-Choose **Start Game**; each selected account uses up to 1,000 saved chips, with
-a 400-chip minimum to join. Bots fill the remaining seats. Removing a profile from the
-next-match roster does not change an ongoing match. Bots act automatically while
+Select a player in the roster to edit their **Buy-in**. Choose a whole amount
+from 400 through their saved balance or leave it blank to use up to 1,000 chips.
+Then choose **Start Game**. Bots fill the remaining seats. The roster and buy-in
+choices apply to the next table. Bots act automatically while
 a thinking status appears. If calculation fails or times out, choose **Retry bot**.
 English is the default. Add future languages through resources/configuration;
 see [localization](docs/design/localization.md).
@@ -112,11 +117,12 @@ fields. Profile authentication identifies accounts; private-card access still re
 on shared-computer handoffs.
 
 After a result, choose **Settle hand**, then **Next hand**. **Statistics** shows
-current-table totals; **Profiles** shows the selected signed-in account's lifetime
-statistics, saved balance and chip history. N/A means no qualifying opportunity.
-Between paid hands, use **Add table chips** to reserve more of the selected
-account's balance or **Close table** to release reservations. Neither action
-creates chips. Closing the window discards unfinished play. Saved
+current-table totals. **Profiles → Chip history** shows the selected signed-in
+account's saved balance, table chips, available funds and session gain/loss.
+Lifetime statistics have a separate tab. N/A means no qualifying opportunity.
+Between paid hands, use **Top up** to reserve more of the selected player's
+available funds or **End table** to release reservations. Closing the window
+discards unfinished play. Saved
 accounts/statistics are local in `~/.cs380-holdem/profiles.db`; they reopen after
 password verification. The first database open imports an existing
 `profiles.properties` catalog and leaves the original file in place.
@@ -129,7 +135,7 @@ calendar day. A seated player can claim after the current hand is paid.
 Successful rewards appear in **Chip history** and can be used for a buy-in
 or a between-hand top-up.
 
-Select a human and choose **Leave match** to retire their seat. Active humans fold
+Select a human and choose **Leave table** to retire their seat. Active humans fold
 immediately, including out-of-turn departures. Another pending player keeps their
 turn while betting remains open. All-in eligibility lasts through settlement.
 Account tables have individual hand winners and continue without an overall match

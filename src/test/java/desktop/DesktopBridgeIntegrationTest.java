@@ -167,9 +167,20 @@ class DesktopBridgeIntegrationTest {
             }
         }
         assertTrue(bots > 0);
-        turn(turn(game, "settle"), "end");
+        JsonObject paid = turn(game, "settle");
+        JsonObject departed = turn(paid, "quit", "id", id);
+        assertFalse(departed.get("canNext").getAsBoolean());
+        assertEquals("0", departed.getAsJsonObject("funds").getAsJsonObject(id)
+                .get("tableChips").getAsString());
+        rejectTurn(departed, "next");
+        JsonObject beforeRestart = ok("overview", "id", id);
+        turn(departed, "end");
         reject("state");
         ok("logout", "id", id);
+        connect();
+        JsonObject reopened = ok("login", "id", id, "password", "poker123");
+        assertEquals(beforeRestart.get("balance"), reopened.get("balance"));
+        assertEquals(beforeRestart.get("history"), reopened.get("history"));
     }
 
     @Test

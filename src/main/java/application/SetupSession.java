@@ -390,7 +390,8 @@ public final class SetupSession implements BotSession {
         requireNoPendingSettlement();
         hideCards();
         if (!canStartNextHand()) {
-            throw new IllegalStateException("A paid hand and two remaining players are required.");
+            throw new IllegalStateException(
+                    "Pay the hand and check the next roster before dealing.");
         }
         long nextRevision = Math.incrementExact(revision);
         GameState started = advanceClosedRounds(accountTable.isPresent()
@@ -416,7 +417,7 @@ public final class SetupSession implements BotSession {
         return totals.map(MatchStatistics::snapshot).orElseGet(Map::of);
     }
 
-    /** A new hand requires payment and at least two funded seats that have not left. */
+    /** Requires a paid hand and two funded seats, including a human at account tables. */
     public boolean canStartNextHand() {
         return !tableStopped && settlement.isPresent()
                 && accountTable.map(table -> table.canContinue(requireMatch(), departed))
@@ -530,6 +531,14 @@ public final class SetupSession implements BotSession {
             List<AuthenticatedProfile> humans, TableAccountStore store,
             Map<String, Long> balances) {
         startAccountTable(profiles, humans, store, Optional.empty(),
+                Optional.of(Map.copyOf(balances)));
+    }
+
+    /** Opens a table using the desktop worker's balances and one buy-in per account. */
+    public void startTableWithLoadedBalances(ProfileService profiles,
+            List<AuthenticatedProfile> humans, TableAccountStore store,
+            Map<String, Long> balances, Map<String, Long> buyIns) {
+        startAccountTable(profiles, humans, store, Optional.of(Map.copyOf(buyIns)),
                 Optional.of(Map.copyOf(balances)));
     }
 

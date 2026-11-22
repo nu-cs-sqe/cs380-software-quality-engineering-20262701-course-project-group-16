@@ -45,6 +45,21 @@ export function needsSettlement(game, lastAttemptedHand) {
   return Boolean(game.result) && !game.paid && game.handId !== lastAttemptedHand;
 }
 
+export function remainingHumans(players) {
+  return players.filter(player => player.type === 'HUMAN' && player.status !== 'DEPARTED');
+}
+
+export function continuationNotice(game) {
+  if (game.canNext) return undefined;
+  const humans = remainingHumans(game.players);
+  if (!humans.length) return 'noHumans';
+  const needsFunding = humans.some(player => {
+    const funds = game.funds[player.accountId];
+    return funds?.needsTopUp || funds?.needsRecovery;
+  });
+  return needsFunding ? 'fundNextHand' : 'cannotNext';
+}
+
 export function wagerPreview(target, limits, committed, stack) {
   if (!validTarget(target, limits.min, limits.max)) return undefined;
   const cost = BigInt(target) - BigInt(committed);

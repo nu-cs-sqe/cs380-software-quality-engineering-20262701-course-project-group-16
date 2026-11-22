@@ -1,13 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Recovery from './Recovery.jsx';
-import { chipText, validTarget } from './table-state.mjs';
+import { chipText, remainingHumans, validTarget } from './table-state.mjs';
 
 export default function TableOptions({ game, copy, lang, request, execute, refresh, close, busy, error, initialPage }) {
   const dialog = useRef();
   const [page, setPage] = useState(initialPage);
   const [id, setId] = useState('');
   const [amount, setAmount] = useState('');
-  const humans = game.players.filter(p => p.type === 'HUMAN' && p.status !== 'DEPARTED');
+  const humans = remainingHumans(game.players);
   const person = humans.find(p => p.accountId === id);
   const funds = game.funds[id];
 
