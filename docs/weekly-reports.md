@@ -928,7 +928,7 @@ committed in PR #30; combined SQLite/desktop integration and peer review remain 
 and fixed line wrapping. Existing retry tests and a new owner-callback regression
 pass. Local `build pitest`: **1,625 tests**, clean static checks,
 **2,096/2,123 PIT kills (98.73%)**; [scope and 27 survivors](quality.md).
-This follow-up awaits Kevin's commit/push and remote CI.
+The follow-up shipped in PR #30 and passed CI on the merged `main` commit.
 
 **Next steps:** Estella connects storage/UI; together test sign-in, paid hands,
 top-up, departure and recovery in both languages. Kevin reviews, commits and pushes changes.
@@ -970,8 +970,8 @@ Local `build pitest` passed: 1,560 tests, clean Checkstyle and SpotBugs,
 3,012/3,013 measured lines and 1,874/1,888 mutants killed after the style
 review, with the same 14 baseline survivors.
 See [quality evidence](quality.md#w8-e02-sqlite-account-migration--november-18-2026).
-E02 is uncommitted; E01 is its pushed prerequisite and has not yet merged.
-Peer review, remote CI and merge remain pending.
+E02 was still local at this checkpoint. E01 and E02 later merged together
+through PR #29.
 
 ### W8-E03 storage and history checkpoint — November 19
 
@@ -1000,10 +1000,9 @@ without adding durable chips.
 Local `build pitest` passed: 1,645 tests, clean Checkstyle and SpotBugs,
 3,584/3,585 measured lines, and 2,180/2,208 mutants killed. See the
 [quality record](quality.md#w8-e03-live-sqlite-settlement--november-21-2026).
-The changes remain uncommitted in the original checkout, based on `4edda97`.
-
-Explicit initial buy-in selection and W8-E04 recovery remain separate, as
-do native desktop review, peer review and remote CI for this integration.
+The integration was pushed as `3fd2f16` and included in PR #31. The desktop
+uses the default buy-in. Explicit initial buy-in selection is available
+through the application API.
 
 ### W8-E04 recovery — November 21
 
@@ -1021,14 +1020,72 @@ rollback, authenticated history and language-switch cases.
 Local `build pitest` passed: 1,652 tests, clean Checkstyle and SpotBugs,
 3,712/3,713 measured lines, and 2,249/2,281 mutants killed.
 See the [quality record](quality.md#w8-e04-recovery-verification--november-21-2026)
-for survivor details. E04 remains uncommitted, with native desktop review,
-peer review and remote CI pending.
+for survivor details. E04 was pushed as `6d9ad10` and included in PR #31.
+
+### W8-I03 integration verification — November 21
+
+PR #29 merged background settlement and SQLite migration. PR #30 merged
+funded table rules and the settlement contract. PR #31 combines the live
+SQLite settlement and history with chip recovery and is open for review.
+[PR #29](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/pull/29) ·
+[PR #30](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/pull/30) ·
+[PR #31](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/pull/31)
+
+| Verification | Observed result |
+| --- | --- |
+| Local JUnit at `6d9ad10` | 1,652 passed, zero failures, errors or skips. |
+| Local static analysis | Checkstyle and SpotBugs reported zero findings in their configured scopes. |
+| Local coverage and mutation testing | JaCoCo covered 3,712/3,713 measured lines and 1,917/1,921 complexity counters. PIT killed 2,249/2,281 mutants, with 32 survivors and zero uncovered, timed-out or errored mutants. |
+| Merged table baseline CI at `4edda97` | [GitHub Actions passed](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/actions/runs/44925232750). |
+| PR #31 CI at `6d9ad10` | The clean build, mutation testing and report upload succeeded. [GitHub Actions job](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/actions/runs/44942995592/job/136964088654). |
+
+| Boundary checked | Evidence |
+| --- | --- |
+| Multiple departures leave a 110-chip pot | The last eligible player receives the pot, including when that player invested zero. A unique contributor's unmatched amount is refunded. [Departure BVA](bva/Departure.md) · [Pot layout BVA](bva/PotLayout.md). |
+| Funding at 399 versus 400 chips and larger buy-ins | A 399-chip account needs recovery. The API accepts 400- and 3,000-chip buy-ins. A top-up reserves existing funds, and a paid departure releases the reservation. [Account table BVA](bva/AccountTable.md). |
+| Settlement failure and replay | Failed SQLite writes roll back together. An identical retry after a durable save leaves one payout and one history entry per account. Stale balances and conflicting retries are rejected. [SQLite BVA](bva/SqliteProfileRepository.md#w8-e03-storage-handoff-and-profile-history). |
+| Recovery score, balance and local date | Three correct answers earn nothing. Four earn 200 chips below 400. After three rewards, another passing attempt is blocked that day. A new claim can succeed at the next local midnight. Replaying a saved challenge cannot credit it again. [Recovery BVA](bva/RecoveryChallenge.md). |
+
+A read-only review of Kevin's PR #30 traced dead-pot handling and refunds,
+funding and replacement seats, and the two-phase save and publication contract
+through their tests. The hand payload separates human account IDs from bot
+deltas and contains no cards or credentials. Saving finishes before the owner
+thread publishes the payout. The explicit buy-in API is exercised by
+integration tests. The Swing entry point uses the default amount.
+
+The local counters match the [quality record](quality.md#w8-e04-recovery-verification--november-21-2026),
+which explains the outstanding mutation and coverage gaps. The native Mac
+walkthrough reached the sign-in screen with test profiles. Desktop automation
+could not enter the password, so the Swing walkthrough was incomplete. No teammate review was
+recorded on PR #30 or #31 at this checkpoint. W8-I03 remains open pending
+reciprocal peer review. [Week 8 tracker](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/issues/28).
 
 ### Kevin — Shared-computer desktop table, November 21
 
 - **Goal and outcome:** Built the React/Electron desktop app locally on `feature/desktop-poker`. Players sign in, choose a buy-in and mark themselves ready. Bots fill empty seats. Each human confirms their turn before seeing cards. Ready locks the account before handoff. A raise preview shows its cost. After settlement, the table shows each player’s net change and offers a board review.
 - **Checkpoints:** Lobby `6bc652b`, table `28b45ed`, Java/SQLite connection `2db7a8d`, packaging `01423d6`, automatic settlement `5aa7010`, desktop tests `a57dc3e`. Handoff `b7f65b1`, wager preview `282b6a8`, settlement view `572953e`.
 - **Verification:** 1,660 Java tests passed at the engine checkpoint. All 17 desktop unit tests passed after the UI changes. Three tests ran against the packaged Apple Silicon app, covering private handoffs, bot seats, a raised hand through showdown, top-ups and balances after restart. Windows and Linux desktop testing remains open.
+
+### W8-I02 packaged River Room walkthrough — November 22
+
+All six Electron tests passed against the packaged Apple Silicon app on
+`fix/desktop-table-continuation`. The walkthroughs used disposable SQLite
+accounts. In both English and Simplified Chinese, the tests signed in,
+answered four of five questions correctly, and verified the 250-to-450-chip
+credit in account history. After a 400-chip buy-in, players revealed and
+concealed cards at handoff, completed a hand, and reserved the remaining
+50 chips through a top-up. Leaving released the reservation. Signing in
+after restart showed the expected balance, one recovery reward and one
+hand settlement.
+
+A separate packaged case seeded three rewards for the current local date.
+The fourth qualifying attempt was blocked. The test restarted the app with
+the Java process in a time zone one calendar day ahead and verified a new
+200-chip reward and the persisted claim dates. The existing fixed-clock Java
+case verifies the exact midnight boundary. The host clock was unchanged.
+[Electron tests](../desktop/e2e/room.test.mjs) · [Recovery BVA](bva/RecoveryChallenge.md).
+
+W8-I02 passed locally. Review and GitHub acceptance are tracked under W8-I03.
 
 ## Future weekly report template
 

@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { handoffGate, validTarget, publicSnapshot, chipText, seatedNames, needsSettlement, wagerPreview } from '../src/table-state.mjs';
+import {
+  handoffGate, validTarget, publicSnapshot, chipText, seatedNames, needsSettlement, wagerPreview,
+  continuationNotice,
+} from '../src/table-state.mjs';
 
 const turn = { handId: 'hand-7', revision: 2, actor: 3 };
 const hole = [{ rank: 'ACE', suit: 'HEARTS' }, { rank: 'KING', suit: 'SPADES' }];
@@ -60,6 +63,24 @@ test('results trigger one automatic settlement per hand, including across state 
   assert.equal(needsSettlement({ ...finished, revision: 7 }, 'one'), false);
   assert.equal(needsSettlement({ ...finished, paid: true }, ''), false);
   assert.equal(needsSettlement({ ...finished, handId: 'two' }, 'one'), true);
+});
+
+test('a blocked next hand explains whether humans have left or need funding', () => {
+  const player = { accountId: 'p1', type: 'HUMAN', status: 'ELIMINATED' };
+  const bots = [{ type: 'BOT', status: 'ACTIVE' }];
+  const game = { canNext: false, players: [player, ...bots], funds: {} };
+  assert.equal(continuationNotice({ ...game,
+    players: [{ ...player, status: 'DEPARTED' }, ...bots],
+    funds: { p1: { needsRecovery: true } }
+  }), 'noHumans');
+  assert.equal(continuationNotice({
+    ...game, funds: { p1: { needsTopUp: true } }
+  }), 'fundNextHand');
+  assert.equal(continuationNotice({
+    ...game, funds: { p1: { needsRecovery: true } }
+  }), 'fundNextHand');
+  assert.equal(continuationNotice(game), 'cannotNext');
+  assert.equal(continuationNotice({ ...game, canNext: true }), undefined);
 });
 
 test('a raise previews only the extra chips and handles all-ins and oversized integers', () => {

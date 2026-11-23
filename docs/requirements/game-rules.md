@@ -44,10 +44,13 @@ The rules above still apply to the legacy match entry points.
 
 - Each human signs in to a local account. Storage supplies the initial 2,000
   virtual chips. Players choose a buy-in of at least 400, up to their saved
-  balance, with no fixed upper cap. The desktop uses the default
-  min(1,000, balance); explicit selection is not yet exposed there.
+  balance, with no fixed upper cap. The desktop lets each signed-in account
+  choose an amount in the roster and defaults to min(1,000, balance) when blank.
 - Six seats remain. Bots fill unused seats. Between paid hands, departed humans
   and busted bots are replaced with separately funded 1,000-chip bots.
+- A new hand requires at least two funded seats, including one human. If all
+  remaining humans are out of table chips, they can top up or end the paid table.
+  A table with no remaining humans can be ended.
 - Human chips carry between hands, including winnings above any starting amount.
   A stack reduced below 400 can keep playing. Between-hand top-ups use existing
   account funds and must leave at least 400 on the table; there is no fixed upper

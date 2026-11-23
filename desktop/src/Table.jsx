@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
-import { chipText, handoffGate, publicSnapshot, seatedNames, needsSettlement } from './table-state.mjs';
+import {
+  chipText, continuationNotice, handoffGate, publicSnapshot, seatedNames, needsSettlement,
+} from './table-state.mjs';
 import { tableCopy } from './table-copy.mjs';
 import { BettingControls, CardBacks, Results, SettlementSummary, TableSurface } from './TableSurface.jsx';
 import TableOptions from './TableOptions.jsx';
@@ -44,6 +46,19 @@ function LastAction({ game, copy, lang }) {
   </div>;
 }
 
+function PaidControls({ game, copy, busy, execute, openOptions }) {
+  const notice = continuationNotice(game);
+  return <>
+    <button type="button" className="rr-secondary" disabled={busy}
+      onClick={() => openOptions('end')}>{copy.end}</button>
+    <button type="button" className="rr-primary" disabled={busy || !game.canNext}
+      onClick={() => execute('next')}>{copy.next}<span aria-hidden="true">　→</span></button>
+    {notice && <small>{copy[notice]}</small>}
+    {notice === 'fundNextHand' && <button type="button" className="rr-secondary" disabled={busy}
+      onClick={() => openOptions('seats')}>{copy.fundSeats}</button>}
+  </>;
+}
+
 function TurnStrip({ game, actor, hole, copy, lang, busy, execute, conceal, openOptions, saveFailed }) {
   if (game.result) {
     const winners = game.players.filter(player => game.result.winners.includes(player.id));
@@ -52,11 +67,9 @@ function TurnStrip({ game, actor, hole, copy, lang, busy, execute, conceal, open
       <div className="rr-turn-copy"><small>{game.result.uncontested ? copy.uncontested : copy[game.phase]}</small>
         <h2>{winners.map(p => p.name).join(' / ')}</h2>
         <p>{winners.length > 1 ? copy.split : copy.won}</p></div>
-      <div className="rr-outcome-controls">{game.paid ? <>
-        <button type="button" className="rr-secondary" disabled={busy} onClick={() => openOptions('end')}>{copy.end}</button>
-        <button type="button" className="rr-primary" disabled={busy || !game.canNext}
-          onClick={() => execute('next')}>{copy.next}<span aria-hidden="true">　→</span></button>
-        {!game.canNext && <small>{copy.cannotNext}</small>}</> : saveFailed ? <>
+      <div className="rr-outcome-controls">{game.paid ?
+        <PaidControls game={game} copy={copy} busy={busy} execute={execute}
+          openOptions={openOptions} /> : saveFailed ? <>
         <small className="rr-error" role="alert">{copy.saveError}</small>
         <button type="button" className="rr-primary" disabled={busy}
           onClick={() => execute('settle')}>{copy.retrySave}</button></> :

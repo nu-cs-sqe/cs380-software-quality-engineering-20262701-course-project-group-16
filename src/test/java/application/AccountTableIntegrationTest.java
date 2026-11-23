@@ -145,6 +145,54 @@ class AccountTableIntegrationTest {
     }
 
     @Test
+    void paidTableCannotContinueAfterItsLastHumanLeaves()
+            throws IOException, GeneralSecurityException {
+        Fixture fixture = new Fixture(2000);
+        SetupSession session = fixture.start();
+        finish(session);
+        session.settleHand();
+        assertTrue(session.canStartNextHand());
+        SetupView paid = session.getView().orElseThrow();
+        String account = "account-0";
+        long balance = fixture.store.balances.get(account);
+        session.quit(paid.getPlayers().get(0).getId());
+
+        assertFalse(session.canStartNextHand());
+        assertThrows(IllegalStateException.class, session::nextHand);
+        assertEquals(paid.getHandId(), session.getView().orElseThrow().getHandId());
+        assertEquals(balance, session.getTableFunds().get(account).getAvailableChips());
+        session.endTable();
+        assertEquals(1, fixture.store.saved.size());
+        assertEquals(balance, fixture.store.balances.get(account));
+    }
+
+    @Test
+    void aLoneBustedHumanMustTopUpBeforeBotsCanContinue()
+            throws IOException, GeneralSecurityException {
+        Fixture fixture = new Fixture(2000);
+        SetupSession session = fixture.start();
+        String human = session.getView().orElseThrow().getPlayers().get(0).getId();
+        while (!BotFixtures.actor(session).equals(human)) {
+            session.submitAction(BotFixtures.passive(session));
+        }
+        session.submitAction(new ActionRequest(human, ActionType.RAISE, 1000));
+        BotFixtures.finish(session);
+        session.settleHand();
+        String account = "account-0";
+        TableFunds funds = session.getTableFunds().get(account);
+        assertEquals(0, funds.getTableChips());
+        assertTrue(funds.needsTopUp());
+        assertFalse(session.canStartNextHand());
+        assertThrows(IllegalStateException.class, session::nextHand);
+
+        session.addTableChips(account, 400);
+        assertTrue(session.canStartNextHand());
+        session.nextHand();
+        assertEquals(human, session.getView().orElseThrow().getPlayers().get(0).getId());
+        assertEquals(funds.getBalance(), fixture.store.balances.get(account));
+    }
+
+    @Test
     void invalidBalancesAndAccountsCannotReplaceTheExistingHand()
             throws IOException, GeneralSecurityException {
         Fixture fixture = new Fixture(2000, 2000);
@@ -275,6 +323,7 @@ class AccountTableIntegrationTest {
             }
         }
         assertFalse(busted.isEmpty());
+        session.addTableChips("account-0", BuyInLimits.MINIMUM);
         session.nextHand();
         SetupView view = session.getView().orElseThrow();
         busted.forEach((seat, id) -> {
@@ -358,7 +407,7 @@ class AccountTableIntegrationTest {
     @Test
     void topUpsLeaveRoomForBotsAfterAPlayerDeparts()
             throws IOException, GeneralSecurityException {
-        Fixture fixture = new Fixture(Long.MAX_VALUE - 10000);
+        Fixture fixture = new Fixture(Long.MAX_VALUE - 10000, 1000);
         SetupSession session = fixture.start();
         finish(session);
         session.settleHand();
@@ -373,7 +422,7 @@ class AccountTableIntegrationTest {
                 session.getTableFunds().get("account-0").getTableChips());
         session.quit(session.getView().orElseThrow().getPlayers().get(0).getId());
         session.nextHand();
-        assertTrue(session.getProfileIds().isEmpty());
+        assertEquals(Set.of("account-1"), Set.copyOf(session.getProfileIds().values()));
         assertEquals(6000, session.getView().orElseThrow().getPlayers().stream()
                 .mapToLong(Player::getChipStack).sum() + session.getView().orElseThrow().getPot());
         assertEquals(1, fixture.store.saved.size());

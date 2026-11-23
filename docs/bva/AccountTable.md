@@ -11,6 +11,8 @@ Real-component cases in AccountTableIntegrationTest; implemented/GREEN.
 | AT05 | displayedFunds/nextRoster | Quit before/after payment | Hold pending reservation, release paid funds; replace identity without transferring account; departedHumansAreReplacedBetweenHandsAndBindingsDoNotReachTheBot |
 | AT06 | canContinue/refresh | One funded human; recovered second human | No champion; resume after recovery/top-up; aBustedHumanCanUseARecoveredBalanceWithoutRestartingTheTable |
 | AT07 | addChips | Long.MAX_VALUE account balance | Reject overflowing future roster before reservation; topUpsLeaveRoomForBotsAfterAPlayerDeparts |
+| AT08 | canStartNextHand/nextHand/endTable | A sole human leaves a paid table with five bots | Reject a bot-only deal, keep the paid hand, and release reservations without writing another hand. |
+| AT09 | canStartNextHand/nextHand/addTableChips | One human with zero table chips and an affordable 400-chip top-up | Block the deal at zero. Permit it after the top-up while preserving the same account and saved balance. |
 
 The storage collaborator is an in-memory fake; real SQLite atomicity and desktop
 worker integration are separate acceptance gates. No programmer-null cases.

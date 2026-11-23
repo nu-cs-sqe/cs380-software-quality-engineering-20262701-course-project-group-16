@@ -340,6 +340,9 @@ profile worker. Initialization and payout publication stay on the Swing thread.
   bots become new 1,000-chip bots between hands. This is separate virtual house
   funding, never a human account grant. Surviving bots retain their learning;
   replacement identities start fresh. Departed accounts keep completed totals.
+- A funded table's next roster needs at least two funded seats, including one
+  human. Pending top-ups count toward that player's next stack. If everyone
+  leaves, the paid table can be ended.
 - Matched side pots without a live contributor merge into the nearest lower
   eligible pot. If the first layer is dead, remaining live hands can win it,
   including a sole zero-investment survivor. Unique-contributor excess is refunded.
@@ -376,6 +379,12 @@ no others. Missing/extra IDs, amounts below 400 or unavailable funds reject the
 restart while preserving the prior hand and hiding cards. The three-argument
 entry point keeps a 1,000-chip default when affordable; 400–999 balances use their
 remaining amount. There is no fixed upper buy-in cap.
+
+The desktop reads current balances on its profile worker, resolves blank
+choices to the account default, then passes one amount per selected account
+to `startTableWithLoadedBalances` on the Swing thread. The roster keeps choices
+by account ID when changing the selected player or language. Chip history
+shows current table reservations and session gains alongside saved changes.
 
 `BuyInLimits.MINIMUM`/`DEFAULT` expose the policy values. `TableFunds` supplies
 `getMinimumTopUp()` and `getMaximumTopUp()` for between-hand controls. The maximum
