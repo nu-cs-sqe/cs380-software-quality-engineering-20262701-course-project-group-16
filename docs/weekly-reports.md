@@ -241,20 +241,15 @@ betting/departure/contracts; Estella owns profiles/bots.
 The checklist IDs below match issue #20. Older checkpoints retain their own
 measurements and dates; local verification leaves review/remote-CI/merge gates open.
 
-### I07 full-chip terminal policy — November 16 follow-up
+### I07 fixed-stack continuation — November 16 follow-up
 
-The confirmed policy keeps departed stacks with their owners. A paid match has a
-winner only when one player owns the full configured total, normally 6,000.
-With zero/one funded playing seat and chips still split, play ends without a
-match winner. Two funded playing seats can continue heads-up. All-in departure
-can retain a complete payout/victory, and later retirement preserves a completed
-champion. English/Chinese resources state a no-winner ending explicitly.
-
-Four winner invocations were observed RED before the query correction, then
-GREEN. The six UI boundaries observed four terminal-label failures and two
-continuation passes before both resource values were updated. Real Next hand
+The checkpoint covered departed-stack ownership, all-in departure payouts and
+heads-up continuation. Four result-query invocations were observed RED before
+the query correction, then GREEN. The six UI boundaries observed four terminal
+label failures and two continuation passes before both resource values were
+updated. Real Next hand
 checks verify heads-up dealer/SB/BB order, 48 remaining cards, privacy and 6,000
-chips conserved. Configured 120-chip victory adds a supported-settings boundary.
+chips conserved. A 120-chip fixture checked an injected configuration.
 The 98-case focused run passed.
 
 The first full run passed 1,545 tests and killed 1,823/1,838 mutants, leaving one
@@ -304,7 +299,7 @@ quality.md; no source/test/configuration changes follow the final run.
 
 Status is verified locally, awaiting user commit/push, Kevin's engine/contract
 review, remote CI and merge. I03's issue checkbox remains open under those gates.
-I07's departed-stack/6,000-chip terminal policy remains a separate follow-up.
+The I07 fixed-stack continuation review was a separate follow-up.
 
 ### E05/E06 and profile integration repair — November 16
 
@@ -373,7 +368,7 @@ PM-C06 verifies raised-hand statistics survive restart without duplicate countin
 Full verification results are recorded in quality.md. Commit/push, remote CI and
 peer review remain pending. Adaptive bots remain on the separate pushed
 feature/bot-integration branch. This merge does not resolve the known queued-
-departure winner or below-6,000-chip terminal-policy findings, and does not claim
+departure eligibility or fixed-stack continuation findings, and does not claim
 the older profile branch already meets the newer instructor null-flow convention.
 
 ### Goal
@@ -394,7 +389,7 @@ Baseline: [PR #19](https://github.com/nu-cs-sqe/cs380-software-quality-engineeri
 - Shared-computer private-card handoffs.
 - Virtual chips; 1,000 starting chips per player; fixed 10/20 blinds.
 - Complete no-limit Hold'em: all-ins, side pots, ties and elimination.
-- Continue matches until one player holds all 6,000 chips.
+- Conserve chips through settlement and continuation, including heads-up play.
 - Quit-as-fold. The existing prohibition on individual leaving must be revised; define current/non-current actor, already-all-in and later-hand behavior before implementation.
 - Persistent password-protected local human accounts and completed statistics.
 - No saved unfinished matches.
@@ -484,7 +479,7 @@ Implement independently testable equity estimation, opponent modeling, range sam
 - [ ] I04 — Completed profile statistics survive restart without duplicate counting.
 - [ ] I05 — Bots act legally using filtered information; changing inaccessible cards/deck data cannot alter their observable inputs or seeded decisions.
 - [ ] I06 — Controlled opponents demonstrate measurable learning and variation.
-- [ ] I07 — Heads-up transition and final match completion conserve all 6,000 chips.
+- [ ] I07 — Verify heads-up continuation, paid-hand chip conservation and ownership after departure.
 
 At least two substantial integration flows must run real components; distinguish these from isolated unit tests.
 
@@ -766,7 +761,7 @@ walk through the English/Chinese controls and card handoffs on a desktop.
 | Verified locally | Estella | Complete the non-null caller contract, explicit actor/history absence and membership-based lookups. | Zero manual null comparisons or requireNonNull guard calls in production; nullable actor constructors removed and callers migrated. AGENTS.md records future conventions. Optional aggression and immutable indexed seats; five business cases observed RED → GREEN, with no new programmer-null cases. |
 | Verified locally | Estella | Remove the StatisticsPanel line-85 blank and enforce the formatting rule. | Negative Checkstyle caught that line and the same InitialDeal pattern; main/test/seat checks now pass. |
 | Integrated locally, uncommitted | Together | Preserve Kevin's merged betting/state work and E03/E04 in one checkout. | Main `bda4954` + E04 `54de9ad`; conflict resolutions retain all scopes and test patterns. |
-| Open follow-up | Together | Prevent an out-of-turn, non-all-in quitter from winning before its queued fold; reconcile departure termination with the 6,000-chip requirement. | Source review of PR #23; these functional issues are not claimed fixed by the instructor refactor. |
+| Open follow-up | Together | Prevent an out-of-turn, non-all-in quitter from winning a hand before its queued fold. Verify seat ownership and continuation after departure. | Source review of PR #23; these functional issues are not claimed fixed by the instructor refactor. |
 
 Final local `build pitest`: **1,194 tests pass**, clean Checkstyle/SpotBugs and
 **1,223/1,237 mutants killed (98.87%)**, retaining Kevin's same 14 survivors and
@@ -873,8 +868,8 @@ A precise live-Swing controller serialization exception is documented; no new
 coverage/mutation exclusion was added.
 Native display/focus testing, profile integration, peer review, remote CI and merge
 remain pending. The issue E06 checkbox remains open until those code review/merge
-gates are met. Existing queued-departure winner and below-6,000 terminal-policy
-follow-ups still prevent claiming that the whole backend is complete.
+gates are met. Queued-departure eligibility and fixed-stack continuation were
+still open at this checkpoint.
 
 Style follow-up: extracted named budget-validation and model-creation helpers;
 checked 100-character lines, four-space indentation and absence of production

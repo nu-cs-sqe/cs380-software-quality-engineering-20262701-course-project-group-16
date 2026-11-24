@@ -33,3 +33,23 @@ Readability follow-up (November 15): create names human-count validation
 and initial betting-progress construction; seat ordering is calculated through
 one SeatOrder collaborator. Existing human-count, blinds, dealer and chip
 conservation cases remain the contract.
+
+## Physical seat selection in River Room
+
+The desktop bridge tests each of the six solo chairs, out-of-order multiplayer
+selection, duplicate chairs, out-of-range indices and a second start during
+play. They check the account and bot types at the actual engine seats, private
+inspection permissions and the opening public blind records. SeatOrder tests
+cover skipped seats and the heads-up button/small-blind exception.
+
+`GameSetupTest.rejectsSelectedSeatsImmediatelyOutsideTheTableBeforeChoosingADealer`
+passes seat -1 and seat 6 directly to the selected-seat overload. Both requests
+are rejected before the random dealer is drawn. The existing valid-seat cases
+cover the legal endpoints, seats 0 and 5.
+
+`GameSetupTest.firstSeatsAcceptsExactlyOneThroughSixHumans` exercises the
+direct count-to-seat operation at 0, 1, 6 and 7. At 1 and 6 the returned set
+contains exactly the chosen first seats. At 0 and 7 the operation fails before
+producing a seat set. `GU_07` still rejects the largest integer count.
+`selectedSeatOverloadRejectsAnAllBotTableBeforeDrawingTheDealer` covers an
+explicit empty selection and confirms the dealer draw never happens.

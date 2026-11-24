@@ -41,7 +41,6 @@ sequenceDiagram
 | `quit(playerId)` | Retire a human seat and fold an active participant immediately through BettingEngine.foldDepartingPlayer. Preserve another pending actor's turn, all-in eligibility and chip ownership. Record one automatic fold before publication; failed recording leaves the departure retryable. |
 | `playDepartureTurns()` | Refresh the private handoff. Immediate departures have already been committed by quit; return an empty immutable action list. |
 | `canStartNextHand()` | True after payment if at least two funded seats have not left. |
-| `getMatchWinner()` | After payment, return the player owning the full configured chip total. All-in departure and later retirement preserve a completed victory. With chips split across stopped playing/departed seats, return Optional.empty. |
 | `getResult()` | Optional immutable ShowdownResult. It remains the comparison snapshot; getSettlement reports subsequent payment. |
 | `getAcceptedActions()` | Immutable current-hand event snapshot, including human/bot actions and existing statistics context. No forced blind posts or invented runout actions; failed requests do not append. |
 

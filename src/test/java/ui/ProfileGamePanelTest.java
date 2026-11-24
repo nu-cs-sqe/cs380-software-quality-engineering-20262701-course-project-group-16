@@ -72,6 +72,8 @@ class ProfileGamePanelTest {
             assertEquals("+200", history.getValueAt(0, 2));
             assertEquals("450", history.getValueAt(0, 3));
             assertEquals("0", find(panel, "lifetimeTable", JTable.class).getValueAt(0, 1));
+            assertChipSummary(panel, 0, 450, "0");
+            assertTrue(find(panel, "buyInAmount", JTextField.class).isEnabled());
         });
         assertEquals(450, repository.load().get(0).getChipBalance());
     }
@@ -207,7 +209,110 @@ class ProfileGamePanelTest {
                     .contains(balance));
             find(panel, "removeProfile", JButton.class).doClick();
             assertEquals(0, history.getRowCount());
+            assertFalse(find(panel, "accountAvailableChips", JLabel.class).isVisible());
+            assertEquals("", find(panel, "accountAvailableChips", JLabel.class).getText());
         });
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1})
+    void fundedStartUsesEachAccountsBuyInAndKeepsPrivateHandoffs(int language)
+            throws IOException, GeneralSecurityException, InterruptedException,
+            InvocationTargetException {
+        SqliteProfileRepository repository = new SqliteProfileRepository(directory);
+        ProfileService profiles = new ProfileService(repository);
+        SetupSession session = session();
+        GamePanel panel = edt(() -> UiBotFixtures.passive(session, profiles, repository));
+        idle(panel);
+        event(() -> assertFalse(find(panel, "buyInAmount", JTextField.class).isEnabled()));
+        registerAndLogin(panel, "First");
+        registerAndLogin(panel, "Second");
+        selectBuyIn(panel, 1, "400");
+        selectBuyIn(panel, 0, "1500");
+        event(() -> find(panel, "joinedProfiles", JList.class).setSelectedIndex(1));
+        idle(panel);
+        event(() -> {
+            find(panel, "language", JComboBox.class).setSelectedIndex(language);
+            JTextField amount = find(panel, "buyInAmount", JTextField.class);
+            assertEquals("400", amount.getText());
+            assertEquals(language == 0 ? "Buy-in" : "买入筹码",
+                    amount.getAccessibleContext().getAccessibleName());
+            find(panel, "start", JButton.class).doClick(0);
+        });
+        idle(panel);
+        event(() -> {
+            assertEquals(1_500, reservedAtSeat(session, 0));
+            assertEquals(400, reservedAtSeat(session, 1));
+            assertEquals("--", find(panel, "hole0", JLabel.class).getText());
+            find(panel, "reveal", JButton.class).doClick(0);
+            assertNotEquals("--", find(panel, "hole0", JLabel.class).getText());
+            find(panel, "viewers", JComboBox.class).setSelectedIndex(1);
+            assertEquals("--", find(panel, "hole0", JLabel.class).getText());
+            assertChipSummary(panel, 400, 1_600, "0");
+            find(panel, "viewers", JComboBox.class).setSelectedIndex(0);
+            find(panel, "fold", JButton.class).doClick(0);
+            find(panel, "fold", JButton.class).doClick(0);
+            find(panel, "settle", JButton.class).doClick(0);
+        });
+        idle(panel);
+        event(() -> {
+            assertTrue(session.getSettlement().isPresent());
+            assertChipSummary(panel, 390, 1_600, "-10");
+            String topUp = language == 0 ? "Top up" : "补充筹码";
+            String leave = language == 0 ? "Leave table" : "离开牌桌";
+            String end = language == 0 ? "End table" : "结束牌桌";
+            assertEquals(topUp, find(panel, "topUp", JButton.class).getText());
+            assertEquals(leave, find(panel, "quit", JButton.class).getText());
+            assertEquals(end, find(panel, "endTable", JButton.class).getText());
+        });
+        assertEquals(List.of(2_000L, 1_990L), repository.load().stream()
+                .map(StoredProfile::getChipBalance).collect(java.util.stream.Collectors.toList()));
+    }
+
+    private static void selectBuyIn(GamePanel panel, int index, String amount)
+            throws InterruptedException, InvocationTargetException {
+        event(() -> find(panel, "joinedProfiles", JList.class).setSelectedIndex(index));
+        idle(panel);
+        event(() -> find(panel, "buyInAmount", JTextField.class).setText(amount));
+    }
+
+    private static long reservedAtSeat(SetupSession session, int seat) {
+        String playerId = session.getView().orElseThrow().getPlayers().get(seat).getId();
+        String accountId = session.getProfileIds().get(playerId);
+        return session.getTableFunds().get(accountId).getTableChips();
+    }
+
+    @Test
+    void invalidBuyInsPreserveCurrentTableAndClearingChoiceRestoresDefault()
+            throws InterruptedException, InvocationTargetException {
+        SqliteProfileRepository repository = new SqliteProfileRepository(directory);
+        ProfileService profiles = new ProfileService(repository);
+        SetupSession session = session();
+        GamePanel panel = edt(() -> UiBotFixtures.passive(session, profiles, repository));
+        idle(panel);
+        registerAndLogin(panel, "Player");
+        selectBuyIn(panel, 0, "400");
+        event(() -> find(panel, "start", JButton.class).doClick(0));
+        idle(panel);
+        String original = edt(() -> session.getView().orElseThrow().getPlayers().get(0).getId());
+        for (String invalid : List.of("399", "2001", "9223372036854775808", "not chips")) {
+            event(() -> {
+                find(panel, "reveal", JButton.class).doClick(0);
+                find(panel, "buyInAmount", JTextField.class).setText(invalid);
+                find(panel, "start", JButton.class).doClick(0);
+            });
+            idle(panel);
+            event(() -> {
+                assertEquals(original, session.getView().orElseThrow().getPlayers().get(0).getId());
+                assertEquals(400, reservedAtSeat(session, 0));
+                assertEquals("--", find(panel, "hole0", JLabel.class).getText());
+                assertTrue(find(panel, "error", JLabel.class).getText().contains("buy-in"));
+            });
+        }
+        selectBuyIn(panel, 0, "");
+        event(() -> find(panel, "start", JButton.class).doClick(0));
+        idle(panel);
+        event(() -> assertEquals(1_000, reservedAtSeat(session, 0)));
     }
 
     @ParameterizedTest
@@ -218,30 +323,64 @@ class ProfileGamePanelTest {
         SqliteProfileRepository repository = new SqliteProfileRepository(directory);
         ProfileService profiles = new ProfileService(repository);
         SetupSession session = session();
-        TableAccountStore store = new AmbiguousTableStore(repository);
-        GamePanel panel = edt(() -> UiBotFixtures.passive(session, profiles, store));
+        AmbiguousTableStore store = new AmbiguousTableStore(repository);
+        RecoveryService recovery = recoveryFixture(profiles, repository);
+        GamePanel panel = edt(() -> UiBotFixtures.passive(session, profiles, store, recovery));
         idle(panel);
         event(() -> find(panel, "language", JComboBox.class).setSelectedIndex(language));
         registerAndLogin(panel, "Player");
+        event(() -> find(panel, "beginRecovery", JButton.class).doClick(0));
         event(() -> find(panel, "start", JButton.class).doClick(0));
         idle(panel);
         String id = edt(() -> session.getProfileIds().values().iterator().next());
         event(() -> {
             assertEquals(2_000, session.getTableFunds().get(id).getBalance());
             assertEquals(1_000, session.getTableFunds().get(id).getTableChips());
+            assertChipSummary(panel, 1_000, 1_000, "0");
             assertFalse(find(panel, "topUp", JButton.class).isEnabled());
+            assertTrue(find(panel, "submitRecovery", JButton.class).isEnabled());
             find(panel, "fold", JButton.class).doClick(0);
             find(panel, "settle", JButton.class).doClick(0);
         });
+        try {
+            assertTrue(store.entered.await(5, TimeUnit.SECONDS));
+            event(() -> assertFundedControlsLocked(panel));
+        } finally {
+            store.release.countDown();
+        }
         idle(panel);
         event(() -> {
             assertTrue(session.getSettlement().isEmpty());
             assertTrue(find(panel, "settle", JButton.class).isEnabled());
             assertFalse(find(panel, "nextHand", JButton.class).isEnabled());
+            assertTrue(find(panel, "submitRecovery", JButton.class).isEnabled());
             find(panel, "settle", JButton.class).doClick(0);
         });
         idle(panel);
         assertFundedTablePaid(panel, session, repository, id);
+    }
+
+    private static void assertFundedControlsLocked(GamePanel panel) {
+        for (String name : List.of("start", "quit", "topUp", "endTable", "nextHand", "reveal",
+                "beginRecovery", "submitRecovery")) {
+            assertFalse(find(panel, name, JButton.class).isEnabled(), name);
+        }
+        assertFalse(find(panel, "buyInAmount", JTextField.class).isEnabled());
+        assertFalse(find(panel, "topUpAmount", JTextField.class).isEnabled());
+        assertFalse(find(panel, "recoveryChoice0", JComboBox.class).isEnabled());
+        assertEquals("--", find(panel, "hole0", JLabel.class).getText());
+    }
+
+    private static void assertChipSummary(GamePanel panel, long reserved, long available,
+            String sessionNet) {
+        assertTextEndsWith(panel, "accountTableChips", reserved);
+        assertTextEndsWith(panel, "accountAvailableChips", available);
+        assertTrue(find(panel, "accountSessionNet", JLabel.class).getText().endsWith(sessionNet));
+    }
+
+    private static void assertTextEndsWith(GamePanel panel, String label, long amount) {
+        String text = find(panel, label, JLabel.class).getText().replace(",", "");
+        assertTrue(text.endsWith(Long.toString(amount)), text);
     }
 
     private static void assertFundedTablePaid(GamePanel panel, SetupSession session,
@@ -256,6 +395,7 @@ class ProfileGamePanelTest {
             find(panel, "topUpAmount", JTextField.class).setText("20");
             find(panel, "topUp", JButton.class).doClick(0);
             assertEquals(1_020, session.getTableFunds().get(id).getTableChips());
+            assertChipSummary(panel, 1_020, savedBalance - 1_020, "0");
         });
         idle(panel);
         event(() -> {
@@ -268,6 +408,7 @@ class ProfileGamePanelTest {
             find(panel, "endTable", JButton.class).doClick(0);
             assertFalse(find(panel, "nextHand", JButton.class).isEnabled());
             assertEquals(0, session.getTableFunds().get(id).getTableChips());
+            assertChipSummary(panel, 0, savedBalance, "0");
         });
         idle(panel);
         assertEquals(savedBalance, repository.getBalances(java.util.Set.of(id)).get(id));
@@ -275,6 +416,8 @@ class ProfileGamePanelTest {
 
     private static final class AmbiguousTableStore implements TableAccountStore {
         private final SqliteProfileRepository repository;
+        private final CountDownLatch entered = new CountDownLatch(1);
+        private final CountDownLatch release = new CountDownLatch(1);
         private boolean firstSave = true;
 
         private AmbiguousTableStore(SqliteProfileRepository repository) {
@@ -291,6 +434,17 @@ class ProfileGamePanelTest {
         @Override
         public void save(HandCompletion hand) throws IOException {
             assertFalse(SwingUtilities.isEventDispatchThread());
+            if (firstSave) {
+                entered.countDown();
+                try {
+                    if (!release.await(10, TimeUnit.SECONDS)) {
+                        throw new IOException("Timed out waiting for the test to release the save");
+                    }
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    throw new IOException(interrupted);
+                }
+            }
             repository.save(hand);
             if (firstSave) {
                 firstSave = false;

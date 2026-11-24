@@ -10,6 +10,14 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class PotSettlementTest {
     @Test
+    void foldedContributionLevelsCannotCreateExtraOddChipsInTheSameTiedPot() {
+        GameState hand = table(new long[]{140, 140, 21, 42, 63, 0}, Set.of(0, 1));
+        Settlement paid = new PotSettlement((first, second) -> 0).settle(hand);
+        assertEquals(203L, paid.getPayouts().get("p0"));
+        assertEquals(203L, paid.getPayouts().get("p1"));
+    }
+
+    @Test
     void paysEachSidePotOnlyToEligiblePlayersAndReturnsUncalledChips() {
         GameState before = table(new long[]{10, 20, 30, 20, 0, 0}, Set.of(0, 1, 2));
         // Lower seat is stronger: seat0 wins main40, seat1 wins side30, seat2 refunded10.
@@ -116,6 +124,17 @@ class PotSettlementTest {
         assertEquals(30, paid.getPayouts().get("p1"));
         assertEquals(60, before.getPot());
         assertEquals(0, paid.getState().getPot());
+    }
+
+    @Test
+    void rejectsSidePotWhenItsOnlyClaimantMucks() {
+        GameState before = table(new long[]{10, 20, 20, 0, 0, 0}, Set.of(0, 1));
+        IllegalStateException failure = assertThrows(IllegalStateException.class,
+                () -> new PotSettlement().settle(before, Set.of("p1")));
+        assertEquals("A pot must have a remaining claimant.", failure.getMessage());
+        assertEquals(GamePhase.SHOWDOWN, before.getPhase());
+        assertEquals(50L, before.getPot());
+        assertEquals(6000L, before.getTotalChips());
     }
 
     @Test

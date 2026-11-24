@@ -53,11 +53,16 @@ public final class PotLayout {
         }
         Set<String> eligible = contributors.stream().filter(PlayerState::isParticipating)
                 .map(player -> player.getPlayer().getId()).collect(Collectors.toSet());
-        if (eligible.isEmpty()) {
+        if (eligible.isEmpty() || continuesSamePot(layers, eligible)) {
             mergeIntoLowerPot(layers, amount, players);
         } else {
             layers.add(new Layer(amount, eligible));
         }
+    }
+
+    private static boolean continuesSamePot(List<Layer> layers, Set<String> eligible) {
+        return !layers.isEmpty() && layers.get(layers.size() - 1).getEligiblePlayers()
+                .equals(eligible);
     }
 
     private static void mergeIntoLowerPot(List<Layer> layers, long amount,

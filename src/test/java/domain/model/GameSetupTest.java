@@ -186,4 +186,30 @@ class GameSetupTest {
         for(int match=0;match<12;match++) assertEquals(a.create(2).getDealerSeat(),b.create(2).getDealerSeat());
     }
 
+    @Test
+    void rejectsSelectedSeatsImmediatelyOutsideTheTableBeforeChoosingADealer() {
+        DealerRandom random = new DealerRandom(0);
+        GameSetup game = new GameSetup(new GameConfig(), random);
+        for (int seat : List.of(-1, GameConfig.SEAT_COUNT)) {
+            assertThrows(IllegalArgumentException.class, () -> game.create(Set.of(seat)));
+        }
+        assertEquals(0, random.calls);
+    }
+
+    @Test
+    void firstSeatsAcceptsExactlyOneThroughSixHumans() {
+        assertThrows(IllegalArgumentException.class, () -> GameSetup.firstSeats(0));
+        assertEquals(Set.of(0), GameSetup.firstSeats(1));
+        assertEquals(Set.of(0, 1, 2, 3, 4, 5), GameSetup.firstSeats(GameConfig.SEAT_COUNT));
+        assertThrows(IllegalArgumentException.class,
+                () -> GameSetup.firstSeats(GameConfig.SEAT_COUNT + 1));
+    }
+
+    @Test
+    void selectedSeatOverloadRejectsAnAllBotTableBeforeDrawingTheDealer() {
+        DealerRandom random = new DealerRandom(0);
+        GameSetup setup = new GameSetup(new GameConfig(), random);
+        assertThrows(IllegalArgumentException.class, () -> setup.create(Set.of()));
+        assertEquals(0, random.calls);
+    }
 }

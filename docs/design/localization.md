@@ -43,6 +43,22 @@ German language entirely through supplied resources and verify locale-specific
 number output. Coverage also rejects the undefined `und` language and verifies
 that a resource read failure retains its IOException cause and closes the stream.
 
+## River Room desktop resources
+
+The desktop selector reads its choices from
+[`locale-resources.json`](../../desktop/src/locale-resources.json). To add a
+language, copy an entry and translate its `room`, `lobby`, and `table` sections.
+Use the native language name for `label` and a BCP 47 language tag for `tag`.
+Preserve the message keys and the argument indexes (`{0}`, `{1}`). Plural
+messages declare the argument index in `pluralArg` and supply an `other`
+form plus any language-specific forms they need.
+Translate `table.errors` for operation-specific recovery instructions and
+`table.requestError` for the generic table request message.
+
+Register the same tag in the Java catalog and translate its resource bundle
+for the recovery quiz. The selector, formatting and bridge request use the
+configured tag. Rebuild the renderer to include the added resources.
+
 ## Reuse for later result displays
 
 Future UI consumers can share a loaded catalog, retain the chosen language tag,

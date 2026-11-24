@@ -7,7 +7,7 @@ const { Engine } = require('./engine.cjs');
 const page = path.join(__dirname, '..', 'dist', 'index.html');
 const allowed = new Set(['profiles', 'register', 'login', 'overview', 'logout', 'recovery',
   'claim', 'start', 'state', 'hide', 'reveal', 'act', 'bot', 'settle', 'next', 'topup',
-  'quit', 'end']);
+  'quit', 'end', 'inspect', 'disclose', 'history', 'handoff', 'switchOwner']);
 let engine;
 let window;
 let stopping = false;
@@ -49,7 +49,7 @@ function handleCommand(event, command) {
       || event.senderFrame.url !== pathToFileURL(page).href || !allowed.has(command?.op)) {
     throw new Error('Unknown desktop request.');
   }
-  if ((command.op === 'reveal' || command.op === 'act') && !window.isFocused()) {
+  if (['reveal', 'act', 'inspect', 'disclose', 'handoff', 'switchOwner'].includes(command.op) && !window.isFocused()) {
     throw new Error('Bring the table into focus to take your turn.');
   }
   return engine.request(command);

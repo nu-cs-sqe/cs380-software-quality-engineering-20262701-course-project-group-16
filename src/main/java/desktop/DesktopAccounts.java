@@ -8,6 +8,9 @@ import application.StatisticsView;
 import domain.model.PlayerProfile;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.util.function.Supplier;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -18,10 +21,14 @@ import java.util.stream.Collectors;
 
 /** Owns password-verified handles for this child process only. */
 final class DesktopAccounts {
+    private static final Duration IDLE_LIMIT = Duration.ofMinutes(30);
+    private final Map<String, Instant> lastAccess = new HashMap<>();
+    private final Supplier<Instant> now;
     private final ProfileService profiles;
     private final Map<String, AuthenticatedProfile> signedIn = new HashMap<>();
 
-    DesktopAccounts(ProfileService profiles) {
+    DesktopAccounts(ProfileService profiles, Supplier<Instant> now) {
+        this.now = now;
         this.profiles = profiles;
     }
 
@@ -40,6 +47,7 @@ final class DesktopAccounts {
                     new IllegalArgumentException("The account or password is incorrect."));
             Map<String, Object> details = overview(account);
             signedIn.put(id, account);
+            lastAccess.put(id, now.get());
             return details;
         } finally {
             Arrays.fill(password, '\0');
@@ -47,13 +55,33 @@ final class DesktopAccounts {
     }
 
     void logout(String id) {
-        require(id);
+        identityFor(id);
         signedIn.remove(id);
+        lastAccess.remove(id);
+    }
+
+    long idleLimitMillis() { return IDLE_LIMIT.toMillis(); }
+
+    boolean active(String id) {
+        return Optional.ofNullable(lastAccess.get(id))
+                .filter(last -> now.get().isBefore(last.plus(IDLE_LIMIT))).isPresent();
+    }
+
+    String displayName(String id) {
+        return identityFor(id).getProfile().getDisplayName();
+    }
+
+    private AuthenticatedProfile identityFor(String id) {
+        return Optional.ofNullable(signedIn.get(id)).orElseThrow(() ->
+                new IllegalArgumentException("Sign in to this account first."));
     }
 
     AuthenticatedProfile require(String id) {
-        return Optional.ofNullable(signedIn.get(id)).orElseThrow(() ->
-                new IllegalArgumentException("Sign in to this account first."));
+        if (!active(id)) {
+            throw new IllegalArgumentException("Sign in to this account first.");
+        }
+        lastAccess.put(id, now.get());
+        return identityFor(id);
     }
 
     Map<String, Object> overview(AuthenticatedProfile account) throws IOException {

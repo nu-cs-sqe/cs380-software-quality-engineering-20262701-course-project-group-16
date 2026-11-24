@@ -547,9 +547,28 @@ class AccountTableIntegrationTest {
         SetupSession session = fixture.start();
         String hand = session.getView().orElseThrow().getHandId();
         fixture.store.balances.put("account-1", 399L);
-        assertThrows(IllegalArgumentException.class,
+        IllegalArgumentException rejected = assertThrows(IllegalArgumentException.class,
                 () -> session.startTable(fixture.profiles, fixture.accounts, fixture.store));
+        assertEquals("Selected accounts require at least 400 chips.", rejected.getMessage());
         assertEquals(hand, session.getView().orElseThrow().getHandId());
+    }
+
+    @Test
+    void releasedAccountCannotReserveChipsAfterLeavingThePaidTable()
+            throws IOException, GeneralSecurityException {
+        Fixture fixture = new Fixture(2000, 2000);
+        SetupSession session = fixture.start();
+        finish(session);
+        session.settleHand();
+        session.quit(session.getView().orElseThrow().getPlayers().get(0).getId());
+        TableFunds released = session.getTableFunds().get("account-0");
+
+        IllegalArgumentException rejected = assertThrows(IllegalArgumentException.class,
+                () -> session.addTableChips("account-0", 400));
+        assertEquals("Choose an account that has not left.", rejected.getMessage());
+        assertEquals(0, session.getTableFunds().get("account-0").getTableChips());
+        assertEquals(released.getBalance(),
+                session.getTableFunds().get("account-0").getAvailableChips());
     }
 
     @Test
@@ -700,14 +719,34 @@ class AccountTableIntegrationTest {
                 () -> session.startTable(fixture.profiles, fixture.accounts, fixture.store),
                 () -> session.startTable(fixture.profiles, fixture.accounts, fixture.store,
                         Map.of("account-0", 1000L)),
+                () -> session.submitAction(new ActionRequest("unknown", ActionType.FOLD)),
+                () -> session.applyRecoveredBalance("account-0", 2400),
                 session::nextHand, session::endTable, session::refreshTableBalances,
                 () -> session.addTableChips("account-0", 400));
         for (Runnable change : changes) {
             session.revealCards();
             assertEquals(2, session.getView().orElseThrow().getHoleCards().size());
-            assertThrows(IllegalStateException.class, change::run);
+            IllegalStateException rejected = assertThrows(IllegalStateException.class, change::run);
+            assertEquals("Finish the prepared settlement before changing play.",
+                    rejected.getMessage());
             assertTrue(session.getView().orElseThrow().getHoleCards().isEmpty());
         }
+    }
+
+    @Test
+    void selectedSeatsReserveTheChosenBuyInsBeforeTheFirstDeal()
+            throws IOException, GeneralSecurityException {
+        Fixture fixture = new Fixture(2000, 2000);
+        SetupSession session = new SetupSession(BotFixtures.initializer());
+        session.startSeatedTable(fixture.profiles,
+                Map.of(2, fixture.accounts.get(0), 5, fixture.accounts.get(1)), fixture.store,
+                Map.of("account-0", 600L, "account-1", 900L));
+
+        SetupView view = session.getView().orElseThrow();
+        assertEquals("account-0", session.getProfileIds().get(view.getPlayers().get(2).getId()));
+        assertEquals("account-1", session.getProfileIds().get(view.getPlayers().get(5).getId()));
+        assertEquals(1400L, session.getTableFunds().get("account-0").getAvailableChips());
+        assertEquals(1100L, session.getTableFunds().get("account-1").getAvailableChips());
     }
 
     @Test

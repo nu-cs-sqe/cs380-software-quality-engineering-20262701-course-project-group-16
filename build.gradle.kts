@@ -106,6 +106,8 @@ val measuredClasses = listOf(
     "domain.model.StatsAction",
     "application.SetupSession",
     "application.SetupView",
+    "application.ReviewedHand",
+    "application.HandHistory",
     "localization.Localizations",
     "bot.EquityPot",
     "bot.EquityRequest",

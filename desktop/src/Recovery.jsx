@@ -1,9 +1,9 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {lobbyLanguage} from './lobby-language.mjs';
+import { DEFAULT_LOCALE, localeCatalog } from './locales.mjs';
 import './lobby.css';
 
-export default function Recovery({lang = 'en', id, request, onAccount, onClose}) {
-  const t = lobbyLanguage[lang];
+export default function Recovery({lang = DEFAULT_LOCALE, id, request, onAccount, onClose}) {
+  const { lobby: t, tag } = localeCatalog.get(lang);
   const [attempt, setAttempt] = useState(0);
   const [challenge, setChallenge] = useState();
   const [answers, setAnswers] = useState({});
@@ -22,11 +22,11 @@ export default function Recovery({lang = 'en', id, request, onAccount, onClose})
     let current = true;
     setChallenge(undefined);
     setError('');
-    request('recovery', {id, locale: lang}).then(data => {
+    request('recovery', {id, locale: tag}).then(data => {
       if (current) setChallenge(data);
     }).catch(() => { if (current) setError('recovery'); });
     return () => { current = false; };
-  }, [id, lang, request, attempt, outcome]);
+  }, [id, tag, request, attempt, outcome]);
 
   async function submit(event) {
     event.preventDefault();

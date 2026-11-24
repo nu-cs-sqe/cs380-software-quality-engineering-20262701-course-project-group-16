@@ -1,6 +1,6 @@
 import React, {useState} from 'react';
 import {formatChips, openingBuyIn, validBuyIn} from './lobby-model.mjs';
-import {lobbyLanguage} from './lobby-language.mjs';
+import { localeCatalog } from './locales.mjs';
 import Recovery from './Recovery.jsx';
 
 export function AccessForm({t, slot, seat, profiles, busy, onAuth}) {
@@ -55,14 +55,15 @@ export function AccessForm({t, slot, seat, profiles, busy, onAuth}) {
 
 function Statistics({account, lang, t}) {
   const {handsPlayed, rates} = account.metrics;
+  const { tag } = localeCatalog.get(lang);
   return <div className="rr-metrics">
-    <dl><div><dt>{t.hands}</dt><dd>{handsPlayed.toLocaleString(lang)}</dd></div>
+    <dl><div><dt>{t.hands}</dt><dd>{handsPlayed.toLocaleString(tag)}</dd></div>
       {Object.entries(t.metrics).map(([key, label]) => {
         const suffix = key === 'af' ? '' : key === 'gap' ? t.gapUnit : '%';
         const rate = rates[key];
         return <div key={key}><dt>{label}</dt>
           <dd>{rate === undefined ? <abbr title={t.noRate}>—</abbr>
-            : rate.toLocaleString(lang, {maximumFractionDigits:2}) + suffix}</dd>
+            : rate.toLocaleString(tag, {maximumFractionDigits:2}) + suffix}</dd>
         </div>;
       })}
     </dl>
@@ -71,7 +72,9 @@ function Statistics({account, lang, t}) {
 
 function History({account, lang, t}) {
   if (!account.history.length) return <p className="rr-muted">{t.noHistory}</p>;
-  const dateFormat = new Intl.DateTimeFormat(lang, {dateStyle:'short', timeStyle:'short'});
+  const dateFormat = new Intl.DateTimeFormat(localeCatalog.get(lang).tag, {
+    dateStyle: 'short', timeStyle: 'short',
+  });
   const signed = value => (BigInt(value) > 0n ? '+' : '') + formatChips(value, lang);
   return <div className="rr-history">{account.history.map((row, index) =>
     <article key={row.handId || row.timestamp + '-' + index}>
@@ -85,7 +88,7 @@ function History({account, lang, t}) {
 
 export function PrivateAccount({lang, account, seat, slot, request, onAccount, onReady,
   onLock, onLeave, busy}) {
-  const t = lobbyLanguage[lang];
+  const t = localeCatalog.get(lang).lobby;
   const [tab, setTab] = useState('dashboard');
   const [amount, setAmount] = useState(seat.buyIn || openingBuyIn(account.balance));
   const [error, setError] = useState(false);
@@ -94,10 +97,15 @@ export function PrivateAccount({lang, account, seat, slot, request, onAccount, o
     event.preventDefault();
     if (ready) {
       onReady('');
-    } else if (validBuyIn(amount, account.balance)) {
-      onReady(BigInt(amount).toString());
-      setError(false);
-    } else setError(true);
+      return;
+    }
+    const buyIn = amount || openingBuyIn(account.balance);
+    if (!validBuyIn(buyIn, account.balance)) {
+      setError(true);
+      return;
+    }
+    onReady(BigInt(buyIn).toString());
+    setError(false);
   }
 
   return <>

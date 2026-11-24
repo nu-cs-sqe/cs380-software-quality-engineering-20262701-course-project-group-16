@@ -134,6 +134,24 @@ class ShowdownResolverTest {
         return result;
     }
 
+    @Test
+    void muckingRequiresAnOrdinaryShowdownAndALiveKnownClaimant() {
+        ShowdownResolver resolver = new ShowdownResolver();
+        PlayerStatus[] status = statuses();
+        status[0] = PlayerStatus.FOLDED;
+        GameState hand = state(GamePhase.SHOWDOWN, status, HANDS, BOARD);
+        assertThrows(IllegalArgumentException.class, () -> resolver.resolve(hand, Set.of("p0")));
+        assertThrows(IllegalArgumentException.class, () -> resolver.resolve(hand, Set.of("other")));
+        assertThrows(IllegalStateException.class, () ->
+                resolver.resolve(hand, Set.of("p1", "p2", "p3", "p4", "p5")));
+        assertEquals(List.of("p2"), resolver.resolve(hand, Set.of("p1")).getWinnerIds());
+        GameState river = state(GamePhase.RIVER, status, HANDS, BOARD);
+        assertThrows(IllegalStateException.class, () -> resolver.resolve(river, Set.of("p1")));
+        status[2] = PlayerStatus.ALL_IN;
+        GameState allIn = state(GamePhase.SHOWDOWN, status, HANDS, BOARD);
+        assertThrows(IllegalStateException.class, () -> resolver.resolve(allIn, Set.of("p1")));
+    }
+
     private static GameState state(GamePhase phase, PlayerStatus[] statuses,
             String[] holdings, String boardText) {
         List<PlayerState> players = new ArrayList<>();

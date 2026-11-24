@@ -13,8 +13,17 @@ export function occupy(seats, slot, {id, name}) {
   return {id, name, buyIn: seats[slot].buyIn};
 }
 
-export function readyPlayers(seats) {
-  return seats.filter(seat => seat.id && seat.buyIn).map(({id, buyIn}) => ({id, buyIn}));
+export function readyPlayers(seats, positions = seats.map((_, index) => index)) {
+  return seats.flatMap(({id, buyIn}, slot) => id && buyIn ? [{id, buyIn, seat:positions[slot]}] : []);
+}
+
+export function choosePosition(positions, seats, slot, position) {
+  const previous = positions.indexOf(position);
+  if (previous < 0 || (previous !== slot && seats[previous].id)) return positions;
+  const next = [...positions];
+  next[previous] = positions[slot];
+  next[slot] = position;
+  return next;
 }
 
 export function validBuyIn(amount, balance) {
@@ -32,9 +41,7 @@ export function minimumPlayerCount(seats) {
   return Math.max(1, seats.findLastIndex(seat => seat.id) + 1);
 }
 
-export function formatChips(value, lang) {
-  return BigInt(value).toLocaleString(lang === 'zh' ? 'zh-CN' : 'en-US');
-}
+export { formatChips } from './locales.mjs';
 
 export function availableProfiles(profiles, seats) {
   const names = new Set();

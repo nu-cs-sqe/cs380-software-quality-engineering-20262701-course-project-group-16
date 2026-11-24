@@ -6,7 +6,7 @@
 | DEP-02 | The human actor leaves | One automatic FOLD, then next actor; no stack transfer | Same |
 | DEP-03 | Two funded departed seats after payment | Same IDs/stacks, no cards or blinds, 44 cards remaining after four seats receive cards; departed seats gain no later hand count | Same |
 | DEP-04 | Already-all-in big blind leaves | Retains eligibility and receives payout; no extra FOLD; next hand skips the seat | QuitIntegrationTest.anAllInDepartureKeepsTheCurrentHandAndItsPayout |
-| DEP-05 | Paid match with one or zero funded nondeparted seats | Zero/one playing seat with chips in departed seats ends without a winner; continuation stops and a new match clears departures | QuitIntegrationTest.paidMatchEndsWithoutAWinnerWhenDepartedSeatsRetainChips |
+| DEP-05 | Paid hand with one or zero funded nondeparted seats | Continuation stops, paid stacks stay owned and a new session clears departures | QuitIntegrationTest.paidMatchEndsWithoutAWinnerWhenDepartedSeatsRetainChips |
 | DEP-06 | Unknown human ID, bot ID, or repeated leave | Reject without advancing the turn or appending an action | QuitIntegrationTest.invalidDeparturePreservesTheTurnAndAcceptedActions |
 | DEP-07 | Swing leave in both languages | Fold current human, conceal cards, remove from viewer list; later seat shows departed and no card backs | PlayedGamePanelTest.leaveFoldsTheCurrentHumanAndRemovesTheirPrivateViewer |
 
@@ -40,18 +40,12 @@ and repeated-quit assertions are retained under the revised immediate-fold timin
 The I03 checkpoint preceded the I07 terminal correction below. Local verification
 leaves the issue's review, remote-CI and merge gates open.
 
-## Full-total match winner — November 16, 2026
+## Fixed-stack continuation regressions — November 16, 2026
 
-The historical DEP-05 policy awarded victory to the last funded nondeparted seat.
-It is superseded by the full-chip-total requirement. Departed stacks stay owned;
-zero/one playing seat and no full-total owner means play ends without a match
-winner. A departed all-in winner who receives the complete total is still the
-match winner. A completed winner's later departure preserves that result.
-
-I07-01–04 in CompletedStatisticsIntegrationTest cover these boundaries, and the
-six UI-I07 cases cover zero/one/two playing seats in both languages, including
-real heads-up continuation. The previous stack, privacy, continuation-stop and
-restart assertions remain; the old below-total winner assertion is corrected.
+I07-01–04 in CompletedStatisticsIntegrationTest cover retained paid stacks and
+all-in departure payouts. Six UI-I07 cases exercise zero, one and two playing
+seats in both languages, including real heads-up continuation. These are
+historical fixed-stack verification cases.
 
 ## Account-table departure and dead pots — Week 8
 
@@ -61,4 +55,3 @@ uses 40-chip raise/call followed by departures; the remaining player receives
 `aPlayerWhoHasNotInvestedCanWinAfterAllContributorsLeave` awards the same
 110-chip pot to a zero-investment survivor. Both implemented/GREEN.
 Account-table replacement/cash-out boundaries are in [AccountTable](AccountTable.md).
-Legacy full-total match rules above apply only to legacy session entry points.

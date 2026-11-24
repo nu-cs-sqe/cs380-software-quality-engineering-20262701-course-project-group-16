@@ -10,6 +10,11 @@ import java.util.Set;
  * The 21 five-card combinations are ranked without modifying either input.
  */
 public final class PokerHandEvaluator implements HandEvaluator {
+    public static final int HAND_SIZE = 5;
+    private static final int COMPLETE_HOLDING_SIZE = 7;
+    private static final List<String> CATEGORIES = List.of("HIGH_CARD", "ONE_PAIR", "TWO_PAIR",
+            "THREE_OF_A_KIND", "STRAIGHT", "FLUSH", "FULL_HOUSE", "FOUR_OF_A_KIND",
+            "STRAIGHT_FLUSH");
     private static final int STRAIGHT_FLUSH = 8;
     private static final int FOUR_OF_A_KIND = 7;
     private static final int FULL_HOUSE = 6;
@@ -28,14 +33,47 @@ public final class PokerHandEvaluator implements HandEvaluator {
         return Integer.compare(bestFive(firstCards), bestFive(secondCards));
     }
 
+    /** Classifies a shown holding on a flop, turn or river using the same five-card score. */
+    public String category(List<Card> cards) {
+        validateShown(cards);
+        int score = bestFive(cards);
+        for (int digit = 0; digit < HAND_SIZE; digit++) {
+            score /= RANK_RADIX;
+        }
+        return CATEGORIES.get(score);
+    }
+
+    /** Returns one actual best five. Input order breaks equivalent subset ties. */
+    public List<Card> winningCards(List<Card> cards) {
+        validateShown(cards);
+        int highest = bestFive(cards);
+        List<Card> best = new ArrayList<>(cards);
+        for (int index = best.size() - 1; index >= 0 && best.size() > HAND_SIZE; index--) {
+            Card removed = best.remove(index);
+            if (bestFive(best) != highest) {
+                best.add(index, removed);
+            }
+        }
+        return List.copyOf(best);
+    }
+
+    private static void validateShown(List<Card> cards) {
+        if (cards.size() < HAND_SIZE || cards.size() > COMPLETE_HOLDING_SIZE) {
+            throw new IllegalArgumentException("Use five to seven cards.");
+        }
+        requireDistinct(cards);
+    }
+
     private static int bestFive(List<Card> cards) {
+        int count = cards.size();
         int best = 0;
         // Increasing indices visit each five-card subset exactly once.
-        for (int firstIndex = 0; firstIndex < 3; firstIndex++) {
-            for (int secondIndex = firstIndex + 1; secondIndex < 4; secondIndex++) {
-                for (int thirdIndex = secondIndex + 1; thirdIndex < 5; thirdIndex++) {
-                    for (int fourthIndex = thirdIndex + 1; fourthIndex < 6; fourthIndex++) {
-                        for (int fifthIndex = fourthIndex + 1; fifthIndex < 7; fifthIndex++) {
+        for (int firstIndex = 0; firstIndex < count - 4; firstIndex++) {
+            for (int secondIndex = firstIndex + 1; secondIndex < count - 3; secondIndex++) {
+                for (int thirdIndex = secondIndex + 1; thirdIndex < count - 2; thirdIndex++) {
+                    for (int fourthIndex = thirdIndex + 1; fourthIndex < count - 1;
+                            fourthIndex++) {
+                        for (int fifthIndex = fourthIndex + 1; fifthIndex < count; fifthIndex++) {
                             best = Math.max(best, rankFive(cards.get(firstIndex),
                                     cards.get(secondIndex), cards.get(thirdIndex),
                                     cards.get(fourthIndex), cards.get(fifthIndex)));
@@ -121,16 +159,20 @@ public final class PokerHandEvaluator implements HandEvaluator {
     private static int score(int category, int... kickers) {
         // Base 15 preserves the category and lexicographic kicker order.
         int result = category;
-        for (int position = 0; position < 5; position++) {
+        for (int position = 0; position < HAND_SIZE; position++) {
             result = result * RANK_RADIX + (position < kickers.length ? kickers[position] : 0);
         }
         return result;
     }
 
     private static void validate(List<Card> cards) {
-        if (cards.size() != 7) {
+        if (cards.size() != COMPLETE_HOLDING_SIZE) {
             throw new IllegalArgumentException("A holding must contain exactly seven cards.");
         }
+        requireDistinct(cards);
+    }
+
+    private static void requireDistinct(List<Card> cards) {
         Set<Card> unique = new HashSet<>();
         for (Card card : cards) {
             if (!unique.add(card)) {

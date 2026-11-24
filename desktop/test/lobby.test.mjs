@@ -8,7 +8,7 @@ test('only ready local seats enter the hand; unready and computer seats stay out
   seats[0] = lobby.occupy(seats, 0, account);
   seats[3] = lobby.occupy(seats, 3, {id: 'b', name: 'Bob'});
   seats[3] = {...seats[3], buyIn: '400'};
-  assert.deepEqual(lobby.readyPlayers(seats), [{id:'b', buyIn:'400'}]);
+  assert.deepEqual(lobby.readyPlayers(seats), [{id:'b', buyIn:'400', seat:3}]);
   assert.deepEqual(seats[0], {id:'a', name:'Alice', buyIn:''});
   assert.equal(seats.length, 6);
 });
@@ -29,6 +29,15 @@ test('validates whole-chip buy-ins exactly through the user’s available funds'
   assert.equal(lobby.validBuyIn('500', '500'), true);
   assert.equal(lobby.validBuyIn('9007199254740993', '9007199254740993'), true);
   assert.equal(lobby.validBuyIn('9007199254740993', '9007199254740992'), false);
+});
+
+test('the default buy-in is affordable for funded accounts and rejects underfunding', () => {
+  for (const [balance, expected] of [['400', '400'], ['999', '999'], ['1000', '1000'],
+    ['1001', '1000'], ['2000', '1000']]) {
+    assert.equal(lobby.openingBuyIn(balance), expected);
+    assert.equal(lobby.validBuyIn(expected, balance), true);
+  }
+  assert.equal(lobby.validBuyIn(lobby.openingBuyIn('399'), '399'), false);
 });
 
 test('only unoccupied slots can be removed when changing the local player count', () => {
@@ -60,4 +69,21 @@ test('ready hands the computer to the next unready human and skips bot seats', (
   seats[0] = {id:'p1', name:'P1', buyIn:'500'};
   assert.equal(lobby.nextUnreadySeat(seats, 3, 0), 0);
   assert.equal(lobby.nextUnreadySeat(seats, 1, 0), 0);
+});
+
+test('each guest can move to any open chair, retaining their identity and buy-in', () => {
+  const seats = lobby.emptySeats();
+  seats[0] = {id:'a', name:'A', buyIn:'400'};
+  seats[1] = {id:'b', name:'B', buyIn:'600'};
+  const original = [0,1,2,3,4,5];
+  assert.equal(lobby.choosePosition(original,seats,0,1),original);
+  for (const chair of [0,2,3,4,5]) {
+    const selected = lobby.choosePosition(original,seats,0,chair);
+    assert.deepEqual(lobby.readyPlayers(seats,selected), [
+      {id:'a',buyIn:'400',seat:chair}, {id:'b',buyIn:'600',seat:1}
+    ]);
+    assert.equal(new Set(selected).size,6);
+  }
+  seats[1] = lobby.emptySeats()[1];
+  assert.equal(lobby.choosePosition(original,seats,0,1)[0],1);
 });

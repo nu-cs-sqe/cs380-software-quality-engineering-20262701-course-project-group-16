@@ -4,6 +4,8 @@ package domain.model;
 import static org.junit.jupiter.api.Assertions.*;
 import java.util.*;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class GameStateTest {
     private static FoundationFixtures.Fixture fixture() { return FoundationFixtures.fixture(); }
@@ -276,6 +278,17 @@ class GameStateTest {
     @Test
     void GS_58() {
         FoundationFixtures.Fixture f=fixture(); f.board(GamePhase.COMPLETION,2); assertThrows(IllegalArgumentException.class,f::build);
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, 3, 4, 5})
+    void aPaidHandPreservesTheBoardSizeAtWhichPlayEnded(int size) {
+        FoundationFixtures.Fixture paid = fixture();
+        paid.board(GamePhase.COMPLETION, size);
+        GameState state = paid.build();
+        assertEquals(GamePhase.COMPLETION, state.getPhase());
+        assertEquals(size, state.getCommunityCards().size());
+        assertEquals(0, state.getPot());
     }
 
     @Test

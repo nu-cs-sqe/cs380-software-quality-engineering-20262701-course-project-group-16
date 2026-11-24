@@ -28,7 +28,7 @@ class GameInitializerTest {
         AtomicInteger setupCalls = new AtomicInteger();
         AtomicInteger dealCalls = new AtomicInteger();
         GameInitializer initializer = new GameInitializer(count -> {
-            assertEquals(humans, count);
+            assertEquals(domain.model.GameSetup.firstSeats(humans), count);
             setupCalls.incrementAndGet();
             return table;
         }, created -> {
@@ -45,14 +45,11 @@ class GameInitializerTest {
     @ParameterizedTest
     @ValueSource(ints = {Integer.MIN_VALUE, 0, 7, Integer.MAX_VALUE})
     void setupRejectionStopsBeforeDealing(int humans) {
-        IllegalArgumentException rejection = new IllegalArgumentException("Invalid human count");
-        GameInitializer initializer = new GameInitializer(count -> {
-            assertEquals(humans, count);
-            throw rejection;
+        GameInitializer initializer = new GameInitializer(seats -> {
+            throw new AssertionError("Invalid count reached setup");
         }, created -> { throw new AssertionError("Rejected setup must not deal cards"); });
 
-        assertSame(rejection, assertThrows(IllegalArgumentException.class,
-                () -> initializer.start(humans)));
+        assertThrows(IllegalArgumentException.class, () -> initializer.start(humans));
     }
 
     @Test

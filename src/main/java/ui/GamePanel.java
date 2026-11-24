@@ -58,6 +58,7 @@ public final class GamePanel extends JPanel {
     private static final Color GOLD = new Color(224, 184, 92);
     private final SetupSession session;
     private final BotController bots;
+    private final boolean fundedTables;
     private final Localizations messages = Localizations.load();
     private final JComboBox<String> language = named(new JComboBox<>(), "language");
     private String selectedLanguage = messages.defaultLanguage();
@@ -158,9 +159,12 @@ public final class GamePanel extends JPanel {
             Optional<TableAccountStore> store,
             Function<Runnable, BotController> factory) {
         this.session = session;
+        fundedTables = store.isPresent();
         bots = factory.apply(this::refresh);
-        profiles = services.stream().map(service -> new ProfilePanel(service, messages,
-                this::profileBusy, this::profilesChanged)).collect(Collectors.toUnmodifiableList());
+        profiles = services.stream()
+                .map(service -> new ProfilePanel(service, messages, fundedTables,
+                        this::profileBusy, this::profilesChanged))
+                .collect(Collectors.toUnmodifiableList());
         bindSetupControls(store);
         bindPrivateControls();
         bindActionControls();
@@ -353,7 +357,7 @@ public final class GamePanel extends JPanel {
         start.setText(text("start"));
         start.getAccessibleContext().setAccessibleName(text("start"));
         JPanel matchControls = transparent(new GridLayout(1, 2, 5, 0));
-        quit.setText(text("quit"));
+        quit.setText(text(fundedTables ? "table.leave" : "quit"));
         matchControls.add(start);
         matchControls.add(quit);
         addRow(sidebar, matchControls);
@@ -726,6 +730,11 @@ public final class GamePanel extends JPanel {
 
     private void renderFundingControls() {
         Map<String, TableFunds> funds = session.getTableFunds();
+        if (fundedTables) {
+            Map<String, Long> net = session.getSessionNetChanges();
+            profiles.forEach(profile -> profile.updateTableFunds(
+                    tableEnded ? Map.of() : funds, net));
+        }
         boolean hasTable = !funds.isEmpty();
         topUp.setVisible(hasTable);
         topUpAmount.setVisible(hasTable);

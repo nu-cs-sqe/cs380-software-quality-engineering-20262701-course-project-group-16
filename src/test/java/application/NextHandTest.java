@@ -36,6 +36,21 @@ class NextHandTest {
     }
 
     @Test
+    void fundedOpeningKeepsTheButtonAndContinuationRotatesIt() {
+        GameState before = completed(1000, 1000, 1000, 1000, 1000, 1000);
+        NextHand dealer = new NextHand(new Random(1));
+        List<Player> roster = before.getPlayers();
+        GameState opening = dealer.reseat(before, roster, false);
+        assertEquals(0, opening.getDealerSeat());
+        assertEquals(1, opening.getSmallBlindSeat());
+        assertEquals(2, opening.getBigBlindSeat());
+        GameState continuation = dealer.reseat(before, roster, true);
+        assertEquals(1, continuation.getDealerSeat());
+        assertEquals(2, continuation.getSmallBlindSeat());
+        assertEquals(3, continuation.getBigBlindSeat());
+    }
+
+    @Test
     void headsUpShortSmallBlindRunsOutWithoutInventingAnAction() {
         GameState next = new NextHand(new Random(1)).start(completed(5995, 0, 0, 5, 0, 0));
         assertEquals(3, next.getDealerSeat());
