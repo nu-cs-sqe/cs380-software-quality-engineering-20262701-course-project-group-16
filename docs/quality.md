@@ -8,6 +8,97 @@ no `ignoreFailures`, global suppression or baseline hiding existing warnings. Re
 CI uploads test, coverage, mutation and static-analysis reports even after a
 failed step.
 
+## Exact river bot decisions
+
+The reported river was J♦ Q♠ A♠ 10♦ K♣. Every possible holding plays the
+ace-high straight. The previous policy received a pot-weighted expected share
+and treated it as ordinary uncertain equity. It subtracted break-even equity,
+applied personality, position, opponent aggression and commitment terms, then
+used a five-percentage-point mixing margin to produce Fold and Call weights.
+Both bots could fold even with a positive immediate-settlement chip return.
+
+The fixed-deal reconstruction gives Bot 1 and Bot 5 1,000 opening chips each
+and learns from this hand starting at the default prior. Their live stacks,
+earlier opponent observations and random draws are absent from the report.
+Both reconstructed calls cost 980 with no new refund. The expected payout is
+the estimator's fractional share of each eligible pot before odd-chip rounding.
+
+| Bot in the original action order | Estimated share | Break-even share | Expected payout | Adjusted edge | Old Fold / Call | Exact Fold / Call |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Bot 5 | 48.544% | 47.573% | 1,000 | −0.807 pp | 58.069% / 41.931% | 0% / 100% |
+| Bot 1, after Bot 5 folded and Bot 6 called | 33.059% | 32.237% | 1,005 | −2.844 pp | 78.443% / 21.557% | 0% / 100% |
+
+The exact river proof evaluates all two-card combinations against the board,
+then uses the acting bot's blockers when the board itself can be improved.
+The evaluator distinguishes a universal board lock from a tie proved using
+the acting player's blockers.
+Opponent hands and the live deck do not enter the calculation. A win, tie or
+non-loss favors checking if free and calling a legal wager otherwise. Under
+the no-rake rules, each eligible tied tier contains at least one equal
+contribution per claimant. A proved loss can recover only a sole-eligible
+layer and any new call refund in the immediate-settlement preview. The ranking
+proof is distinct from the expected share of eligible pots and the actual
+return can vary with later betting, folds, and odd-chip rules. Uncertain
+rivers and earlier streets retain Monte Carlo and stochastic policy behavior.
+
+`BotRiverIntegrationTest` replays the original folds and checks the 3,040 and
+6,050 pots, payouts of 1,014, 4,038 and 4,038, and 42,005 returned chips. With
+the corrected bot calls and the fixture's stacks, the main pot becomes 5,000,
+the side pot stays at 6,050 and the refund stays at 42,005. All six ending
+balances equal their respective opening balances. Bot 3 folds preflop in
+both runs and remains ineligible. `BotRiverDecisionsTest` checks capped calls,
+free checks, two through six live seats and preservation of mixed decisions on
+a beatable river. The exact calculation is included in the Java measurement
+scope. [River decision boundaries](bva/BotPolicy.md#exact-river-decisions).
+
+An independent suit-pattern audit compared all 1,024 Broadway boards with
+the expected rank and suit boundaries. It found 604 locked and 420 beatable
+boards.
+
+`bash ./gradlew --no-daemon build pitest` passed with 1,756 tests and zero
+failures, errors or skips. Checkstyle and SpotBugs reported zero findings.
+The measured class list adds `RiverOutcomeEvaluator` and its nested enum for
+both JaCoCo and PIT.
+
+| JaCoCo scope | Lines | Branches | Complexity counters |
+| --- | ---: | ---: | ---: |
+| Selected Java classes (91) | 4,115/4,116 | 2,030/2,034 | 2,149/2,153 |
+| `RiverOutcomeEvaluator` | 35/35 | 18/18 | 18/18 |
+| `BotComputer` | 41/41 | 18/18 | 20/20 |
+
+These counters describe executed bytecode. The BVA lists the separately
+asserted ranking, validation, cancellation and call-decision boundaries.
+
+PIT killed 2,555 of 2,577 mutants (99.15%), up from 2,508 of 2,530 in the
+November 23 baseline. The same 22 documented survivors remain, with zero
+uncovered mutants, timeouts or errors. `RiverOutcomeEvaluator` killed 28/28,
+`BotComputer` 23/23, `BotPolicy` 62/62 and `PotSettlement` 48/48. The first
+mutation pass found that the invalid board-size test also had an invalid total
+card count. The added four-plus-three and six-plus-one cases isolate the
+required five-card board boundary. The evaluator also identifies the public
+board lock explicitly, so a mutant that skips the proof changes its result.
+
+### BVA and style follow-up
+
+The river decision test supplies expected actions and chip costs directly. It
+checks 979, 980 and 981 behind a 980-chip wager, and adds a paid heads-up case
+alongside the free check. The malformed-input and cancellation tests have
+separate responsibilities. The fixed-deal replay names the two blind amounts
+and isolates the seeded preflop decision in its own helper.
+
+The [BVA and local TDD record](bva/BotPolicy.md#exact-river-decisions) maps
+the inputs and assertions to their tests and records the observed fixed-deal
+RED/GREEN sequence. The added tests are post-GREEN hardening. The coursework
+criterion for GitHub commit evidence of that workflow remains open for this
+local change.
+
+The follow-up passed `bash ./gradlew --no-daemon build pitest` with 1,760
+JUnit tests, including 30 across the three new river test classes. Checkstyle
+and SpotBugs reported zero findings. JaCoCo retained the 91-class scope and
+the counts above. PIT again killed 2,555/2,577, including 28/28 in the river
+evaluator and 23/23 in the bot coordinator, with the same 22 documented
+survivors and zero timeouts, uncovered mutants or errors.
+
 ## River Room submission audit — November 24, 2026
 
 The desktop audit uses `7187187` and the uncommitted working tree, including

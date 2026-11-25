@@ -64,7 +64,7 @@ public final class PokerHandEvaluator implements HandEvaluator {
         requireDistinct(cards);
     }
 
-    private static int bestFive(List<Card> cards) {
+    static int bestFive(List<Card> cards) {
         int count = cards.size();
         int best = 0;
         // Increasing indices visit each five-card subset exactly once.
@@ -165,7 +165,7 @@ public final class PokerHandEvaluator implements HandEvaluator {
         return result;
     }
 
-    private static void validate(List<Card> cards) {
+    static void validate(List<Card> cards) {
         if (cards.size() != COMPLETE_HOLDING_SIZE) {
             throw new IllegalArgumentException("A holding must contain exactly seven cards.");
         }

@@ -76,6 +76,7 @@ val measuredClasses = listOf(
     "application.ProfileOverview",
     "domain.model.Deck",
     "domain.model.PokerHandEvaluator",
+    "domain.model.RiverOutcomeEvaluator",
     "domain.model.ShowdownResolver",
     "domain.model.ShowdownResult",
     "application.GameInitializer",

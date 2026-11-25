@@ -11,3 +11,9 @@ No session, Swing component or internal GameState is supplied.
 
 Cases map to BotComputerTest. Default real computation is covered by the
 background integration tests.
+
+The [exact river BVA](BotPolicy.md#exact-river-decisions) maps the free check and
+stack-capped call boundaries (BR03), uncertain fallback (BR04), certain-loss
+call value (BR06) and cancellation after the proof (BR08). BR01 exercises
+`decide` through accepted actions and actual settlement. BR02 controls for
+settlement on the original action sequence.
