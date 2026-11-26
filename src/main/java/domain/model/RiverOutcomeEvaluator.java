@@ -56,7 +56,7 @@ public final class RiverOutcomeEvaluator {
         return Outcome.UNCERTAIN;
     }
 
-    private static IntStream candidateRanks(List<Card> board, List<Card> available,
+    static IntStream candidateRanks(List<Card> board, List<Card> available,
             BooleanSupplier cancelled) {
         return IntStream.range(0, available.size() - 1)
                 .flatMap(first -> ranksWithFirstCard(board, available, first, cancelled));

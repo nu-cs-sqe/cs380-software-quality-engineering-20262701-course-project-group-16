@@ -85,6 +85,10 @@ public final class PokerHandEvaluator implements HandEvaluator {
         return best;
     }
 
+    static int royalFlushScore() {
+        return score(STRAIGHT_FLUSH, Rank.ACE.ordinal() + 2);
+    }
+
     private static int rankFive(Card... cards) {
         int[] counts = countRanks(cards);
         boolean flush = isFlush(cards);
@@ -172,7 +176,7 @@ public final class PokerHandEvaluator implements HandEvaluator {
         requireDistinct(cards);
     }
 
-    private static void requireDistinct(List<Card> cards) {
+    static void requireDistinct(List<Card> cards) {
         Set<Card> unique = new HashSet<>();
         for (Card card : cards) {
             if (!unique.add(card)) {

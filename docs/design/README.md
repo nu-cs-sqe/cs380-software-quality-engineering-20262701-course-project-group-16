@@ -650,10 +650,61 @@ sequence; own actions and automatic departure folds do not teach preferences.
 Forced blinds have no strategic decision event. Beliefs carry across hands but
 reset at a new match; they are separate from exact or lifetime PlayStats.
 
+### Exact showdown outcomes and value betting
+
+`BotComputer` tries a proof on the flop, turn and river. `ExactOutcomeEvaluator`
+receives the public board and the acting bot's own cards. The completed-board
+proof still checks every legal two-card holding with `RiverOutcomeEvaluator`.
+It distinguishes a universal board lock from a tie that depends on the bot's
+blockers. The preflop, unresolved and budget-exhausted paths use the existing
+Monte Carlo and mixed policy.
+
+A made private royal flush on the flop or turn is unique. The bot holds at
+least one card from that suit's royal. At least three community cards have
+that suit, so no other suit can supply the three community cards required for
+a royal. Private ace quads also win when each suit's public card count plus
+all undealt community slots and two opponent cards stays below five. That
+rules out a straight flush, and the private ace prevents anyone else from
+matching the highest quads. Both shortcuts apply to every legal runout.
+
+For other incomplete boards the evaluator walks unordered runouts, removes
+each runout from the hypothetical opponent pool, and scores the bot once per
+completed board. All comparisons use the existing five-card scorer. A losing
+comparison plus a non-losing comparison establishes uncertainty immediately.
+The default budget allows 2,048 opponent comparisons. A completed search
+can prove an outcome. Exhausting the budget returns uncertainty so the bot
+can still simulate. The search checks cancellation throughout and shares no
+mutable card cache between turns. The river completes its bounded exhaustive
+proof. A single hypothetical opponent suffices for these universal guarantees
+because any eligible opponent must hold one of the enumerated pairs.
+
+`KnownOutcomePolicy` implements the action decision separately. Its payout
+floor uses the existing call preview's eligible contribution layers. Ties and
+non-loss use each layer's whole-chip equal share as the lower bound. A loss
+can still take a sole-eligible layer. `CallValue` supplies incremental risk
+after the call refund. A board tie checks or calls. Non-loss also continues
+when its floor covers the call. A proven winner compares the passive option
+with legal minimum, half-pot, three-quarter-pot, pot and maximum wager targets.
+Short opening bets and short raises use the engine's sole permitted target.
+
+The value model estimates each active opponent's fold, call and raise response
+from public observed decisions and a Beta-smoothed continuation prior. The
+estimate discounts larger prices and stack commitments, caps opponent
+contributions at the effective amount and credits discounted future betting
+opportunities from remaining streets, aggression and position. The score
+combines the call-preview payout floor minus net call cost with modeled extra
+contributions. It is an approximate chip-value ranking. Forced all-ins and
+folded players supply no additional betting response. For a proven loss, a
+bluff must have positive modeled value relative to the passive decision, a
+heads-up opponent with at least eight relevant choices and a tendency to fold,
+and a size increase within one eligible pot. The engine remains responsible for
+accepted targets, actual refund amounts, odd chips and settlement.
+
 ### Background execution and lifecycle
 
-BotComputer combines the existing Monte Carlo estimator, policy and random
-quantile source. Production uses 512 trials, one daemon worker and a queue with
+BotComputer coordinates the exact evaluator, value policy and existing Monte
+Carlo estimator and mixed policy. Production uses 512 trials when simulation
+is needed, one daemon worker and a queue with
 one waiting job; replacing work discards the previous queued job. A cooperative
 one-second budget is checked before/after computation and between simulation
 trials. The monotonic clock includes queue time. This bounds supplied work and

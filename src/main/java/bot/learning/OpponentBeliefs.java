@@ -87,6 +87,23 @@ public final class OpponentBeliefs {
         return new TendencyEstimate(successes, opportunities);
     }
 
+    /** Calls and raises among public choices where calling was available on this street. */
+    public TendencyEstimate getContinuationEstimate(BettingStreet street) {
+        long continued = 0;
+        long facedWager = 0;
+        for (ActionPrediction prediction : predictions) {
+            DecisionContext context = prediction.getContext();
+            if (context.getStreet() == street
+                    && context.getLegalActions().contains(ResolvedActionType.CALL)) {
+                long calls = prediction.getCounts().getOrDefault(ResolvedActionType.CALL, 0L);
+                continued = Math.addExact(continued, Math.addExact(calls,
+                        aggressionCount(prediction)));
+                facedWager = Math.addExact(facedWager, prediction.getObservations());
+            }
+        }
+        return new TendencyEstimate(continued, facedWager);
+    }
+
     private static boolean eligibleAggression(DecisionContext context, BettingStreet street) {
         return context.getStreet() == street
                 && (context.getLegalActions().contains(ResolvedActionType.BET)

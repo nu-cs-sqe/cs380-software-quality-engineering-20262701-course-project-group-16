@@ -85,3 +85,35 @@ ranking code, and BR05 tests just the rank comparison with explicit bounds.
   explicit expected costs. These are post-GREEN checks. The RED and GREEN
   evidence for this fix is local, and the rubric's GitHub-history criterion
   still needs published evidence.
+
+## Hybrid postflop proof and wager strategy
+
+| ID | Component and boundary | Observable assertion | Test |
+| --- | --- | --- | --- |
+| HB01 | `ExactOutcomeEvaluator.evaluate`, Q♥ J♥ 10♥ with A♥ K♥ on the flop or turn, comparison limit 0 | Guaranteed win even with zero comparison budget. A completed public royal gives `BOARD_LOCKED_TIE`. | `ExactOutcomeEvaluatorTest.aPrivateRoyalProvesAWinEvenWithZeroComparisonBudget`, `aPublicRoyalFlushLocksTheRiverBoard` |
+| HB02 | `evaluate`, private ace quads on flop and turn with enough public suit slots for a straight flush, then turn with all four suits present | The vulnerable boards are uncertain. With at most two final community cards of a suit, the private ace quads win. | `ExactOutcomeEvaluatorTest.aceQuadsNeedTheSuitLimitToBeSafeBeforeTheRiver` |
+| HB03 | `evaluate`, private K-high straight flush. Turn comparison limits 0, 45,539 and 45,540. | Uncertain at the first two limits and a guaranteed win after all 45,540 comparisons. | `ExactOutcomeEvaluatorTest.aTurnSearchNeedsEveryLegalComparisonBeforeProvingAWin` |
+| HB04 | Validation and cancellation. Limit −1, boards of 2 or 6 cards, short holding, duplicate card, cancellation in a search or before a shortcut, or interruption with a clear flag | Reject invalid inputs or cancel. No proof action is returned. | `ExactOutcomeEvaluatorTest.rejectsOutOfRangeAndRepeatedKnownCards`, `cancellationAbortsWorkOnAnIncompleteBoard`, `interruptionAbortsAnIncompleteBoardDespiteAClearFlag` |
+| HB05 | `BotComputer.decide`, private royal on flop and turn across all personalities | Legal value bet below the full stack. No simulation or random draw. | `BotRiverDecisionsTest.privateRoyalSelectsALegalValueBetWithoutSimulationOrSampling` |
+| HB06 | `decide`, A♠ K♣ Q♦ J♥ with a low holding and a zero budget | One estimate, one sample and a legal Call for the selected quantile. | `BotRiverDecisionsTest.anUnresolvedTurnUsesEquityAndSamplingWhenTheProofBudgetIsZero` |
+| HB07 | `KnownOutcomePolicy`, 20 prior Folds versus 20 prior Calls. Wager cap 19 with minimum 20. Facing 20 with raising available. | Larger value target against the caller. The short opening is exactly 19. The raise uses the engine's permitted target. | `BotRiverDecisionsTest.aPrivateRoyalPricesBetsUsingLearnedResponses`, `aProvenWinCanRaiseOrUseTheOnlyLegalShortOpeningBet` |
+| HB08 | Guaranteed non-loss at capped call odds and pot layers 101/61/19/23 with eligibility counts 3/2/1/0 for the acting bot | Covered Call without sampling. Payout floors 181 for a win, 82 for non-loss and 19 for loss. | `BotRiverDecisionsTest.aNonLosingStraightCallsWhenTheWorstTieCoversTheCost`, `payoutFloorsUseOnlyEligibleLayersAndRoundTiesDown` |
+| HB09 | Loss and heads-up public evidence of 7 folds, 8 folds or 8 calls | Check, Bet and Check respectively. BR06 retains the loss call-risk boundaries. | `BotRiverDecisionsTest.aLosingHandOnlyBluffsWithEvidenceOfFolds` |
+| HB10 | Public accepted raises on the turn, ask for turn or flop continuation evidence | Eight qualifying continuations on the turn and zero flop opportunities. | `BotRiverDecisionsTest.continuationCountsRaisesAndCallsOnTheirObservedStreet` |
+| HB11 | Different hidden opponent holdings and undealt order, then a session with an invalidated exact action | Same action and wager target for identical public input. Stale action is rejected with empty accepted history. | `BotRiverDecisionsTest.changingHiddenHoldingsAndDeckOrderPreservesTheExactAction`, `invalidatingTheSessionRejectsTheProvenFlopAction` |
+| HB12 | `KnownOutcomePolicy.choose`, 20 observed Folds, Calls or Raises on the flop. Separate profile of 20 Folds facing a bet and 60 opening Bets. | Targets 20, 40 and 30 with modeled net chip values 40.472727234, 58.071367894 and 62.917026635. The opening bettor can be induced by Check, with net 46.546341463. Only the 20 facing-wager decisions affect continuation. | `KnownOutcomePolicyTest.valuesBothTheSelectedWagerAndItsProjectedReturn`, `aWinnerCanCheckToInduceAPlayerWhoOpensButFoldsToBets` |
+| HB13 | Winner faces an 80-chip bet with 10 behind, winner can only bet 19 all-in, or supplied non-loss floor 19/20/21 at a call cost of 20 | The capped call costs 10 and has net value 50. The short bet has net value 46.073925513 with no future or raise increment. The non-loss decisions are Fold, Call and Call. | `KnownOutcomePolicyTest.aCappedWinningCallCostsOnlyTheRemainingStack`, `aShortValueBetHasNoFutureOrRaiseContributionWhenTheBotIsAllIn`, `aSuppliedNonLossFloorMustCoverTheCallBeforeThePolicyContinues` |
+| HB14 | Losing hand facing a 20-chip bet, public history of eight Folds and a 60-chip pot before the call. Separate multiway and 50% continuation cases. | A raise-to 80 reaches the exact allowed bluff cap and has projected net value 55.456391577. Multiway and equal Fold/Call history choose Check. A capped losing hand without wager rights folds a paid call. | `KnownOutcomePolicyTest.facingABetTheBluffCreditsTheRefundAdjustedPrizeAndCapsTheRaise`, `aBluffNeedsAHeadsUpOpponentWithMoreFoldsThanContinuations`, `aCappedWinningCallCostsOnlyTheRemainingStack` |
+| HB15 | `ExactOutcomeEvaluator.evaluate`, four public aces on the turn and K♣ 2♦ in hand. Default limit 2,048 and full limit 45,540. | Uncertain at the production limit. A complete search proves guaranteed non-loss because an opponent can tie the king kicker. | `ExactOutcomeEvaluatorTest.publicAceQuadsWithAPrivateKingCanStillTie` |
+
+HB05 supplied the initial local RED. Both cases failed when the old bot called
+the injected simulation. Both passed after the proof and value decision were
+wired into `BotComputer`. The remaining HB cases verify boundaries and
+integration after that initial implementation. HB12–14 were added after the
+mutation pass showed that action-only assertions missed changes in projected
+chip values. The evaluator tests run real
+ranking code. Action tests use real filtered betting snapshots and controlled
+estimate, random and opponent observation inputs. The fixed river regression
+still checks actual calls, payouts, refunds and conservation through settlement.
+HB15 promoted the standalone public-aces probe into a permanent regression
+during the style review. It is post-GREEN verification.

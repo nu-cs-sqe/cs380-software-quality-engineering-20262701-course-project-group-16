@@ -8,6 +8,156 @@ no `ignoreFailures`, global suppression or baseline hiding existing warnings. Re
 CI uploads test, coverage, mutation and static-analysis reports even after a
 failed step.
 
+## Hybrid postflop proof and value betting
+
+[Design](design/README.md#exact-showdown-outcomes-and-value-betting) and
+[boundary tests](bva/BotPolicy.md#hybrid-postflop-proof-and-wager-strategy)
+cover the exact and strategic components separately. The first focused
+flop and turn private-royal tests failed because the legacy bot invoked
+the simulation spy. After the proof and value-policy integration, both
+cases returned a legal sized bet without simulation or a random draw.
+The original locked-river replay still uses real betting and settlement.
+
+### Controlled latency and policy comparison
+
+The comparison used the original river-only proof and mixed strategy from
+`73771f1` and the hybrid decision on identical public snapshots. Timings are
+warm Java 25 measurements in milliseconds from 40 paired decisions after 10
+warmups, with 512 equity trials where needed. Snapshot construction was
+outside the timed interval. Fixed sample seeds started at 9,200. The payout
+column is the immediate check/call benchmark before refunds. For exact
+decisions it is the payout floor. The hybrid's modeled gain is measured from
+the decision after deducting call risk and adding projected opponent chips.
+
+| Scenario | Hybrid proof | Old → new MC runs | Old → new p50 / p95 ms | Seeded old → new action | Immediate payout | Old immediate net → new modeled net |
+| --- | --- | ---: | ---: | --- | ---: | ---: |
+| Private royal on flop | Guaranteed win | 40 → 0 | 6.298 / 8.171 → 0.108 / 0.147 | Check → Bet 30 | 60 | 60.00 → 82.98 |
+| Private royal on turn | Guaranteed win | 40 → 0 | 5.674 / 7.162 → 0.054 / 0.086 | Check → Bet 30 | 60 | 60.00 → 81.88 |
+| Broadway board facing 980 | Board-locked tie | 0 → 0 | 2.064 / 3.407 → 2.071 / 2.358 | Call → Call | 1,000 | 20.00 → 20.00 |
+| Turn A♠ K♣ Q♦ J♥ with 2♣ 3♦ facing 20 | Uncertain | 40 → 40 | 5.682 / 6.117 → 5.705 / 6.133 | Fold → Fold | 11.00, if calling | −9.00 for Call in both policies, zero for Fold |
+
+In the two royal scenarios, the original probabilities were 81.82% Check
+and 18.18% Bet. The hybrid selected Bet 30 with probability 100%. The locked
+river selects Call with probability 100% in both policies, and the chosen
+uncertain-turn seed produced a 100% Fold distribution in both. The mixed
+fallback's two nonzero action probabilities are independently exercised in
+the uncertain-river regression.
+
+The table below keeps the winning flop, 600-chip hero stack and 40-chip pot
+fixed. Each profile supplies 20 observed actions facing a wager on the flop.
+The response estimates are conditional on the hybrid's selected bet. The
+immediate payout floor is 40 for every profile.
+
+| Observed response | Hybrid bet | Modeled Fold / Call / Raise | Modeled net chips |
+| --- | ---: | ---: | ---: |
+| Fold | 20 | 97.69% / 2.29% / 0.03% | 40.47 |
+| Call | 40 | 55.32% / 44.17% / 0.51% | 58.07 |
+| Raise | 30 | 41.77% / 44.34% / 13.90% | 62.92 |
+
+### Paired hands against the existing bot
+
+The paired simulation used 384 identical seeded deals per opponent, with
+deal seeds 38,000–38,383 and action seed `6101 + 43 * dealSeed + 83 * decision`.
+Sampling used 24 trials for speed and the baseline opponent policy retained
+its cautious, balanced or aggressive personality. Each hand started heads-up
+on the private-royal flop, with 20 committed per player and a 600-chip hero
+stack behind. Both sides used default opponent priors on each snapshot.
+The comparison used actual engine actions and street advancement, then
+`PotSettlement`. Profit is the hero's final stack minus its starting stack
+and the 20 previously committed chips. All completed simulations conserved
+chips. The intervals are normal approximations for the paired mean change.
+
+| Opponent | Old → hybrid profit per hand | Paired change and 95% interval | Hero wagers | Old → hybrid mean wager chips |
+| --- | ---: | ---: | ---: | ---: |
+| Cautious | 75.326 → 164.323 | +88.997 [77.976, 100.019] | 223 → 986 | 92.67 → 59.27 |
+| Balanced | 89.526 → 190.260 | +100.734 [88.150, 113.319] | 214 → 1,026 | 91.95 → 66.30 |
+| Aggressive | 100.417 → 197.500 | +97.083 [85.825, 108.342] | 216 → 1,022 | 101.90 → 62.41 |
+
+The results measure value extraction on this fixed winning flop. Broader
+win rates, mixed stacks, opponents with history in the match and seat effects
+need separate evidence. Earlier-street proofs can still fall back on states
+outside the shortcuts when the 2,048-comparison budget is insufficient.
+On the private king-high straight-flush turn from HB03, the production budget
+returned uncertain at 3.538 ms median and 5.686 ms p95 for the proof alone.
+The full 45,540-comparison proof took 74.315 ms median and 75.187 ms p95.
+This was a separate warmed arm64 Java 25 sample with 40 evaluations per limit.
+
+The measured Java class list adds `ExactOutcomeEvaluator` and
+`KnownOutcomePolicy` with their nested classes. Existing measurement targets
+remain in scope. [Gradle measurement list](../build.gradle.kts).
+
+The original hybrid run passed 1,792 tests with no failures, errors or skips.
+Checkstyle and SpotBugs reported zero findings. The JaCoCo report counts
+4,310/4,311 lines and 2,128/2,138 branches over 96 selected Java classes.
+
+| JaCoCo class | Lines | Branches |
+| --- | ---: | ---: |
+| `ExactOutcomeEvaluator`, including `RunoutSearch` | 70/70 | 50/50 |
+| `KnownOutcomePolicy` body | 111/111 | 54/60 |
+| `BotComputer` | 31/31 | 6/6 |
+
+The new proof and decision boundaries have targeted assertions. These raw
+counters describe bytecode execution and do not demonstrate every independent
+path through the model.
+
+`bash ./gradlew --no-daemon build pitest` passed. Its XML records
+2,706/2,747 killed (98.51%), with 41 survivors and zero uncovered, timed-out
+or error mutants. The locked-river baseline had 2,555/2,577 killed and 22
+survivors. Those 22 remain. All 19 additional survivors are in the incomplete
+board evaluator or value policy.
+
+| PIT scope | Killed / generated |
+| --- | ---: |
+| `ExactOutcomeEvaluator` and `RunoutSearch` | 56/65 |
+| `KnownOutcomePolicy` and `Plan` | 101/111 |
+| `RiverOutcomeEvaluator` | 28/28 |
+| `BotComputer` | 12/12 |
+| `OpponentBeliefs` | 28/28 |
+
+In the first mutation pass the value policy body killed 67/109. Numeric
+projections and the bluff boundaries in HB12–14 raised it to 99/109. Remaining
+value-policy mutants include in-position projections, equal-value wager
+selection and pricing with chips already committed this round. The exact
+evaluator's board-size `> 5` to `>= 5` mutant is equivalent at that helper
+because `evaluate` sends five-card boards to the river evaluator first. Other
+search survivors include the early-exit predicate, cancellation placement and
+removal of the comparison accumulator. A separate Java probe of a turn with
+four public aces and private K♣ 2♦ returned uncertain at the default budget
+and guaranteed non-loss after all 45,540 comparisons. At that checkpoint the
+persistent suite lacked a case that could catch changes to the private-ace
+requirement or accumulator on a complete search that can tie.
+
+### Instructor style follow-up — November 26, 2026
+
+`ExactOutcomeEvaluator.evaluate` coordinates board dispatch, early proof and
+bounded search. The search now owns both its comparison statistics and the
+conversion of completed bounds to an outcome. `KnownOutcomePolicy` names
+bluff return, check inducement and future-street contribution separately.
+Check inducement derives from the zero target because the engine's wager
+targets are always positive. Bluff evidence and participant thresholds use
+named constants. The strategy formulas, comparison budget and settlement
+contracts are preserved.
+
+The new tests separate the private royal proof from the public board lock.
+HB15 checks public ace quads with a private king using the real evaluator at
+the production budget and at the complete-search boundary. It adds regression
+evidence to the already established local test-first history. [Hybrid BVA and
+test scope](bva/BotPolicy.md#hybrid-postflop-proof-and-wager-strategy).
+
+`bash ./gradlew --no-daemon build pitest` passed with 1,794 tests and zero
+failures, errors or skips. Checkstyle and SpotBugs reported zero findings.
+JaCoCo measured 4,317/4,318 lines and 2,130/2,140 branches across the same 96
+selected Java classes. The exact evaluator and its search covered 73/73 lines
+and 52/52 branches. The value-policy body covered 115/115 lines and 54/60
+branches.
+
+PIT killed 2,716/2,754 mutants, with 38 survivors and zero uncovered mutants,
+timeouts or errors. The exact evaluator and its search killed 63/69. The
+value policy and its plan killed 104/114. PIT names HB15 as the test that
+detects bypassing the private-ace check, dropping the comparison accumulator
+and treating a tied comparison as a losing witness. The remaining exact
+search and value-policy survivors are still visible in the report.
+
 ## Exact river bot decisions
 
 The reported river was J♦ Q♠ A♠ 10♦ K♣. Every possible holding plays the

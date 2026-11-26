@@ -17,3 +17,8 @@ stack-capped call boundaries (BR03), uncertain fallback (BR04), certain-loss
 call value (BR06) and cancellation after the proof (BR08). BR01 exercises
 `decide` through accepted actions and actual settlement. BR02 controls for
 settlement on the original action sequence.
+
+The [hybrid postflop cases](BotPolicy.md#hybrid-postflop-proof-and-wager-strategy)
+cover the earlier-street proof before simulation, the zero-budget fallback,
+the value decision, the pot-floor boundary, and stale exact-result rejection.
+BR01–02 remain the fixed-deal river settlement controls.
