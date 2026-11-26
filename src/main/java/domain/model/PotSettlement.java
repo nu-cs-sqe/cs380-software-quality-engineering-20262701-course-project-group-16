@@ -25,13 +25,21 @@ public final class PotSettlement {
      * @throws IllegalStateException unless the hand is ready and all pots have eligible winners
      */
     public Settlement settle(GameState state) {
+        return settle(state, Set.of());
+    }
+
+    /** Awards each pot to live claimants. A showdown muck leaves all committed chips in place. */
+    public Settlement settle(GameState state, Set<String> withdrawn) {
         requireReady(state);
+        List<PlayerState> claimants = ShowdownResolver.eligibleContenders(state, withdrawn);
         Map<String, Long> payouts = zeroAmounts(state);
         PotLayout layout = PotLayout.from(state);
         Map<String, Long> refunds = layout.getRefunds();
         Map<String, Long> contested = zeroAmounts(state);
-        distributeLayers(state, layout.getLayers(), payouts, contested);
-        return new Settlement(completedState(state, payouts, refunds), payouts, refunds, contested);
+        List<Map<String, Long>> pots = distributeLayers(state, layout.getLayers(), claimants,
+                payouts, contested);
+        return new Settlement(completedState(state, payouts, refunds), payouts, refunds,
+                contested, pots);
     }
 
     private static void requireReady(GameState state) {
@@ -52,30 +60,41 @@ public final class PotSettlement {
         return amounts;
     }
 
-    private void distributeLayers(GameState state, List<PotLayout.Layer> layers,
+    private List<Map<String, Long>> distributeLayers(GameState state, List<PotLayout.Layer> layers,
+            List<PlayerState> claimants,
             Map<String, Long> payouts, Map<String, Long> contested) {
+        List<Map<String, Long>> pots = new ArrayList<>();
         for (PotLayout.Layer layer : layers) {
-            List<PlayerState> eligible = state.getPlayerStates().stream()
+            List<PlayerState> eligible = claimants.stream()
                     .filter(player -> layer.getEligiblePlayers()
                             .contains(player.getPlayer().getId()))
                     .collect(Collectors.toList());
-            payLayer(state, eligible, layer.getAmount(), payouts, contested);
+            if (eligible.isEmpty()) {
+                throw new IllegalStateException("A pot must have a remaining claimant.");
+            }
+            pots.add(payLayer(state, eligible, layer, payouts, contested));
         }
+        return pots;
     }
 
-    private void payLayer(GameState state, List<PlayerState> eligible, long amount,
+    private Map<String, Long> payLayer(GameState state, List<PlayerState> eligible,
+            PotLayout.Layer layer,
             Map<String, Long> payouts, Map<String, Long> contested) {
+        Map<String, Long> shares = new LinkedHashMap<>();
+        long amount = layer.getAmount();
         List<PlayerState> winners = winners(state, eligible);
         // Odd chips go clockwise from the seat immediately left of the dealer.
         winners.sort(Comparator.comparingInt(player -> Math.floorMod(
                 player.getPlayer().getSeat() - state.getDealerSeat() - 1, GameConfig.SEAT_COUNT)));
         for (int index = 0; index < winners.size(); index++) {
             long share = amount / winners.size() + (index < amount % winners.size() ? 1 : 0);
+            shares.put(winners.get(index).getPlayer().getId(), share);
             add(payouts, winners.get(index), share);
-            if (eligible.size() > 1) {
+            if (layer.getEligiblePlayers().size() > 1) {
                 add(contested, winners.get(index), share);
             }
         }
+        return Map.copyOf(shares);
     }
 
     private List<PlayerState> winners(GameState state, List<PlayerState> eligible) {

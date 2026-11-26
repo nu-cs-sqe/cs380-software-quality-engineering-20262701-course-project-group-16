@@ -7,7 +7,8 @@ public final class BuyInLimits {
 
     private BuyInLimits() { }
 
-    static long defaultAmount(long balance) {
+    /** Returns the standard buy-in for a funded account. */
+    public static long defaultAmount(long balance) {
         long amount = Math.min(DEFAULT, balance);
         requireAmount(amount, balance);
         return amount;

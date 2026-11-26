@@ -8,7 +8,7 @@ import java.util.EnumMap;
 import java.util.Map;
 import java.util.OptionalLong;
 
-/** Stateless bounded heuristic over authoritative options; not a GTO or profit guarantee. */
+/** Bounded heuristic over estimated pot shares and authoritative options. */
 public final class BotPolicy {
     private static final double MIXING_MARGIN = 0.05;
     private static final double POSITION_CALL_BONUS = 0.01;
@@ -43,6 +43,7 @@ public final class BotPolicy {
     private static void addPaidCallOrFoldWeights(PolicyRequest request, BotPersonality personality,
             double pressure, Map<ActionType, Double> weights) {
         double equity = request.getCallValue().getEquity();
+        // These are heuristic endpoints. A finite sample does not prove a river outcome.
         if (equity == 0 || equity == 1) {
             weights.put(equity == 0 ? ActionType.FOLD : ActionType.CALL, 1.0);
         } else {

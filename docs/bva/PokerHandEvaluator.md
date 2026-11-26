@@ -94,3 +94,10 @@ The increasing-index combination loop remains one cohesive algorithm, with
 explicit index names. Existing ranking, kicker, wheel, tie and input-preservation
 cases are retained. The historical equal-count comparator survivor now belongs
 to ranksByMultiplicity; its reasoning is unchanged.
+
+River Room calls `category(cards)` only for a publicly shown winner with enough
+cards to form a five-card hand. The four- and eight-card boundaries and a
+duplicate card are rejected. Five, six and seven distinct cards use the same
+best-five ranking as comparison. `categoryRequiresFiveToSevenDistinctCards`
+checks those boundaries, and `ReviewedHandTest` checks the category of a board
+straight flush shared by main- and side-pot winners.

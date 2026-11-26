@@ -4,12 +4,13 @@ import domain.model.GameConfig;
 import domain.model.GameSetup;
 import domain.model.GameState;
 import java.util.Random;
-import java.util.function.IntFunction;
+import java.util.Set;
+import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
 /** Combines table setup and dealing into the first preflop state of a new match. */
 public final class GameInitializer {
-    private final IntFunction<GameState> createTable;
+    private final Function<Set<Integer>, GameState> createTable;
     private final UnaryOperator<GameState> dealCards;
 
     /** Uses the default match settings and normal random sources. */
@@ -26,7 +27,8 @@ public final class GameInitializer {
     }
 
     // Package composition boundary: setup owns validation; dealing owns cards and snapshots.
-    GameInitializer(IntFunction<GameState> createTable, UnaryOperator<GameState> dealCards) {
+    GameInitializer(Function<Set<Integer>, GameState> createTable,
+            UnaryOperator<GameState> dealCards) {
         this.createTable = createTable;
         this.dealCards = dealCards;
     }
@@ -38,7 +40,11 @@ public final class GameInitializer {
      * @throws IllegalArgumentException unless humanCount is between one and six
      */
     public GameState start(int humanCount) {
-        GameState table = createTable.apply(humanCount);
+        return start(GameSetup.firstSeats(humanCount));
+    }
+
+    public GameState start(Set<Integer> humanSeats) {
+        GameState table = createTable.apply(humanSeats);
         return dealCards.apply(table);
     }
 }

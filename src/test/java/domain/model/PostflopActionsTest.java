@@ -241,6 +241,30 @@ class PostflopActionsTest {
     }
 
     @Test
+    void anAlreadyMatchedContributionCarriesNoFacedContinuationBetContext() {
+        FoundationFixtures.Fixture fixture = facingBet(GamePhase.FLOP, 20);
+        PostflopFixtures.contribution(fixture, 1, 20);
+        GameState before = PostflopFixtures.build(fixture, new BettingHistory("p0", 20));
+
+        BettingResult checked = act(before, 1, ActionType.CHECK);
+        assertContext(checked, false, false);
+        assertEquals(0, checked.getAcceptedAction().getChipsAdded());
+        assertEquals(before.getPot(), checked.getState().getPot());
+    }
+
+    @Test
+    void callAmountRejectsAMatchedPlayerBeforeConstructingAnAcceptedAction() {
+        FoundationFixtures.Fixture fixture = facingBet(GamePhase.FLOP, 20);
+        PostflopFixtures.contribution(fixture, 1, 20);
+        GameState before = PostflopFixtures.build(fixture, new BettingHistory("p0", 20));
+        PlayerState actor = before.getPlayerStates().get(1);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> BettingAmounts.chipsAdded(before, actor, new ActionRequest("p1",
+                        ActionType.CALL)));
+    }
+
+    @Test
     @DisplayName("BE-PC05: an ordinary opening bet is not inferred to be a c-bet")
     void anUnrecordedOpeningBetCreatesNoFacedCBetContext() {
         GameState before = PostflopFixtures.build(facingBet(GamePhase.FLOP, 20),

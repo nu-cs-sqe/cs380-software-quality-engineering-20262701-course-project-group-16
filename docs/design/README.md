@@ -1,19 +1,11 @@
 # System design
 
-## Full-chip match victory — November 16
+## Hand settlement and continuation
 
-SetupSession.getMatchWinner requires successful settlement and a player holding
-the full configured chip total, normally 6,000. The query scans paid ownership
-across all fixed seats. An all-in quitter's complete payout and a completed
-winner's later departure retain that victory. Starting a new match clears the
-paid result and departure state.
-
-The existing retirement contract is retained: departed stacks stay owned and
-receive no later cards/blinds. Two or more funded nondeparted seats can continue,
-including heads-up dealing and blind order. With zero or one such seat and chips
-still split, play stops without a match winner. English/Chinese resources make
-that outcome explicit. Completed-hand statistics and chip conservation remain
-independent of the absence of a match winner.
+Departed seats keep their stacks and receive no later cards or blinds. An
+all-in departure retains eligibility for the current hand. Two funded
+nondeparted seats can continue with heads-up dealing and blind order. River
+Room updates account balances and completed statistics at each paid hand.
 
 ## Immediate quit-as-fold — November 16
 
@@ -30,8 +22,7 @@ retain current-hand eligibility. Folded players and resolved hands acquire no
 extra fold. The compatibility playDepartureTurns entry point refreshes private
 handoffs after quit has already committed the departure.
 
-The earlier queued-fold policy is superseded for I03. The I07 full-total victory
-and stopped-match rules are described above; local fixes await review/CI/merge.
+I03 applies the fold immediately. See [departure boundaries](../bva/Departure.md).
 
 ## Bot/profile integration — November 16
 

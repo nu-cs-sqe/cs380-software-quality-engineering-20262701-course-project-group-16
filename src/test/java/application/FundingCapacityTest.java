@@ -1,5 +1,7 @@
 package application;
 
+import domain.model.GameConfig;
+import domain.model.GameState;
 import domain.model.Player;
 import domain.model.PlayerType;
 import java.util.ArrayList;
@@ -38,6 +40,27 @@ class FundingCapacityTest {
         assertEquals(2000, limited.getMaximumTopUp());
         assertEquals(1, limited.getMinimumTopUp());
         assertEquals(0, new TableFunds(500, 0, 0, 399).getMaximumTopUp());
+    }
+
+    @Test
+    void reservedChipsAboveTheBalanceAreRejectedBeforeTheFundingLimit() {
+        IllegalArgumentException rejected = assertThrows(IllegalArgumentException.class,
+                () -> new TableFunds(1000, 1001, 0, 0));
+        assertEquals("Table chips must fit within the account balance.", rejected.getMessage());
+    }
+
+    @Test
+    void openingRosterAcceptsTheExactChipLimitButRejectsOverflow() {
+        GameState opening = BotFixtures.initializer().start(1);
+        String player = opening.getPlayers().get(0).getId();
+        Map<String, String> accounts = Map.of(player, "account");
+        long botChips = (GameConfig.SEAT_COUNT - 1) * TableRoster.DEFAULT_BUY_IN;
+        long exact = Long.MAX_VALUE - botChips;
+
+        List<Player> exactRoster = TableRoster.opening(opening, accounts, Map.of("account", exact));
+        assertEquals(Long.MAX_VALUE, TableRoster.totalChips(exactRoster).orElseThrow());
+        assertThrows(IllegalArgumentException.class,
+                () -> TableRoster.opening(opening, accounts, Map.of("account", exact + 1)));
     }
 
     @Test

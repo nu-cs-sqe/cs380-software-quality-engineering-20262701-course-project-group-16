@@ -4,6 +4,7 @@ import application.ChipHistoryEntry;
 import application.HandCompletion;
 import application.HandCompletionFixture;
 import application.ProfileService;
+import application.RecoveryOutcome;
 import domain.model.CompletedStatistics;
 import domain.model.PasswordHash;
 import domain.model.PlayStats;
@@ -19,6 +20,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
@@ -60,6 +62,25 @@ class SqliteHandSettlementTest {
         assertEquals(-10, reopened.loadChipHistory("loser").get(1).getSessionNet().orElseThrow());
         assertTrue(reopened.loadChipHistory("other").isEmpty());
         assertThrows(UnsupportedOperationException.class, history::clear);
+    }
+
+    @Test
+    void recoveryLedgerDistinguishesNewOwnAndForeignClaims() throws IOException {
+        SqliteProfileRepository repository = repository();
+        repository.save(List.of(profile("winner", 100), profile("loser", 100)));
+        String challenge = "fixed-recovery";
+        LocalDate date = LocalDate.of(2026, 11, 19);
+
+        assertEquals(RecoveryOutcome.AWARDED,
+                repository.grantRecovery("winner", challenge, date, PAID_AT));
+        assertEquals(RecoveryOutcome.ALREADY_AWARDED,
+                repository.grantRecovery("winner", challenge, date, PAID_AT));
+        assertThrows(IOException.class,
+                () -> repository.grantRecovery("loser", challenge, date, PAID_AT));
+        assertEquals(300L, repository.getBalances(java.util.Set.of("winner")).get("winner"));
+        assertEquals(100L, repository.getBalances(java.util.Set.of("loser")).get("loser"));
+        assertEquals(1, repository.loadChipHistory("winner").size());
+        assertTrue(repository.loadChipHistory("loser").isEmpty());
     }
 
     @Test

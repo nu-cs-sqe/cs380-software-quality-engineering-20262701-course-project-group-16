@@ -198,6 +198,15 @@ class SqliteTableIntegrationTest {
         assertThrows(IllegalArgumentException.class, () -> session.startTableWithLoadedBalances(
                 service, List.of(account), store, Map.of(id, 399L)));
         assertEquals(handId, session.getView().orElseThrow().getHandId());
+
+        Map<String, Long> loaded = Map.of(id, 500L);
+        assertThrows(IllegalArgumentException.class, () -> session.startTableWithLoadedBalances(
+                service, List.of(account), store, loaded, Map.of(id, 501L)));
+        assertEquals(handId, session.getView().orElseThrow().getHandId());
+        session.startTableWithLoadedBalances(service, List.of(account), store,
+                loaded, Map.of(id, 450L));
+        assertEquals(450, session.getTableFunds().get(id).getTableChips());
+        assertEquals(50, session.getTableFunds().get(id).getAvailableChips());
     }
 
     private static final class NoIoStore implements TableAccountStore {

@@ -37,7 +37,9 @@ final class DesktopSnapshot {
         game.put("players", view.getPlayers().stream().map(this::player)
                 .collect(Collectors.toList()));
         game.put("legal", legal(session.getLegalActions()));
-        game.put("lastAction", lastAction());
+        List<AcceptedAction> actions = session.getAcceptedActions();
+        game.put("lastAction", lastAction(actions));
+        game.put("streetActions", latestActionsOnStreet(actions));
         game.put("result", session.getResult().<Object>map(result -> result(result, before))
                 .orElse(""));
         game.put("metrics", project(session.getStatistics(), DesktopAccounts::metrics));
@@ -81,12 +83,21 @@ final class DesktopSnapshot {
 
     private String name(Player player) {
         return Optional.ofNullable(bindings.get(player.getId()))
-                .map(id -> accounts.require(id).getProfile().getDisplayName())
+                .map(accounts::displayName)
                 .orElseGet(() -> "Bot " + (player.getSeat() + 1));
     }
 
-    private Object lastAction() {
-        List<AcceptedAction> actions = session.getAcceptedActions();
+    private Map<String, String> latestActionsOnStreet(List<AcceptedAction> actions) {
+        Map<String, String> latest = new LinkedHashMap<>();
+        for (AcceptedAction action : actions) {
+            if (action.getStreet().name().equals(view.getPhase().name())) {
+                latest.put(action.getPlayerId(), action.getType().name());
+            }
+        }
+        return latest;
+    }
+
+    private Object lastAction(List<AcceptedAction> actions) {
         if (actions.isEmpty()) {
             return "";
         }
@@ -129,8 +140,13 @@ final class DesktopSnapshot {
 
     private Map<String, Object> result(ShowdownResult result, Map<String, String> before) {
         Optional<Settlement> paid = session.getSettlement();
-        return Map.of("winners", result.getWinnerIds(), "uncontested", result.isUncontested(),
+        List<String> winners = paid.map(value -> value.getPayouts().entrySet().stream()
+                .filter(entry -> entry.getValue() > 0).map(Map.Entry::getKey)
+                .collect(Collectors.toList())).orElse(result.getWinnerIds());
+        return Map.of("winners", winners, "uncontested", result.isUncontested(),
                 "payouts", paid.map(value -> amounts(value.getPayouts())).orElse(Map.of()),
+                "pots", paid.map(value -> value.getPots().stream().map(DesktopSnapshot::amounts)
+                        .collect(Collectors.toList())).orElse(List.of()),
                 "refunds", paid.map(value -> amounts(value.getRefunds())).orElse(Map.of()),
                 "before", before, "after", paid.map(value -> finalStacks(value)).orElse(Map.of()));
     }

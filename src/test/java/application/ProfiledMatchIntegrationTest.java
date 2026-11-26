@@ -328,7 +328,10 @@ class ProfiledMatchIntegrationTest {
         session.settleHand(worker::add, owner::add, outcomes::add);
         worker.remove().run();
         assertTrue(prepared.isSaved());
+        session.revealCards();
+        assertEquals(2, session.getView().orElseThrow().getHoleCards().size());
         assertThrows(IllegalStateException.class, () -> session.publishSettlement(prepared));
+        assertTrue(session.getView().orElseThrow().getHoleCards().isEmpty());
         assertTrue(session.getSettlement().isEmpty());
         assertEquals(pot, session.getView().orElseThrow().getPot());
         assertTrue(outcomes.isEmpty());

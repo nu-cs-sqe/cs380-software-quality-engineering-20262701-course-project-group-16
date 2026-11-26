@@ -8,6 +8,605 @@ no `ignoreFailures`, global suppression or baseline hiding existing warnings. Re
 CI uploads test, coverage, mutation and static-analysis reports even after a
 failed step.
 
+## Exact river bot decisions
+
+The reported river was J♦ Q♠ A♠ 10♦ K♣. Every possible holding plays the
+ace-high straight. The previous policy received a pot-weighted expected share
+and treated it as ordinary uncertain equity. It subtracted break-even equity,
+applied personality, position, opponent aggression and commitment terms, then
+used a five-percentage-point mixing margin to produce Fold and Call weights.
+Both bots could fold even with a positive immediate-settlement chip return.
+
+The fixed-deal reconstruction gives Bot 1 and Bot 5 1,000 opening chips each
+and learns from this hand starting at the default prior. Their live stacks,
+earlier opponent observations and random draws are absent from the report.
+Both reconstructed calls cost 980 with no new refund. The expected payout is
+the estimator's fractional share of each eligible pot before odd-chip rounding.
+
+| Bot in the original action order | Estimated share | Break-even share | Expected payout | Adjusted edge | Old Fold / Call | Exact Fold / Call |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Bot 5 | 48.544% | 47.573% | 1,000 | −0.807 pp | 58.069% / 41.931% | 0% / 100% |
+| Bot 1, after Bot 5 folded and Bot 6 called | 33.059% | 32.237% | 1,005 | −2.844 pp | 78.443% / 21.557% | 0% / 100% |
+
+The exact river proof evaluates all two-card combinations against the board,
+then uses the acting bot's blockers when the board itself can be improved.
+The evaluator distinguishes a universal board lock from a tie proved using
+the acting player's blockers.
+Opponent hands and the live deck do not enter the calculation. A win, tie or
+non-loss favors checking if free and calling a legal wager otherwise. Under
+the no-rake rules, each eligible tied tier contains at least one equal
+contribution per claimant. A proved loss can recover only a sole-eligible
+layer and any new call refund in the immediate-settlement preview. The ranking
+proof is distinct from the expected share of eligible pots and the actual
+return can vary with later betting, folds, and odd-chip rules. Uncertain
+rivers and earlier streets retain Monte Carlo and stochastic policy behavior.
+
+`BotRiverIntegrationTest` replays the original folds and checks the 3,040 and
+6,050 pots, payouts of 1,014, 4,038 and 4,038, and 42,005 returned chips. With
+the corrected bot calls and the fixture's stacks, the main pot becomes 5,000,
+the side pot stays at 6,050 and the refund stays at 42,005. All six ending
+balances equal their respective opening balances. Bot 3 folds preflop in
+both runs and remains ineligible. `BotRiverDecisionsTest` checks capped calls,
+free checks, two through six live seats and preservation of mixed decisions on
+a beatable river. The exact calculation is included in the Java measurement
+scope. [River decision boundaries](bva/BotPolicy.md#exact-river-decisions).
+
+An independent suit-pattern audit compared all 1,024 Broadway boards with
+the expected rank and suit boundaries. It found 604 locked and 420 beatable
+boards.
+
+`bash ./gradlew --no-daemon build pitest` passed with 1,756 tests and zero
+failures, errors or skips. Checkstyle and SpotBugs reported zero findings.
+The measured class list adds `RiverOutcomeEvaluator` and its nested enum for
+both JaCoCo and PIT.
+
+| JaCoCo scope | Lines | Branches | Complexity counters |
+| --- | ---: | ---: | ---: |
+| Selected Java classes (91) | 4,115/4,116 | 2,030/2,034 | 2,149/2,153 |
+| `RiverOutcomeEvaluator` | 35/35 | 18/18 | 18/18 |
+| `BotComputer` | 41/41 | 18/18 | 20/20 |
+
+These counters describe executed bytecode. The BVA lists the separately
+asserted ranking, validation, cancellation and call-decision boundaries.
+
+PIT killed 2,555 of 2,577 mutants (99.15%), up from 2,508 of 2,530 in the
+November 23 baseline. The same 22 documented survivors remain, with zero
+uncovered mutants, timeouts or errors. `RiverOutcomeEvaluator` killed 28/28,
+`BotComputer` 23/23, `BotPolicy` 62/62 and `PotSettlement` 48/48. The first
+mutation pass found that the invalid board-size test also had an invalid total
+card count. The added four-plus-three and six-plus-one cases isolate the
+required five-card board boundary. The evaluator also identifies the public
+board lock explicitly, so a mutant that skips the proof changes its result.
+
+### BVA and style follow-up
+
+The river decision test supplies expected actions and chip costs directly. It
+checks 979, 980 and 981 behind a 980-chip wager, and adds a paid heads-up case
+alongside the free check. The malformed-input and cancellation tests have
+separate responsibilities. The fixed-deal replay names the two blind amounts
+and isolates the seeded preflop decision in its own helper.
+
+The [BVA and local TDD record](bva/BotPolicy.md#exact-river-decisions) maps
+the inputs and assertions to their tests and records the observed fixed-deal
+RED/GREEN sequence. The added tests are post-GREEN hardening. The coursework
+criterion for GitHub commit evidence of that workflow remains open for this
+local change.
+
+The follow-up passed `bash ./gradlew --no-daemon build pitest` with 1,760
+JUnit tests, including 30 across the three new river test classes. Checkstyle
+and SpotBugs reported zero findings. JaCoCo retained the 91-class scope and
+the counts above. PIT again killed 2,555/2,577, including 28/28 in the river
+evaluator and 23/23 in the bot coordinator, with the same 22 documented
+survivors and zero timeouts, uncovered mutants or errors.
+
+## River Room submission audit — November 24, 2026
+
+The desktop audit uses `7187187` and the uncommitted working tree, including
+the new renderer modules. The funded desktop rules, localization design and
+instructor feedback govern the acceptance checks below. The engine remains
+responsible for seat and turn validation, legal wager targets, card visibility,
+settlement and persistence.
+
+| Changed feature | Requirement and visible behavior | Test evidence |
+| --- | --- | --- |
+| Lobby seating and funding | One to six ready local accounts choose distinct physical chairs. Bots fill the remaining chairs at the first deal. Invalid buy-ins cannot mark an account ready. | `lobby.test.mjs` seat and buy-in boundaries, and the native startup and solo-seat walkthroughs. [Lobby](../desktop/src/Lobby.jsx), [lobby model](../desktop/src/lobby-model.mjs). |
+| Betting controls and table layout | Controls reflect the engine's legal actions. Raise-to is a total commitment, while the preview and accepted action charge only the additional chips. Presets and the slider use exact integer chip values. At a 900 × 650 native window size the private cards, amount, slider and action controls fit. | `table-state.test.mjs` includes exact integers beyond JavaScript's safe number range, legal presets and slider limits. The raised six-player and unequal all-in walkthroughs check the live controls and accepted wagers. [Betting controls](../desktop/src/BettingControls.jsx), [table state](../desktop/src/table-state.mjs). |
+| Card faces, notices and street progress | Shared and private cards use the four suit inks. Seat badges show the latest applicable action and the table marks the current street. | The raised six-player walkthrough checks card inks, board and seat geometry, action badges and phase progress. [Table surface](../desktop/src/TableSurface.jsx). |
+| Private handoff and request timing | Betting handoff and actions belong to the current shared seat. Switching private access outside the turn requires the owner's credentials. Blur conceals cards, a stale response cannot restore private cards, and solo play offers a local hide/show control. | The shared, solo and ordered-showdown walkthroughs, the handoff unit cases, and `DesktopBridgeIntegrationTest.onlyCurrentHumanMaySeeCardsOrActAndOldSnapshotsCannotReplay`. [Request hook](../desktop/src/use-table-requests.mjs), [owner hand](../desktop/src/OwnerHand.jsx), [Electron boundary](../desktop/electron/main.cjs). |
+| Showdown, runout and payouts | Contested river play tables live hands by default. Optional muck withdraws a claim, and folded disclosure follows the selected timing. The paid table shows public winning cards, payouts, returns and exact stacks. | The raised six-player, ordered-showdown, closing-folder and unequal all-in walkthroughs. The latter checks five pots and 3,800 chips awarded. `ReviewedHandTest.royalBoardTiesTheMainAndSidePotsAfterAllLiveHandsAreExposed` covers ties. [Table surface](../desktop/src/TableSurface.jsx). |
+| Save retry and read-only review | The full action-history UI becomes available only after a successful save and hides when the next hand begins. Retrying pays the same hand once. Results and replay preserve game state, and replay exposes each card at its recorded event. | The shared restart walkthrough injects SQLite failure and checks zero receipts before retry and one afterward. The raised and all-in walkthroughs check replay privacy and the side-pot case compares the state across results navigation. `hand-history.test.mjs` checks event-by-event chip conservation. [Review views](../desktop/src/HandReview.jsx), [replay projection](../desktop/src/hand-history.mjs). |
+| Localization and recovery | English and Simplified Chinese can be selected in the lobby before the first deal. Validation and chip displays use the selected locale. The locale catalog and Java recovery bundles support another locale through configuration and resources. | The two native startup walkthroughs, bilingual recovery cases, `locales.test.mjs` and `LocalizationsTest.thirdLanguageIsDiscoveredAndNumbersUseItsLocaleFromResourcesOnly`. [Localization design](design/localization.md#river-room-desktop-resources). |
+
+The table request hook tracks the failed operation. Both language catalogs now
+provide the corresponding player-facing recovery instructions. The English
+resource previously omitted that section, so a locale copied from English
+inherited untranslated diagnostics. The resource-template regression failed
+before the fix. The shared-showdown walkthrough also checks the localized
+feedback after the engine rejects a stale handoff.
+
+A funded player's blank opening buy-in was rejected by the roster form. The
+English startup walkthrough reproduced the disabled Start button after the
+empty submission. The form now applies the existing default and validates the
+resolved amount. For a 2,000-chip balance the engine reserves exactly 1,000
+chips at the selected chair. The Chinese walkthrough also checks an explicit
+400-chip buy-in. [Roster BVA](bva/AccountTable.md#desktop-opening-buy-in--november-24).
+
+The React wager preview and replay are presentation calculations. The wager
+preview uses engine-provided targets and the replay reflects engine-produced
+public events. Electron checks the requesting frame and window focus for
+private operations. The Java bridge validates revision and owner before calling
+the engine. The lobby repeats the 400-chip minimum and 1,000-chip default for
+immediate form feedback. The engine still validates every reservation. The
+remaining string dependency in `OwnerHand` recognizes an expired seat session
+from the engine's English sign-in diagnostic. The longer-term contract question
+is whether to give that response a stable error code.
+
+The current renderer passed `npm test` with 32 tests and built as
+`index-8X_tALPA.js` with SHA-256
+`3b15c5c147d2ad505d6adb082a01fe436d6d103c505e26b0959466ede53ecdfe`.
+The staged Java JAR matches `build/libs` with SHA-256
+`a920d33a973ca261a5fbfbc605135ef4003e3fa5fe786ecc88200d20671e97b2`.
+All 12 native Electron walkthroughs passed in one run against that renderer
+and prepared engine, using temporary accounts. Earlier batches were interrupted
+around macOS idle sleep. The clean run cleared the host's `ELECTRON_RUN_AS_NODE`
+flag and held the display and system awake only for the test command. The native
+shell loaded the current build directly. Signed-package evidence below is from
+earlier runs.
+
+This pass changed renderer code and desktop tests. The full Java build and PIT
+results below are from the prior audit. A Node unit-coverage sample reports
+100% lines and 95.98% branches across the four loaded `.mjs` feature modules.
+That sample covers `hand-history`, `lobby-model`, `locales` and `table-state`.
+JSX, the request hook and Electron's process boundary need separate coverage
+evidence. Native scenarios exercise those paths behaviorally.
+
+Coverage of the viewport checks and the fund, wager and history boundaries
+listed here is explicit. A complete frontend BVA and independent path map
+remain open. The submitted CI artifact available for comparison is the earlier
+main run with passing Java and React jobs. The current audit diff is local,
+and the repository workflow currently runs desktop unit tests and the React
+build. The Electron walkthroughs are local evidence. [Earlier main CI run](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/actions/runs/45112401965).
+
+River Room settles individual Hold'em hands and lets players end the table
+between paid hands. Confirm with the instructor whether those hand results
+satisfy the rubric's win-condition criterion and how its whole-code coverage
+requirement applies to the JavaScript renderer and Electron adapter.
+
+## Mutation, basis paths and course evidence — November 23, 2026
+
+`bash ./gradlew --no-daemon build pitest` passed with 1,730 JUnit tests and
+zero failures, errors or skips. Checkstyle and SpotBugs reported zero findings
+in their configured scopes.
+The JaCoCo counters are from the full JUnit run. The class selection is the
+same as the preceding checkpoint. The bounded seat-enumeration call adds one
+measured line, and the preflop winner regression restores coverage of the
+empty hand-category branch.
+
+| JaCoCo scope | Lines | Branches | Complexity counters |
+| --- | ---: | ---: | ---: |
+| Selected Java classes (89) | 4,054/4,055 | 1,996/2,000 | 2,115/2,119 |
+| `GameSetup` | 45/45 | 16/16 | 19/19 |
+| `ReviewedHand` | 182/182 | 118/118 | 111/111 |
+| `SetupSession` | 403/403 | 158/158 | 191/191 |
+
+### PIT results and finding review
+
+| XML result | Before | After |
+| --- | ---: | ---: |
+| Killed | 2,498 | 2,508 |
+| Survived | 30 | 22 |
+| Timed out | 2 | 0 |
+| Uncovered | 0 | 0 |
+| Total | 2,530 | 2,530 |
+
+The final XML confirms all eight behavior-changing survivors were killed,
+along with both previous timeouts. `GameSetup` killed 25/25 mutants,
+`ReviewedHand` 136/136 and `SetupSession` 229/229. There are no unresolved
+timeouts. The review below accounts for all 32 starting findings. The
+measurement configuration stays in place. The only production change in this
+pass bounds count-based seat selection to the physical table. The desktop
+supplies explicit seats, so this pass relies on the earlier renderer and
+real-engine walkthroughs for desktop evidence.
+
+| Previous finding | Count | Disposition and deterministic evidence |
+| --- | ---: | --- |
+| `GameSetup.firstSeats` and the upper guard in `requireHumanCount` | 2 timeouts | Either mutation let the existing `Integer.MAX_VALUE` test reach seat enumeration bounded by the requested count. Enumeration now uses the six physical seats. PIT names `GameSetupTest.GU_06` at seven humans as the killing test for both. `firstSeatsAcceptsExactlyOneThroughSixHumans` directly rejects 0 and 7 and checks the exact seat sets at 1 and 6. The extreme-input and no-random-draw tests remain. |
+| `GameSetup.create` with selected seats | 1 | Removing count validation allows an empty human-seat set. `selectedSeatOverloadRejectsAnAllBotTableBeforeDrawingTheDealer` checks the rejection and that the dealer source is untouched. The other selected-seat tests cover the valid endpoints and indices just outside the table. |
+| `PokerHandEvaluator.winningCards` | 1 | Equivalent. PIT index 31 changes the size test from `> 5` to `>= 5`. An extra removal leaves four cards, where `bestFive` has no candidate and returns zero. The saved score for a valid five-card hand is positive, so the loop restores each removed card at the same index. The other boundary on line 51, which can skip index zero, is killed by `theFirstCardCanBeTheOnlyCardOutsideTheWinningFive`. |
+| `BettingEngine.flopContext` | 1 | Equivalent. PIT index 61 changes `cBet > 0` to `cBet >= 0`. At zero the remaining conditions would require a zero current target and a negative contribution, which `PlayerState` rejects. The separate boundary on line 262 is killed by `PostflopActionsTest.anAlreadyMatchedContributionCarriesNoFacedContinuationBetContext`, which asserts zero chips added, an unchanged pot and no faced-bet context at the matched contribution. |
+| `BettingAmounts.chipsAdded` | 1 | Removing the zero-call guard changes what this calculation accepts before accepted-action validation. `callAmountRejectsAMatchedPlayerBeforeConstructingAnAcceptedAction` checks rejection at zero. Existing call and capped-call cases cover positive amounts. |
+| `AccountTable.open` and its balance predicate | 2 | A later buy-in check also rejects the underfunded account. `AccountTableIntegrationTest.minimumBuyInRejectsAnUnderfundedSelectedAccount` checks the selected-account failure reason and preserves the original hand. The funded-table cases cover valid selection. |
+| `AccountTable.addChips` | 1 | A later funding check also rejects a released account. `releasedAccountCannotReserveChipsAfterLeavingThePaidTable` checks the departed-account failure reason, released reservation and persisted balance. The funded-table cases cover accepted top-ups. |
+| `TableFunds` constructor | 1 | A reservation greater than the balance also fails the subsequent range check. `FundingCapacityTest.reservedChipsAboveTheBalanceAreRejectedBeforeTheFundingLimit` checks the invariant's own diagnostic. The existing capacity cases cover consistent funded values. |
+| `TableRoster.opening` and `requireSafeTotal` | 2 | Either mutation admits a six-seat total above `Long.MAX_VALUE`. `openingRosterAcceptsTheExactChipLimitButRejectsOverflow` checks the exact limit and one chip over it, including all five bot stacks. |
+| `GameState.hasShortBlindTarget` | 1 | Equivalent in `validateBettingAmounts`. It calls the predicate only if the current target differs from the observed maximum. The predicate also requires the target to equal the big blind, so allowing `maximum == bigBlind` cannot make a previously false result true. `BettingStateBoundaryTest` covers the short all-in preflop blind and invalid street or status. |
+| `BettingEngine.nextPendingActor` | 1 | Equivalent. The extra full-circle step revisits the initiating seat, which `BettingRound.after` removes from the pending set on both action and departure. Postflop rotation and `QuitIntegrationTest.dep08NonCurrentQuitFoldsImmediatelyAndPreservesTheCurrentDecision` cover the relevant actor transitions. |
+| `BettingEngine.resolveAction` | 1 | Equivalent. The mutation adds the zero-chip case to a comparison against the active actor's strictly positive stack, so it cannot classify a zero-chip action as all-in. Postflop Check and Fold cases and `ShortAllInIntegrationTest.shortAllInsAndCappedCallsRunOutWithoutExtraActiveDecisions` cover the no-charge and all-in outcomes. |
+| `BettingRound.closeMatchedLoneActor` | 1 | Equivalent. Including the lone actor's nonnegative contribution in the opponents' maximum leaves the closure test unchanged. Its contribution is at least the expanded maximum exactly when it is at least the opponents' maximum. Existing short-all-in cases cover a lone actor owing chips and the matched automatic runout. |
+| `PokerHandEvaluator.bestFive` nested loop bounds | 8 | Equivalent for the supported five, six and seven cards. Each extra outer index `i >= n - k` starts the next index at `i + 1 >= n - (k - 1)`. That unchanged inner bound prevents an additional candidate or card lookup. The category and winning-five tests cover the supported lengths. |
+| `PokerHandEvaluator.ranksByMultiplicity` comparator | 1 | Equivalent. The input order is descending rank and the sort is stable. Comparing equal multiplicities as equal preserves the existing descending tie order used for kickers and groups. |
+| `SqliteProfileRepository.transaction` void callback | 1 | Equivalent. The callback's boolean return is discarded. Commit or rollback depends on work completing or throwing, independently of the sentinel value. The SQLite settlement, retry and rollback integration cases assert those effects. |
+| `SqliteChipLedger.recordHand` duplicate cleanup return | 1 | Equivalent. The mutated bytecode return already carries `true` from the successful-insert arm. If closing the statement throws, that return is unreachable. The insert and retry cases cover the other results. |
+| `SqliteRecoveryLedger.wasClaimed` duplicate cleanup returns | 2 | Equivalent. The absent-row return already carries `false` and the owned-claim return already carries `true`. A cleanup exception bypasses the return. The recovery ledger integration checks absent, owned and foreign claims. |
+| `FundingCapacity.maximumAddition` | 1 | Equivalent for funded domain inputs. At equality with the cap, the remaining capacity is zero and available balance is nonnegative, so both branches return zero. `FundingCapacityTest` covers exact capacity and the over-cap path. |
+| `GameConfig.validateSettings` | 1 | Equivalent. A zero starting stack passes the mutated first guard, then fails either blind ordering or the requirement that the positive big blind fit in the starting stack. The funded minimum and invalid blind cases exercise those guards. |
+| `Card.hashCode` constant zero | 1 | Contract-only survivor. `CardTest.equalCardsHaveSameHashAndDeduplicateInASet` establishes the equality and set behavior Java requires. Card sets in `GameState`, `PokerHandEvaluator` and `EquityRequest` use insertion for duplicate detection. Dealing and sampling use ordered lists. A constant hash preserves those game outcomes and changes numeric outputs and collision distribution. Acceptance as equivalent for grading remains open. |
+
+Twenty-one survivors have an equivalence argument under the stated invariants.
+Eight behavior-changing survivors have targeted tests. The hash survivor is
+tracked separately. The tests assert game effects, storage outcomes or existing
+failure reasons. Separate numeric hash values are outside the equality contract.
+
+### Independent path evidence and measurement boundaries
+
+Gradle uses the same [explicit Java class list](../build.gradle.kts) for JaCoCo
+and PIT, including nested classes except the excluded `ShowdownResult.Status`
+enum. JaCoCo uses the full JUnit run. PIT uses the configured test package list,
+which omits `desktop.*Test` and the Swing tests. The starting JaCoCo report
+measured 89 classes with 4,053/4,054 lines, 1,996/2,000 branches and 2,115/2,119
+complexity counters. Raw counters include the branches described below.
+
+The basis counts below use source decisions and merge points. Exceptions are
+listed separately because the JaCoCo source decision counters omit exception
+edges. Counts here establish an independent basis for the named methods only.
+
+| Method | Feasible source basis and test mapping | Raw JaCoCo |
+| --- | --- | --- |
+| `GameState.hasBoardSizeForPhase` | 13/13. Each of the four shared phase groups for board sizes 0, 3, 4 and 5 has an accept and reject path. `GameStateTest` covers size zero in `GS_01` and `GS_44`, valid flop through showdown in `GS_45` to `GS_48`, and the corresponding rejections in `GS_49` to `GS_57`. The completion chain has five independent paths. `aPaidHandPreservesTheBoardSizeAtWhichPlayEnded` accepts 0, 3, 4 and 5, and `GS_58` rejects size 2. | 7/8 lines, 21/22 branches, 13/14 complexity |
+| `SqliteChipLedger.recordHand` | 2/2. A single inserted row returns success. The duplicate or ignored insert follows receipt verification. `SqliteHandSettlementTest.settlesMultipleProfilesOnceAndPreservesSessionHistoryAcrossReopen` covers success and the identical retry, and `refusesToPayIfTheDatabaseDoesNotRecordTheHand` and `SqliteTableIntegrationTest.rejectsRetriesWithOneChangedFieldAndAcceptsReorderedAccounts` cover missing and conflicting receipts. The cleanup tests exercise write plus close failure and successful write followed by close failure. | 11/11 lines, 3/4 branches, 2/3 complexity |
+| `SqliteRecoveryLedger.wasClaimed` | 3/3. `SqliteHandSettlementTest.recoveryLedgerDistinguishesNewOwnAndForeignClaims` checks a new award, a retry for its owner and rejection for another account, plus exact balances and history. The cleanup tests cover query failure before row acquisition and a row-read failure with both close errors suppressed in order. | 10/10 lines, 6/8 branches, 3/5 complexity |
+| `GameSetup.requireHumanCount` | 3/3. The first comparison rejects 0, the second rejects 7, and both pass at 1 and 6. `firstSeatsAcceptsExactlyOneThroughSixHumans` asserts every outcome directly. `GU_04` and `GU_07` extend the range of invalid inputs. | 3/3 lines, 4/4 branches, 3/3 complexity |
+| `GameSetup.firstSeats` and explicit seat validation | The straight-line success path returns exact seat sets at 1 and 6, and the count guard supplies both rejection paths. The selected-seat predicate has three short-circuit paths. `GU_08` and `GU_11` accept legal endpoints and `rejectsSelectedSeatsImmediatelyOutsideTheTableBeforeChoosingADealer` rejects -1 and 6. The explicit empty-set test checks count validation before seat traversal. | See full `GameSetup` counters above. |
+| `ReviewedHand.category` | 2/2. `preflopWinnerCanShowWithoutPublishingAHandCategory` publishes both cards with no category, no selected winning five and the same settlement. `winningCategoryCanBePublishedWithExactlyFiveKnownCards` exercises the threshold with a three-card flop and two pocket cards. The river and royal-board tests cover seven-card comparison. | 3/3 lines, 2/2 branches, 2/2 complexity |
+
+Additional basis evidence for the targeted domain decisions is recorded here.
+
+| Method | Independent paths and test witnesses |
+| --- | --- |
+| `GameConfig.validateSettings` | 6/6. `GC_04`, `GC_07`, `GC_10`, `GC_11` and `GC_05` each fail the first, second, third, fourth and fifth condition respectively. `GC_02` passes all five at the minimum legal stakes. |
+| `TableFunds` four-argument constructor | 6/6. `tableFundingBoundariesRejectNegativeOrUnreservedAmounts` rejects negative balance and negative table chips. `reservedChipsAboveTheBalanceAreRejectedBeforeTheFundingLimit` reaches the third condition. `suppliedFundingLimitsCannotExceedAvailableFunds` checks negative limit, excessive limit and a valid funded value. |
+| `TableRoster.requireSafeTotal` | 2/2. `openingRosterAcceptsTheExactChipLimitButRejectsOverflow` qualifies a safely representable total and rejects its first unrepresentable successor. |
+| `PokerHandEvaluator.bestFive` | Three feasible loop traces under the evaluator's size contract. Five, six and seven cards yield outer loop counts 1, 2 and 3 and second-loop counts 1, 3 and 6. Those pairs with the common entry edge give three independent traversal-count vectors. `categoryRequiresFiveToSevenDistinctCards` exercises all three sizes. The exact-winning-five tests assert selected cards as well as ranks. |
+
+Disassembly of the Java 11 classes with `javap -p -c -l` ties the single
+missed branch at `recordHand` line 63 and the two at `wasClaimed` lines 45
+and 46 to generated resource null checks. The normal cleanup copies test at
+offsets 76 and 91 in `recordHand`, and offsets 40, 51, 92 and 103 in
+`wasClaimed`. JDBC's successful statement and
+result-set acquisitions return objects. An acquisition failure throws before
+its corresponding resource can enter the body. `SqliteLedgerCleanupTest`
+exercises the feasible ordered closes and the exception suppression behavior
+without returning invalid JDBC resources. In `hasBoardSizeForPhase`, the
+compiled switch map assigns all seven declared `GamePhase` constants to
+five covered targets. The default at bytecode offset 132 requires an unmapped
+phase, so no domain input can reach line 193. These bytecode paths remain in the raw
+reports. The separate JDBC fault cases establish the tested exception routes.
+They leave other exception combinations outside this basis claim.
+
+The rubric exempts View, Main and enums from cyclomatic coverage. The current
+list also omits executable logic relevant to the course scope. These are the
+known gaps from comparing the Java source inventory with the Gradle list.
+
+| Outside the Java reports | Missing evidence |
+| --- | --- |
+| `DesktopBridge.respond` and `dispatch`, `DesktopRequest` readers such as `chips` and `integer` | Request routing, malformed input and boundary failure paths have no measured basis. |
+| `DesktopAccounts.active`, `require` and session lifecycle, `DesktopRecovery` challenge and claim | Session expiration, authorization and recovery adapter decisions have no measured basis. |
+| `DesktopTable` seating, current revision checks, private reads, action dispatch and history gating | Tests through the real bridge exercise these flows. Their adapter decisions have no measured basis. |
+| `ProfileRepository.loadChipHistory` | The default method is executable and outside the class list even though other profile storage implementations are measured. |
+| `DesktopSnapshot.legal`, `result` and `latestActionsOnStreet`, the `GameView` and `PlayerView` constructors, and responsibility-bearing Swing panel code | Review the View exemption for decisions that enforce public projection, card privacy or workflow. Keep display-only code under the stated exemption. |
+| React and Electron | Existing unit and walkthrough results are separate from Java counters. An interpretation of the rubric that includes the desktop JavaScript needs a separate measure. |
+
+The mutation cases above trace behavior and invariants at focused decision
+points. A method-by-method independent basis for the remaining measured and
+in-scope methods remains open.
+
+### Repository process and rubric evidence
+
+The evidence below reflects the local checkout and read-only GitHub records
+checked November 23. The course PDF remains the authority for grade criteria.
+
+| Rubric area | Status | Evidence and remaining gap |
+| --- | --- | --- |
+| Playability, cards and winning conditions | Partially supported | The real-engine walkthroughs cover complete hands and payouts. River Room uses a full deck, resolves each Hold'em hand, splits pots and lets players end a paid table. Instructor confirmation of the rubric criterion for per-hand results remains open. [Game rules](requirements/game-rules.md). |
+| Boundary value analysis and matching tests | Partially supported | The existing BVA files map boundary inputs and expected outcomes to tests. This pass documents the directly targeted seat, funding, hand review and storage boundaries. A full cross-check of every completed component's definition of done and assertions remains open. [Game setup BVA](bva/GameSetup.md). |
+| Automated testing and static analysis | Verified for the configured checks | Gradle runs JUnit, Checkstyle and SpotBugs. CI runs the Java build and PIT, plus desktop tests and a React build. [Main run 45112401965](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/actions/runs/45112401965). |
+| Mutation and 100% cyclomatic coverage | Partially supported | The scoped reports and the basis analysis above establish individual results. Executable adapters are outside the scope and a repository-wide basis has yet to be established. The hash equivalence decision for grading is open. |
+| Protected main, required PR approval and checks | Partially supported | The branch is flagged protected. The visible effective rules protect against deletion and non-fast-forward updates. The branch endpoint shows classic protection disabled and no required check contexts. PR #6 has recorded approval. PRs #23 and #33 merged with no submitted reviews. The connector cannot read administrator-only branch protection details. Required PR approval and status checks are not supported by the effective rules observed. [Main rules](https://api.github.com/repos/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/rules/branches/main), [PR #6](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/pull/6), [PR #23](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/pull/23), [PR #33](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/pull/33). |
+| CI history and early operation | Partially supported | Initial repository history starts October 29. The workflow entered version control November 1 in `de3345e`. The visible early feature and main runs are November 2 UTC. Scoped analysis was added in `7e65692`, and the desktop job in `7187187`. Both jobs passed on PR #33 and on the sampled recent main run. These records establish early and ongoing CI with staged expansion. [Early feature run](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/actions/runs/41374638265), [Early main run](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/actions/runs/41396991828), [PR #33 run](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/actions/runs/45080844408). |
+| Project board operation and steady use | Unverified | The linked organization project and its items were inaccessible with the available GitHub access. Column usage, item movement and update cadence remain unverified. Issues #20 and #28 independently show detailed owned checklists and acceptance steps. [Project #128](https://github.com/orgs/nu-cs-sqe/projects/128), [Week 7 issue](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/issues/20), [Week 8 issue](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/issues/28). |
+| Weekly plans, progress and integration records | Verified for the recorded weeks | Weeks 5 through 8 record plans, ownership, progress, verification and follow-ups. The sampled GitHub records show staged integration work. [Weekly reports](weekly-reports.md), [Week 7 issue](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/issues/20), [Week 8 issue](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/issues/28). |
+| Published TDD or BDD | Partially supported | Commit `7d89634` adds the deck-size expectation while its stub returns zero. `3d10c55` implements the expected 52. `a1490c5` adds invalid-input tests before `3a53ede` implements validation. The session trace and the Week 7 profile reports document observed local RED and GREEN runs. Some were published together, so the history only establishes test-first order for the sampled split increments. [Session trace](tdd/week6-session.md), [Profile chronology](weekly-reports.md#e01-profile-identity-increment--november-9), [Deck RED](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/commit/7d89634), [Deck GREEN](https://github.com/nu-cs-sqe/cs380-software-quality-engineering-20262701-course-project-group-16/commit/3d10c55). |
+| Team conventions and Clean Code | Partially supported | The configured checks and targeted instructor review provide evidence. Team-wide responsibilities and readability still need manual evidence. [Instructor review](instructor-code-review.md). |
+| A-level integration of at least two major features | Verified | Real-engine and packaged-app cases exercise showdown with side-pot settlement and private seat handoff with public replay. The historical runs below preserve each test scope. [Electron scenarios](../desktop/e2e/room.test.mjs), [Bridge integration](../src/test/java/desktop/DesktopBridgeIntegrationTest.java). |
+| A-level startup language choice and extension | Verified | The desktop startup walkthroughs exercise English and Simplified Chinese. The catalog test loads an additional language through resources and registration data. [Catalog tests](../desktop/test/locales.test.mjs), [Localization design](design/localization.md#river-room-desktop-resources). |
+| Team attendance and individual peer evaluation | Unverified | No instructor attendance or peer evaluation records were available in the repository audit. |
+
+## River Room request timing and showdown review
+
+The real-engine shared-showdown walkthrough reproduced a stale handoff. The
+bridge had already advanced to the next claimant, but the renderer opened the
+private-seat dialog after the old request was rejected. The renderer now
+refreshes the turn and opens that dialog only when the handoff succeeds.
+Private request generations and the last observed turn control response
+acceptance. Automatic settlement waits for the runout and tries once per hand.
+The retry walkthrough uses a SQLite trigger to reject the first award, then
+verifies that manual retry publishes one award for the same hand.
+
+The Java review found duplicate account-session checks on a betting request
+and repeated save guards on operations that already reject a pending settlement.
+The adapter now checks the acting seat and private ownership once each. A save
+always has a prepared token until publication, so a prior pending-token guard
+already rejects an in-flight save. Publication keeps its dedicated save guard.
+The last unshown claimant now exits the automatic disclosure loop immediately.
+Dequeuing a bot and recording its choice are explicit operations. Removing
+either the former deque clear or the former combined bot choice call could keep
+the loop on the same seat indefinitely. Those timeouts were control-flow changes.
+
+| Paths exercised | Evidence |
+| --- | --- |
+| Current, concealed, or stale private turn | Renderer handoff and replay walkthroughs, handoff gate tests, and `DesktopBridgeIntegrationTest.onlyCurrentHumanMaySeeCardsOrActAndOldSnapshotsCannotReplay` |
+| Failed, saved-but-unpublished, or paid hand | SQLite retry walkthrough and `ProfiledMatchIntegrationTest.savedAsyncHandWaitsForOwnerBeforePublishing` |
+| Checked river with a losing, tied, or winning bot | `ReviewedHandTest.botTablesAWinnerOrTieAndMucksALosingHand` checks the public event, visibility, winner and payout. A separate deal leaves a stronger folded hand private and still ties the two live hands. |
+| Last unshown claimant, uncontested all-in, or contested all-in | `ReviewedHandTest` checks hidden winners, refund and award, river without a runout, and the fixed royal-board main and side pots |
+| New board street and late voluntary show | `ReviewedHandTest` checks the deal event at street change and the hand category when exactly five cards become public |
+
+These cases provide evidence for distinct branches and lifecycle paths. The
+settlement predicate's unit test varies one decision at a time across an
+unfinished hand, a paid hand, a previously attempted award and a newly eligible
+award. The private read tests exercise the dealt-human guard's three
+short-circuit paths with a bot, an undealt seat and a dealt human.
+A complete independent basis across the measured methods remains open.
+JaCoCo reports computed complexity counters
+without exception edges. The Gradle class and test selections are unchanged.
+Desktop bridge, Java view classes outside the selected list, and the React
+renderer have integration evidence outside the measured Java denominator.
+
+All 1,712 JUnit tests passed with no failures, errors or skips. The desktop
+suite passed 30 unit tests. The renderer built successfully, and all ten
+walkthroughs passed in headless Chrome against the Java engine. The five
+affected walkthroughs passed again after the final queue refactor.
+
+| JaCoCo scope | Lines | Branches | Complexity counters |
+| --- | ---: | ---: | ---: |
+| Selected Java classes (89) | 4,053/4,054 | 1,996/2,000 | 2,115/2,119 |
+| `ReviewedHand` | 182/182 | 118/118 | 111/111 |
+| `SetupSession` | 403/403 | 158/158 | 191/191 |
+
+The final disclosure cases exercise an attempt to change a forfeited showdown
+muck, a repeated private muck and a forced bot show during an ordinary
+contested showdown. The selected-seat boundary test covers both invalid
+endpoints before dealer selection. The sole uncovered line in the measured
+scope is the `GameState` phase switch default, which no declared phase reaches.
+
+PIT killed all 136 `ReviewedHand` mutants and all 229 `SetupSession` mutants.
+The earlier run killed 105 of 136 and 221 of 231, respectively. The immediate
+bot-fold case distinguishes a reveal at the fold from a reveal at the end of
+the hand, which left the same final visibility but changed the public journal.
+
+`bash ./gradlew --no-daemon build pitest` passed. Checkstyle and SpotBugs
+reported no findings in their configured scopes. The XML report records
+2,498 killed mutants out of 2,530, with 30 survivors, two `GameSetup` timeouts
+and zero uncovered mutants. The console's 2,500 detected count includes those
+two timeouts. The remaining survivors and timeouts require individual review.
+
+Real-component integration covers showdown and side-pot settlement, as well as
+private seat handoff and replay. Desktop startup exercises English and
+Simplified Chinese before dealing. A catalog unit test adds a third locale
+through resource data and verifies its label and message formatting.
+[Locale registration](design/localization.md#river-room-desktop-resources).
+
+## Continuous table, chosen seats and private seat sessions — November 23, 2026
+
+The signed Apple Silicon build passed all ten Electron walkthroughs using
+temporary accounts. They cover the completed table, read-only results navigation,
+the default river reveal, optional ordered mucking, immediate and deferred
+folded shows, private handoffs, chosen solo seating, both languages, recovery
+and persistence across restart. One unequal-stack hand awards 3,800 chips
+across five pots. The results screen and live journal agree on every pot.
+The fixed royal-board Java deal covers ties in both the main and side pots.
+
+The bridge regressions first reproduced ignored physical seat choices, required
+passwords on ordinary private reads and a river waiting for manual decisions.
+A subsequent regression showed that the outgoing seat could still read its
+cards after the next human's turn began. The bridge now clears that private
+authority on handoff. Tests distinguish a current session, a switch to a
+different account and the 30-minute idle boundary. [Cases](bva/SessionBetting.md).
+
+All 1,697 Java tests and 25 desktop unit tests passed. Checkstyle and SpotBugs
+reported zero findings in their configured scopes. JaCoCo covered 4,047/4,054
+measured lines, 1,974/2,000 branches and 2,092/2,117 complexity counters.
+The desktop adapter and React renderer are outside the scoped Java coverage
+list. The bridge and packaged-app tests exercise their integration.
+
+The full Gradle build and PIT run passed. PIT recorded 2,456 killed mutants
+out of 2,532, with 59 surviving, 14 uncovered and three timed out. HandHistory
+killed all 32 mutants, including the two previously surviving street boundaries.
+ReviewedHand killed 105 of 136. The remaining 17 survived, 13 lacked coverage
+and one timed out. Uncovered mutations concern optional bot decisions, the
+private deferred-show getter and the selected-seat startup entry point. The
+other two timeouts occurred in GameSetup. Surviving mutations and timeouts
+remain open for individual review.
+
+## River Room showdown and replay — November 23, 2026
+
+The Java, Electron and renderer tests exercise ordinary showdown order, the last
+unshown claimant, mandatory all-in exposure, optional folded cards, ties and
+public replay. A regression with unequal folded contributions reproduced a
+202/204 award to tied hands. Settlement now pays 203/203 from that 406-chip pot.
+A second regression reproduced a closing fold's immediate show arriving after
+the automatic runout. The fold and its chosen disclosure now enter the journal
+before the remaining board. [Boundary cases](bva/SessionBetting.md).
+
+The full JUnit run passed 1,677 tests with zero failures, errors or skips.
+Production and test Checkstyle and SpotBugs reports had zero findings in their
+configured scopes. JaCoCo covered 3,780 of 3,785 measured lines. The existing
+measurement list excludes the two new review classes and the desktop adapter.
+PIT killed 2,297 of 2,341 mutations. Forty survived and four had no coverage
+in PIT's selected tests. Two uncovered mutations are in `SetupSession.foldAndShow`
+and two are in the `SetupView` blind getters. Desktop bridge integration tests
+exercise those paths in the full JUnit run. The new survivors still need review.
+The desktop unit suite passed 21 tests and the Vite production build succeeded.
+
+The packaged Apple Silicon app passed signature verification. Seven native
+scenarios passed before the closing-fold correction. In the final eight-case
+run, one passed and seven timed out at the private-card handoff while macOS was
+locked. With the final renderer and bundled Java engine, isolated headless
+checks passed for an immediate show in English and a deferred show in Chinese,
+including rewinding the public timeline. A final unlocked native run is pending.
+
+### Instructor-style follow-up
+
+The review separates recording a fold, tracking the river aggressor, exposing
+all-in hands and resolving showdown choices. The history owns disclosure event
+fields. The desktop adapter keeps password verification at the request boundary.
+An empty showdown queue returns an empty Optional, and a seat must be a dealt
+human before its visibility or cards are read. Hand ranking names the five-card
+hand size and the complete seven-card holding size.
+
+The added real-session case checks that `foldAndShow` rejects an unreviewed hand
+and returns the accepted fold in a reviewed one. All 1,678 Java tests passed.
+Checkstyle and SpotBugs reported zero findings. JaCoCo covered 3,783 of 3,787
+measured lines. The style rules and measurement scope are unchanged.
+The full build and PIT run succeeded. PIT killed 2,295 of 2,342 mutations,
+including both previously uncovered `foldAndShow` mutations. This run
+reported 45 survivors, up from 40, and two uncovered `SetupView` blind getters.
+The survivors still require review.
+
+### Rubric audit of the instructor-style follow-up
+
+The rubric's B criteria call for killing every non-equivalent mutant and
+100% cyclomatic coverage outside the stated View, Main and enum exemptions.
+The A criteria additionally call for Clean Code and integration testing on at
+least two main features. The scoped report covers 3,783/3,787 lines (99.89%),
+1,842/1,852 branches (99.46%) and 1,957/1,967 complexity counters (99.49%).
+JaCoCo complexity counters do not establish independent path coverage. The
+measured-class list omits the new `ReviewedHand` disclosure rules and
+`HandHistory` event logic. Existing integration tests exercise those components.
+Whole-backend coverage remains unmeasured.
+
+Compared with the preceding showdown run, both uncovered `foldAndShow`
+mutations were killed and five additional survivors appeared. The two
+`SetupView` blind-getter mutants have no coverage in PIT's test selection.
+`DesktopBridgeIntegrationTest` asserts the actual 10/20 values in the full
+JUnit suite. A direct Java application test for configured blind values
+would exercise the getters within the existing PIT selection.
+
+| Additional survivor | Review |
+| --- | --- |
+| `SetupSession.withdrawnClaims` always returns an empty set | Behavior-changing. Settlement can pay a stronger hand that mucked. The existing payout fixture shuffles the deck without a fixed seed. If the first seat to show already has the strongest hand, its payout assertion can pass under the mutant. |
+| `updateShowdownClaims` skips checking that settlement is absent | Behavior-changing. After a hand with a muck has paid, a lawful late show could trigger comparison on the completed hand and throw after recording the disclosure. |
+| `updateShowdownClaims` skips checking that a result exists | Invariant to verify. The session sets a comparison result before processing terminal disclosure. Before comparison, there are no withdrawn claims. |
+| `updateShowdownClaims` skips checking that claims were withdrawn | An extra comparison produces the same result with the normal evaluator. An injected evaluator can observe an extra call. Keep this survivor pending an equivalence decision. |
+| `NextHand.reseat` takes the rotating branch for the opening deal | Behavior-changing under the configured dealer contract. Cover both opening and continuation of a funded table. The existing dealer assertions in `NextHandTest` exercise the legacy `start` entry point. |
+
+A fixed-deck check used dealer seed 17 and shuffle seed 42. One hand folded
+during betting, a stronger hand mucked at showdown, and the weaker tabled
+hand received all 100 chips. A folded player's disclosure was rejected while
+payment was prepared and accepted after publication with the result intact.
+A separate domain snapshot confirmed that removing the sole claimant for a
+side pot produces the explicit settlement error. These are repeatable test
+inputs for the payout and lifecycle gaps.
+
+Four JaCoCo lines were missed. Three are the errors for starting review at the
+wrong time, leaving during pending showdown decisions, and settling a pot
+without a claimant. The fourth is the exhaustive `GamePhase` switch default.
+The eight evaluator loop mutations change iteration bounds without changing
+the sequence of five-card combinations for 5, 6 or 7 cards. They have a
+concrete equivalence argument. The raw mutation count retains them.
+
+Separate real-component integration tests exercise showdown and replay across
+the desktop bridge, and settlement with retry through SQLite. These provide
+evidence for two feature areas. The final unlocked packaged walkthrough, the
+remaining survivor review and broader project assessment are still open.
+
+### Deterministic settlement regressions and direct review measurement
+
+The five-way fixture fixes the dealer and shuffle seeds and checks that at
+least one mucked hand objectively outranks the tabled winner. It asserts who
+receives every share of the pot and confirms the betting record contains the
+actual fold. The disclosure lifecycle test checks three points: payment
+prepared, saved but unpublished, and published. Only the published state
+accepts the late show, which appends a public event and preserves the award.
+Other regressions cover a side pot left without a claimant, funded dealer
+positions, the last unshown winner, river showdown order, a canceled deferred
+show, and the public journal's opening stacks, blinds and street progression.
+These harden existing behavior. [Boundary cases](bva/SessionBetting.md).
+
+The existing Gradle measured-class list now explicitly includes
+`application.ReviewedHand` and `application.HandHistory` for both JaCoCo and
+PIT. The rest of the class scope and PIT's test selection are unchanged.
+
+`build pitest --warning-mode all` passed. All 1,686 Java tests passed with
+zero failures, errors or skips. Checkstyle and SpotBugs reported zero findings.
+
+| Scope | JaCoCo lines | Branches | Complexity counters | PIT killed |
+| --- | --- | --- | --- | --- |
+| HandHistory | 62/62 | 18/18 | 24/24 | 30/32 |
+| ReviewedHand | 165/166 | 98/106 | 94/102 | 99/126 |
+| Expanded scope | 4,013/4,015 | 1,962/1,976 | 2,079/2,093 | 2,434/2,500 |
+
+PIT killed all five additional survivors from the previous audit and both
+previously uncovered blind getters. Within the previous class scope, 2,305 of
+2,342 mutants were killed and 37 survived. The expanded XML reports 55 survivors,
+10 uncovered mutants and one timeout. PIT's console counts the timeout as a
+detection, so its headline displays 2,435. The table uses XML's KILLED status.
+
+The uncovered mutants are in ordinary bot showdown decisions. The timed-out
+mutant removes the queue clear for the last unshown claimant, leaving the
+mutated loop without progress. Two journal survivors can delay recording the
+flop or turn until the next street. The final board sequence still matches,
+so the next regression belongs at the moment each street opens.
+
+## Funded-table continuation in River Room — November 22, 2026
+
+The Java session requires a funded human among the next hand's funded seats.
+The new account-table cases first failed when bots could continue after the
+last human left or ran out of table chips. The cases passed after the roster
+check, including resuming once the busted human reserved an eligible top-up.
+The Electron bridge rejects the blocked deal and retains the saved balance
+and history after restart. [Account table BVA](bva/AccountTable.md).
+
+| Check | Local result |
+| --- | --- |
+| Gradle build and PIT | Passed with Gradle on JDK 25 and Java 11 compilation and tests. |
+| JUnit and static checks | 1,665 tests passed with zero failures, errors or skips. Checkstyle and SpotBugs reported zero findings in their configured scopes. |
+| JaCoCo | 3,722/3,723 measured lines, 1,804/1,808 branches, and 1,923/1,927 complexity counters. |
+| PIT | 2,253/2,287 killed. All continuation mutants were killed. The same 32 survivors remain, with two uncovered mutants and zero timeout or error mutants. |
+| React and packaged Mac checks | 18 unit tests and all three Electron tests passed. The React production build succeeded. |
+
+The uncovered mutations are in the River Room branch's `SetupView` small-
+and big-blind getters. JUnit exercises both through
+`DesktopBridgeIntegrationTest`. The existing PIT test selection omits
+the `desktop` package. Measurement and exclusions are unchanged.
+The new React CI job is configured and awaits a GitHub run.
+
+## Desktop funded-table controls — November 21, 2026
+
+The funded desktop now takes a buy-in choice per signed-in account and shows
+saved balance, reserved chips, available funds and session gain/loss above
+the chip history. Existing top-up and departure actions share the funded
+table's save lock with the buy-in and recovery controls.
+
+Five focused Swing invocations first failed on missing buy-in or funding
+controls. After the implementation, the bilingual cases passed. A separate
+two-locale regression exposed an enabled recovery control during a paused
+settlement. The save-lock change made those cases pass. The
+[boundary cases](bva/SqliteProfileRepository.md) include malformed buy-ins,
+balance and minimum limits, private-card handoffs and the lost commit reply.
+
+Local `build pitest --warning-mode all` passed with Gradle on JDK 25 and
+compilation and tests on Java 11.
+
+| Check | Local result |
+| --- | --- |
+| JUnit | 1,655 passed, zero failures, errors or skips. |
+| Checkstyle and SpotBugs | Zero style findings and unexcluded bugs. |
+| JaCoCo | 3,715/3,716 measured lines, 1,800/1,804 branches and 1,918/1,922 complexity counters. |
+| PIT | 2,250/2,282 killed. The same 32 survivors remain, with zero uncovered, timed-out or errored mutants. |
+
+The measured scope and exclusions are unchanged. The native Mac walkthrough
+and remote verification of this update remain pending.
+
 ## W8-E04 recovery verification — November 21, 2026
 
 The first recovery test failed to compile before the API existed. The first
@@ -300,25 +899,15 @@ class, method, descriptor, operator and description match the prior baseline.
 Survivor equivalence and basis-path review remain separate. The native
 desktop walkthrough, peer review, remote CI and merge remain pending.
 
-## I07 full-chip match victory — November 16, 2026
+## I07 fixed-stack continuation checkpoint — November 16, 2026
 
-The confirmed departure policy preserves each retired stack. After payment, a
-match winner must own the full configured chip total, normally 6,000. With fewer
-than two funded nondeparted seats and no full-total owner, play ends without a
-winner. English/Chinese resources now state that outcome explicitly. Two playing
-seats retain normal heads-up continuation, stable seats, blinds and chip totals.
-
-SetupSession.getMatchWinner scans paid ownership across all fixed seats. A
-legitimate all-in quitter can win the full total, and a completed champion's
-later departure preserves that result. New matches clear the paid outcome.
-The production change uses GameConfig.getInitialTotalChips(), including supported
-injected settings. NextHand and departed-stack ownership behavior are retained.
-
-Four winner invocations first failed against the previous source, then passed
-with the full-total query. Six bilingual UI boundaries first produced four
-terminal-label failures and two continuation passes, then all six passed after
-resource updates. The configured 120-chip winner is additional boundary coverage.
-The 98-case focused winner/continuation/localization run passed.
+This historical run covered paid ownership, retained stacks after departure,
+and heads-up continuation with stable seats, blinds and chip totals. Four
+fixed-stack result-query invocations first failed against the previous source,
+then passed after the query changed. Six bilingual UI boundaries first produced
+four terminal-label failures and two continuation passes, then all six passed
+after resource updates. A 120-chip fixture exercised an injected configuration.
+The 98-case focused result, continuation and localization run passed.
 
 The first full build/PIT run passed 1,545 tests in 12m57s but exposed one new
 non-equivalent getMatchWinner settlement-guard survivor: PIT killed 1,823/1,838,
@@ -408,8 +997,8 @@ reflect removal of the obsolete queue paths; measurement scope is unchanged.
 I03 is verified locally and awaits user commit/push, Kevin's contract review,
 remote CI and merge acceptance. The rules/design/BVA now describe immediate
 active departure and preserve the historical queued-fold checkpoint. I07's
-retired-stack/6,000-chip terminal policy remains open. No issue checkbox or
-whole-backend completion is claimed by this local fix.
+fixed-stack continuation review remained open at this checkpoint. No issue
+checkbox or whole-backend completion is claimed by this local fix.
 
 ## E05/E06 and profile integration — November 16, 2026
 
@@ -458,7 +1047,7 @@ and independent basis-path interpretation remain review gates.
 
 Conflict resolutions are staged for user review and commit. Combined remote CI,
 peer review, native desktop walkthrough and broader bot evaluation remain pending.
-The departure eligibility and 6,000-chip terminal-policy findings remain open.
+Departure eligibility and fixed-stack continuation remained open at this checkpoint.
 Original instructor feedback and all dated measurement history are preserved.
 
 ## Main/profile integration repair — November 16, 2026
@@ -516,8 +1105,8 @@ These scoped counters do not establish independent basis-path or full-backend
 completion. Historical measurements retain their original scopes and dates.
 
 Commit/push, new remote CI and peer review remain pending. This repair does not
-claim E05/E06 live-bot integration, the queued-departure/6,000-chip policy fixes,
-password-character policy changes or full-backend completion.
+claim E05/E06 live-bot integration, the queued-departure or fixed-stack
+continuation fixes, password-character policy changes or full-backend completion.
 
 ## PR #21 profile verification — November 15, 2026 (historical)
 
@@ -562,7 +1151,7 @@ executions across mutants; that count is separate from the 1,362 JUnit cases.
 No production, test or configuration changes followed that final run.
 
 At that checkpoint, native UI checks, bot/profile integration, and the
-queued-departure and match winner findings were still open.
+queued-departure and fixed-stack continuation findings were still open.
 
 ## Password length revision — November 10, 2026
 
@@ -1030,12 +1619,11 @@ registration and introduces no Gradle deprecation warning.
 Gradle reports are under `build/`. This PIT run included the domain, application,
 integration, localization and standalone bot suites.
 
-Two functional PR #23 review follow-ups remain separate from this refactor:
-(1) a queued, non-all-in quitter can remain eligible for an uncontested win before
-its turn; (2) retirement currently permits a match winner below 6,000 chips,
-contradicting issue #20's stated terminal requirement. These need a regression/fix
-and explicit policy reconciliation before complete-backend acceptance. E05/E06
-also still need varied decisions and safe live application wiring.
+Two functional PR #23 review follow-ups were separate from this refactor.
+A queued, non-all-in quitter could remain eligible for an uncontested hand win
+before its turn. Retirement and continuation also needed an explicit policy
+and regression coverage. E05/E06 still needed varied decisions and safe live
+application wiring.
 
 ## E04 opponent learning — November 10, 2026
 

@@ -18,17 +18,27 @@ npm ci
 npm start
 ```
 
-- Choose the number of local players. Pass the computer to each person to sign in
-  or register and choose a buy-in. **Ready to play** locks that account and selects
-  the next person. Select **Start game** to deal.
-- When a human acts, pass the computer to the player named on the screen. That player
-  confirms before seeing their cards. The cards disappear after the action or when
-  the game window loses focus.
-- Before a bet or raise, check how many chips it costs and how many you will have left.
-- After each hand, review net changes, payouts and refunds. Open **Session statistics**
-  for player metrics or **Review final table** to revisit the board.
-  Use **Table options** to add chips between hands. The interface opens in English
-  and also supports Chinese.
+- Choose the number of local players. Each person selects a chair on the felt,
+  signs in and confirms a buy-in. Chairs can change until **Start game**. That
+  button seats the bots, picks the opening dealer and deals the first hand.
+- Against bots, **Your hand** shows your own cards, with a local hide control.
+  In a shared game, pass the device to the named player before revealing a hand.
+  **Private seat access** handles off-turn inspection and switching owners.
+  Private access expires after 30 minutes of inactivity.
+- Folding keeps both cards private by default. The owner can request a voluntary
+  show with the fold or change their choice while the cards are still private.
+  Lobby rules control early exposure, bot preferences and optional river mucking.
+- Size a bet or raise by typing a target, moving the slider, or selecting a legal
+  pot fraction or all-in. For a raise, the fraction uses the pot after calling.
+  **Add now** shows how many more chips the selected target costs.
+- After a contested river, live hands table automatically under the default rule.
+  An uncontested winner can keep both cards private. The final table shows winners,
+  awards and public best fives. The full street-by-street history appears below
+  the table after settlement. Choose **View detailed results** for net changes,
+  refunds, side pots and statistics, then **Back to table**.
+- Between hands, **View Hand History** replays completed hands. **Deal next hand**
+  advances play. **Table options** manages seat funding. English and Chinese are
+  available throughout.
 - A new hand needs a human player with table chips. Use **Manage seat funding**
   when seated players need to top up or recover chips. If all humans have left,
   choose **End session** to return to the lobby.
@@ -38,7 +48,7 @@ run `npm run test:desktop` for Electron tests with temporary accounts, or
 `npm run package` to create the desktop application in `desktop/release`.
 GitHub CI runs the desktop unit tests and React build alongside the Java checks.
 The original Swing interface is available through `bash ./gradlew run` from the
-repository root. The 6,000-chip win condition applies only to the legacy match API.
+repository root.
 See the [account-table contract](docs/design/shared-contract.md#week-8-account-table-api).
 
 Live bots combine Monte Carlo equity, learned public tendencies and varied legal
@@ -138,8 +148,7 @@ or a between-hand top-up.
 Select a human and choose **Leave table** to retire their seat. Active humans fold
 immediately, including out-of-turn departures. Another pending player keeps their
 turn while betting remains open. All-in eligibility lasts through settlement.
-Account tables have individual hand winners and continue without an overall match
-winner. See
+Account tables settle each hand and save the resulting account balances. See
 [quality results](docs/quality.md) for verification and acceptance status.
 Tests run headlessly with temporary catalogs, without creating real profiles.
 

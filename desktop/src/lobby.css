@@ -206,3 +206,6 @@
   .rr-private-note { margin-top: 11px; padding-top: 10px; }
 }
 }
+.rr-house-rules { margin-top: 14px; color: #c5d1c6; font-size: 13px; }
+.rr-house-rules summary { cursor: pointer; width: fit-content; }
+.rr-house-rules label { display: flex; align-items: center; gap: 6px; margin-top: 8px; }

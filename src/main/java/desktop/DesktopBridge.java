@@ -14,6 +14,8 @@ import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
 import java.time.Clock;
+import java.time.Instant;
+import java.util.function.Supplier;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
@@ -28,9 +30,13 @@ final class DesktopBridge {
     private final ProfileService profiles;
 
     DesktopBridge(Path directory) {
+        this(directory, Instant::now);
+    }
+
+    DesktopBridge(Path directory, Supplier<Instant> now) {
         SqliteProfileRepository store = new SqliteProfileRepository(directory);
         profiles = new ProfileService(store);
-        accounts = new DesktopAccounts(profiles);
+        accounts = new DesktopAccounts(profiles, now);
         recovery = new DesktopRecovery(new RecoveryService(profiles, store,
                 Clock.systemDefaultZone(), ThreadLocalRandom.current().nextLong()));
         table = new DesktopTable(profiles, store, accounts);
@@ -83,8 +89,9 @@ final class DesktopBridge {
             case "start":
                 return table.start(request);
             case "state":
-            case "hide":
                 return table.state();
+            case "hide":
+                return table.hide();
             default:
                 return table.handle(op, request);
         }

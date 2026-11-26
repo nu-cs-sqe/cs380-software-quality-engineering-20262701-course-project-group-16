@@ -40,3 +40,10 @@ Readability follow-up (November 15): resolve separates readiness,
 eligible contenders and contested winner comparison. The winner/tie comparison
 loop remains cohesive, and settlement stays separate. Existing resolver cases
 retain their expected outputs and rejected-state behavior.
+
+The `resolve(state, withdrawn)` overload accepts claims withdrawn in an
+ordinary showdown. With the strongest hand mucked, the next eligible hand wins.
+A folded or unknown ID, withdrawing every claim, choosing before showdown,
+and withdrawing during an all-in showdown are rejected. These cases run in
+`muckingRequiresAnOrdinaryShowdownAndALiveKnownClaimant`. River Room tests
+exercise the separate case where only one unshown claimant remains.

@@ -53,6 +53,85 @@ class DesktopBridgeIntegrationTest {
         assertEquals(name, ok("login", "id", id, "password", "poker123").get("name").getAsString());
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(ints = {0, 1, 2, 3, 4, 5})
+    void soloOwnerCanInspectOnlyTheirSelectedSeatWithoutAnotherPassword(int seat) {
+        String owner = register("Solo").get("id").getAsString();
+        String outsider = register("Visitor").get("id").getAsString();
+        var selection = Map.of("id", owner, "buyIn", "500", "seat", seat);
+        reject("start", "seats", List.of(selection, selection));
+        JsonObject game = ok("start", "seats", List.of(selection));
+        var seats = game.getAsJsonArray("players");
+        assertEquals(owner, seats.get(seat).getAsJsonObject().get("accountId").getAsString());
+        assertEquals(5, seats.asList().stream().map(value -> value.getAsJsonObject())
+                .filter(player -> "BOT".equals(player.get("type").getAsString())).count());
+        assertEquals(2, turn(game, "inspect", "id", owner).getAsJsonArray("cards").size());
+        rejectTurn(game, "inspect", "id", outsider);
+        reject("start", "seats", List.of(selection));
+        assertTrue(game.getAsJsonObject("shown").isEmpty());
+        assertEquals(3, game.getAsJsonArray("events").size());
+    }
+
+    @Test
+    void selectedSeatsBindAccountsIrrespectiveOfJoinOrderAndRejectConflicts() {
+        String first = register("First").get("id").getAsString();
+        String second = register("Second").get("id").getAsString();
+        var seatFive = Map.of("id", first, "buyIn", "400", "seat", 5);
+        for (int invalid : List.of(-1, 5, 6)) {
+            reject("start", "seats", List.of(seatFive,
+                    Map.of("id", second, "buyIn", "600", "seat", invalid)));
+        }
+        JsonObject game = ok("start", "seats", List.of(seatFive,
+                Map.of("id", second, "buyIn", "600", "seat", 2)));
+        var seats = game.getAsJsonArray("players");
+        assertEquals(first, seats.get(5).getAsJsonObject().get("accountId").getAsString());
+        assertEquals(second, seats.get(2).getAsJsonObject().get("accountId").getAsString());
+        rejectTurn(game, "inspect", "id", first);
+        rejectTurn(game, "inspect", "id", second);
+    }
+
+    @Test
+    void idleSeatExpiresAtThirtyMinutesAndOnlyItsOwnerCanResumeIt() {
+        var time = new java.util.concurrent.atomic.AtomicReference<>(java.time.Instant.EPOCH);
+        bridge = new DesktopBridge(directory, time::get);
+        String owner = register("Sage").get("id").getAsString();
+        JsonObject game = ok("start", "seats", List.of(Map.of("id", owner, "buyIn", "400")));
+        time.set(time.get().plusSeconds(1799));
+        JsonObject privateRead = turn(game, "inspect", "id", owner);
+        time.set(time.get().plusSeconds(1800));
+        rejectTurn(game, "inspect", "id", owner);
+        rejectTurn(game, "switchOwner", "id", owner, "password", "incorrect");
+        assertFalse(ok("state").has("privateOwner"));
+        assertTrue(ok("state").getAsJsonObject("shown").isEmpty());
+        turn(game, "switchOwner", "id", owner, "password", "poker123");
+        assertEquals(privateRead, turn(game, "inspect", "id", owner));
+    }
+
+    @Test
+    void defaultRiverTablesLiveHandsAndPaysOnlyOnce() {
+        List<Map<String, String>> seats = new ArrayList<>();
+        for (int seat = 0; seat < 6; seat++) {
+            seats.add(Map.of("id", register("River " + seat).get("id").getAsString(),
+                    "buyIn", "400"));
+        }
+        JsonObject game = ok("start", "seats", seats);
+        String folder = actor(game).get("id").getAsString();
+        game = humanAction(game, "FOLD");
+        for (int action = 0; action < 24 && !game.get("result").isJsonObject(); action++) {
+            game = passive(game);
+        }
+        assertFalse(game.has("showActor"));
+        assertEquals(5, game.getAsJsonObject("shown").size());
+        assertFalse(game.getAsJsonObject("shown").has(folder));
+        JsonObject paid = turn(game, "settle");
+        rejectTurn(paid, "settle");
+        assertEquals(paid, ok("state"));
+        for (var winner : paid.getAsJsonObject("result").getAsJsonArray("winners")) {
+            assertEquals(5, paid.getAsJsonObject("winningCards")
+                    .getAsJsonArray(winner.getAsString()).size());
+        }
+    }
+
     @Test
     void malformedInputReturnsOneSanitizedResponseAndKeepsProcessing() {
         for (String invalid : List.of("[]", "{", "{} garbage", "{\"op\":null}")) {
@@ -99,6 +178,85 @@ class DesktopBridgeIntegrationTest {
         rejectTurn(game, "act", "id", id, "action", "FOLD");
         rejectTurn(game, "reveal", "id", id);
         assertTrue(ok("state").getAsJsonArray("hole").isEmpty());
+    }
+
+    @Test
+    void foldedOwnerCanInspectPrivatelyAndDeferShowingUntilTheHandEnds() {
+        JsonObject game = fullTable();
+        JsonObject folder = actor(game);
+        String id = folder.get("accountId").getAsString();
+        String player = folder.get("id").getAsString();
+        game = humanAction(game, "FOLD");
+        String next = actor(game).get("accountId").getAsString();
+        rejectTurn(game, "inspect", "id", id);
+        rejectTurn(game, "inspect", "id", next);
+        rejectTurn(game, "switchOwner", "id", next, "password", "incorrect");
+        turn(game, "switchOwner", "id", id, "password", "poker123");
+        JsonArray own = turn(game, "inspect", "id", id)
+                .getAsJsonArray("cards");
+        assertEquals(2, own.size());
+        game = turn(game, "disclose", "id", id, "choice", "SHOW");
+        assertFalse(game.getAsJsonObject("shown").has(player));
+        for (int i = 0; i < 4; i++) {
+            game = humanAction(game, "FOLD");
+        }
+        assertEquals(own, game.getAsJsonObject("shown").get(player));
+        game = turn(game, "settle");
+        assertEquals(0, game.getAsJsonObject("result").getAsJsonObject("payouts")
+                .get(player).getAsInt());
+        JsonArray events = turn(game, "history").getAsJsonArray("hands").get(0)
+                .getAsJsonObject().getAsJsonArray("events");
+        assertEquals("OPEN", events.get(0).getAsJsonObject().get("kind").getAsString());
+        assertEquals("SMALL_BLIND", events.get(1).getAsJsonObject().get("kind").getAsString());
+        assertEquals("BIG_BLIND", events.get(2).getAsJsonObject().get("kind").getAsString());
+        int folds = 0;
+        for (var item : events) {
+            JsonObject event = item.getAsJsonObject();
+            String kind = event.get("kind").getAsString();
+            if (kind.equals("FOLD")) {
+                folds++;
+            }
+            if (event.has("cards") && kind.equals("VOLUNTARILY_SHOWN")) {
+                assertEquals(5, folds);
+                assertEquals(own, event.get("cards"));
+            }
+        }
+    }
+
+    @Test
+    void seatBadgesRetainEachPlayersLatestActionOnlyOnTheCurrentStreet() {
+        JsonObject game = fullTable();
+        assertTrue(game.getAsJsonObject("streetActions").isEmpty());
+        String first = actor(game).get("id").getAsString();
+        game = humanAction(game, "CALL");
+        String second = actor(game).get("id").getAsString();
+        game = humanAction(game, "RAISE", "target", "40");
+        assertEquals("CALL", game.getAsJsonObject("streetActions").get(first).getAsString());
+        assertEquals("RAISE", game.getAsJsonObject("streetActions").get(second).getAsString());
+        while (!actor(game).get("id").getAsString().equals(first)) {
+            game = humanAction(game, "CALL");
+        }
+        game = humanAction(game, "CALL");
+        assertEquals("FLOP", game.get("phase").getAsString());
+        assertTrue(game.getAsJsonObject("streetActions").isEmpty());
+        String bettor = actor(game).get("id").getAsString();
+        game = humanAction(game, "BET", "target", "20");
+        assertEquals("BET", ok("state").getAsJsonObject("streetActions").get(bettor).getAsString());
+        game = humanAction(game, "CALL");
+        assertEquals("BET", game.getAsJsonObject("streetActions").get(bettor).getAsString());
+        game = humanAction(game, "RAISE", "target", "60");
+        while (!actor(game).get("id").getAsString().equals(bettor)) {
+            game = humanAction(game, "CALL");
+        }
+        game = humanAction(game, "CALL");
+        assertEquals("CALL", game.getAsJsonObject("streetActions").get(bettor).getAsString());
+    }
+
+    private JsonObject humanAction(JsonObject game, String action, Object... fields) {
+        String id = actor(game).get("accountId").getAsString();
+        List<Object> args = new ArrayList<>(List.of("id", id, "action", action));
+        args.addAll(List.of(fields));
+        return turn(game, "act", args.toArray());
     }
 
     @Test
@@ -161,6 +319,11 @@ class DesktopBridgeIntegrationTest {
                 JsonObject next = turn(game, "bot");
                 assertTrue(next.getAsJsonArray("hole").isEmpty());
                 assertEquals(seat.get("id"), next.getAsJsonObject("lastAction").get("playerId"));
+                if (next.get("phase").equals(game.get("phase"))) {
+                    String botId = seat.get("id").getAsString();
+                    assertEquals(next.getAsJsonObject("lastAction").get("action"),
+                            next.getAsJsonObject("streetActions").get(botId));
+                }
                 assertEquals(game.get("revision").getAsInt() + 1, next.get("revision").getAsInt());
                 game = next;
                 bots++;
@@ -273,13 +436,103 @@ class DesktopBridgeIntegrationTest {
         }
     }
 
+    @Test
+    void immediateShowingNeverRestoresAFoldedClaimAndAllInsExposeBeforeTheFlop() {
+        JsonObject game = fullTable(true);
+        String folded = actor(game).get("id").getAsString();
+        String account = actor(game).get("accountId").getAsString();
+        game = humanAction(game, "FOLD");
+        turn(game, "switchOwner", "id", account, "password", "poker123");
+        game = turn(game, "disclose", "id", account, "choice", "SHOW");
+        assertEquals(2, game.getAsJsonObject("shown").getAsJsonArray(folded).size());
+        game = humanAction(game, "RAISE", "target", "400");
+        assertEquals(1, game.getAsJsonObject("shown").size());
+        game = humanAction(game, "CALL");
+        assertEquals(1, game.getAsJsonObject("shown").size());
+        game = humanAction(game, "FOLD");
+        game = humanAction(game, "FOLD");
+        String closingSeat = actor(game).get("id").getAsString();
+        game = humanAction(game, "FOLD", "showFold", true);
+        assertTrue(game.getAsJsonObject("runout").getAsJsonObject("shown").has(closingSeat));
+        assertEquals(4, game.getAsJsonObject("shown").size());
+        assertFalse(game.has("showActor"));
+        game = turn(game, "settle");
+        assertEquals(0, game.getAsJsonObject("result").getAsJsonObject("payouts")
+                .get(folded).getAsInt());
+        JsonArray events = turn(game, "history").getAsJsonArray("hands").get(0)
+                .getAsJsonObject().getAsJsonArray("events");
+        int tabled = 0;
+        int deals = 0;
+        for (var item : events) {
+            String kind = item.getAsJsonObject().get("kind").getAsString();
+            if (kind.equals("SHOWDOWN_REVEALED")) {
+                tabled++;
+            }
+            if (kind.equals("DEAL")) {
+                assertEquals(2, tabled);
+                deals++;
+            }
+        }
+        assertEquals(3, deals);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+    void riverOrderAndLastLiveUnshownClaim(boolean aggressive) {
+        JsonObject game = fullTable();
+        while (!game.get("phase").getAsString().equals("RIVER")) {
+            game = passive(game);
+        }
+        String first = actor(game).get("id").getAsString();
+        game = humanAction(game, "CHECK");
+        if (aggressive) {
+            game = humanAction(game, "BET", "target", "20");
+            first = actor(game).get("id").getAsString();
+            game = humanAction(game, "RAISE", "target", "40");
+        }
+        while (!game.has("showActor")) {
+            game = passive(game);
+        }
+        assertEquals(first, game.get("showActor").getAsString());
+        assertFalse(game.get("result").isJsonObject());
+        rejectTurn(game, "settle");
+        int mucked = 0;
+        while (game.has("showActor")) {
+            String player = game.get("showActor").getAsString();
+            var seats = game.getAsJsonArray("players");
+            String account = seats.asList().stream().map(value -> value.getAsJsonObject())
+                    .filter(seat -> seat.get("id").getAsString().equals(player)).findFirst()
+                    .orElseThrow().get("accountId").getAsString();
+            turn(game, "handoff", "id", account);
+            game = turn(game, "disclose", "id", account, "choice", "MUCK");
+            mucked++;
+        }
+        assertEquals(5, mucked);
+        assertTrue(game.getAsJsonObject("shown").isEmpty());
+        assertTrue(game.getAsJsonObject("result").get("uncontested").getAsBoolean());
+        game = turn(game, "settle");
+        assertTrue(game.getAsJsonObject("shown").isEmpty());
+        JsonObject next = turn(game, "next");
+        assertEquals(1, turn(next, "history").getAsJsonArray("hands").size());
+    }
+
+    private JsonObject passive(JsonObject game) {
+        String action = game.getAsJsonObject("legal").get("call").getAsLong() == 0
+                ? "CHECK" : "CALL";
+        return humanAction(game, action);
+    }
+
     private JsonObject fullTable() {
+        return fullTable(false);
+    }
+
+    private JsonObject fullTable(boolean immediate) {
         List<Map<String, String>> seats = new ArrayList<>();
         for (int seat = 0; seat < 6; seat++) {
             String id = register("Seat " + seat).get("id").getAsString();
             seats.add(Map.of("id", id, "buyIn", "400"));
         }
-        return ok("start", "seats", seats);
+        return ok("start", "seats", seats, "immediateFold", immediate, "manualShowdown", true);
     }
 
     private JsonObject register(String name) {
@@ -291,6 +544,9 @@ class DesktopBridgeIntegrationTest {
     }
 
     private JsonObject turn(JsonObject game, String op, Object... args) {
+        if (op.equals("act")) {
+            ok("reveal", turnArgs(game, new Object[]{"id", actor(game).get("accountId")}));
+        }
         return ok(op, turnArgs(game, args));
     }
 

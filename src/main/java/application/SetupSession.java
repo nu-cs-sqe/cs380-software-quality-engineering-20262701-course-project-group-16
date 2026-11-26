@@ -1,6 +1,8 @@
 package application;
 
 import domain.model.GameState;
+import domain.model.GameSetup;
+import java.util.TreeMap;
 import bot.EquityRequest;
 import bot.learning.OpponentBeliefs;
 import domain.model.GamePhase;
@@ -53,6 +55,41 @@ public final class SetupSession implements BotSession {
     private long revision;
     private int viewerSeat;
     private boolean cardsRevealed;
+    private Optional<ReviewedHand> review = Optional.empty();
+
+    /** Enables ordered disclosure for this newly dealt hand in River Room. */
+    public ReviewedHand beginReview(boolean immediate, boolean showBots) {
+        return beginReview(immediate, showBots, false);
+    }
+
+    public ReviewedHand beginReview(boolean immediate, boolean showBots, boolean tableLiveHands) {
+        if (review.isPresent() || !acceptedActions.isEmpty() || settlement.isPresent()) {
+            throw new IllegalStateException("Start the review with the deal.");
+        }
+        ReviewedHand hand = new ReviewedHand(requireMatch(), immediate, showBots, tableLiveHands);
+        review = Optional.of(hand);
+        return hand;
+    }
+
+    public void chooseDisclosure(String playerId, boolean show) {
+        requireNoPendingSettlement();
+        ReviewedHand hand = review.orElseThrow();
+        hand.decide(playerId, show);
+        updateShowdownClaims(hand);
+    }
+
+    private void updateShowdownClaims(ReviewedHand hand) {
+        if (result.isPresent() && settlement.isEmpty() && hand.nextToShow().isEmpty()) {
+            Set<String> withdrawn = hand.withdrawnClaims();
+            if (!withdrawn.isEmpty()) {
+                result = Optional.of(resolver.resolve(requireMatch(), withdrawn));
+            }
+        }
+    }
+
+    private Set<String> withdrawnClaims() {
+        return review.map(ReviewedHand::withdrawnClaims).orElseGet(Set::of);
+    }
 
     public SetupSession() {
         this(new GameInitializer());
@@ -92,6 +129,18 @@ public final class SetupSession implements BotSession {
      * @throws UnsupportedOperationException for actions outside the supported engine scope
      */
     public AcceptedAction submitAction(ActionRequest request) {
+        return submitAction(request, false);
+    }
+
+    /** Records the fold and the owner's disclosure choice before advancing the board. */
+    public AcceptedAction foldAndShow(String id) {
+        if (review.isEmpty()) {
+            throw new IllegalStateException("Start a reviewed hand before showing a fold.");
+        }
+        return submitAction(new ActionRequest(id, ActionType.FOLD), true);
+    }
+
+    private AcceptedAction submitAction(ActionRequest request, boolean showFold) {
         requireNoPendingSettlement();
         hideCards();
         GameState hand = requireOpenHand();
@@ -99,19 +148,28 @@ public final class SetupSession implements BotSession {
         long nextRevision = Math.incrementExact(revision);
         BotTable learned = bots.orElseThrow().after(accepted.getAcceptedAction(),
                 engine.getLegalActions(hand), decisionPosition(hand));
-        return commitAction(accepted, learned, nextRevision);
+        return commitAction(accepted, learned, nextRevision, showFold);
     }
 
     private AcceptedAction commitAction(BettingResult accepted, BotTable learned,
-            long nextRevision) {
+            long nextRevision, boolean showFold) {
         GameState candidate = advanceClosedRounds(accepted.getState());
         Optional<ShowdownResult> comparison = compareIfFinished(candidate);
         AcceptedAction action = accepted.getAcceptedAction();
         statistics.orElseThrow().accept(action);
         publishAction(candidate, comparison, action);
+        recordReviewedAction(action, candidate, comparison.isPresent(), showFold);
         bots = Optional.of(learned);
         revision = nextRevision;
         return action;
+    }
+
+    private void recordReviewedAction(AcceptedAction action, GameState candidate,
+            boolean terminal, boolean showFold) {
+        review.ifPresent(hand -> {
+            hand.accepted(action, candidate, terminal, showFold);
+            updateShowdownClaims(hand);
+        });
     }
 
     private GameState requireOpenHand() {
@@ -178,14 +236,16 @@ public final class SetupSession implements BotSession {
     public void quit(String playerId) {
         requireNoPendingSettlement();
         hideCards();
-        requireNoSettlementSave();
         GameState match = requireMatch();
+        if (review.flatMap(ReviewedHand::nextToShow).isPresent()) {
+            throw new IllegalStateException("Finish the showdown before leaving.");
+        }
         PlayerState departing = requireRemainingHuman(match, playerId);
         long nextRevision = Math.incrementExact(revision);
         if (result.isEmpty() && departing.canAct()) {
             BettingResult folded = engine.foldDepartingPlayer(match, playerId);
             BotTable learned = bots.orElseThrow().afterDeparture(folded.getAcceptedAction());
-            commitAction(folded, learned, nextRevision);
+            commitAction(folded, learned, nextRevision, false);
         }
         departed.add(playerId);
         revision = nextRevision;
@@ -206,7 +266,9 @@ public final class SetupSession implements BotSession {
     public boolean hasDeparted(String playerId) { return departed.contains(playerId); }
 
     /** Comparison snapshot; getSettlement reports whether payment has since completed. */
-    public Optional<ShowdownResult> getResult() { return result; }
+    public Optional<ShowdownResult> getResult() {
+        return review.flatMap(ReviewedHand::nextToShow).isPresent() ? Optional.empty() : result;
+    }
 
     /** Immutable current-hand log, cleared only by a successful restart; excludes blinds. */
     public List<AcceptedAction> getAcceptedActions() { return List.copyOf(acceptedActions); }
@@ -218,7 +280,6 @@ public final class SetupSession implements BotSession {
     public void start(int humanCount) {
         requireNoPendingSettlement();
         hideCards();
-        requireNoSettlementSave();
         startMatch(initializer.start(humanCount), Optional.empty());
     }
 
@@ -240,7 +301,6 @@ public final class SetupSession implements BotSession {
     public void startProfiles(ProfileService profiles, List<AuthenticatedProfile> humans) {
         requireNoPendingSettlement();
         hideCards();
-        requireNoSettlementSave();
         ProfileMatch.requireAccounts(profiles, humans);
         GameState started = initializer.start(humans.size());
         ProfileMatch binding = new ProfileMatch(profiles, humans, started);
@@ -264,6 +324,7 @@ public final class SetupSession implements BotSession {
         result = Optional.empty();
         settlement = Optional.empty();
         acceptedActions.clear();
+        review = Optional.empty();
         viewerSeat = 0; // Setup assigns at least one human, starting at seat zero.
     }
 
@@ -545,10 +606,25 @@ public final class SetupSession implements BotSession {
     private void startAccountTable(ProfileService profiles, List<AuthenticatedProfile> humans,
             TableAccountStore store, Optional<Map<String, Long>> buyIns,
             Optional<Map<String, Long>> loadedBalances) {
+        startAccountTable(profiles, humans, store, buyIns, loadedBalances,
+                GameSetup.firstSeats(humans.size()));
+    }
+
+    /** Authenticated occupants are bound in physical seat order regardless of join order. */
+    public void startSeatedTable(ProfileService profiles, Map<Integer, AuthenticatedProfile> seats,
+            TableAccountStore store, Map<String, Long> buyIns) {
+        List<AuthenticatedProfile> humans = List.copyOf(new TreeMap<>(seats).values());
+        startAccountTable(profiles, humans, store, Optional.of(Map.copyOf(buyIns)),
+                Optional.empty(), seats.keySet());
+    }
+
+    private void startAccountTable(ProfileService profiles, List<AuthenticatedProfile> humans,
+            TableAccountStore store, Optional<Map<String, Long>> buyIns,
+            Optional<Map<String, Long>> loadedBalances, Set<Integer> seats) {
         requireNoPendingSettlement();
         hideCards();
         ProfileMatch.requireAccounts(profiles, humans);
-        GameState initial = initializer.start(humans.size());
+        GameState initial = initializer.start(seats);
         ProfileMatch binding = new ProfileMatch(profiles, humans, initial);
         Map<String, String> accounts = binding.profileIds();
         AccountTable table = loadedBalances.map(balances ->
@@ -585,8 +661,8 @@ public final class SetupSession implements BotSession {
         }
         GameState hand = requireMatch();
         long nextRevision = Math.incrementExact(revision);
-        Settlement paid = payoutService.settle(hand);
-        MatchStatistics delta = MatchStatistics.start(hand).complete(hand, paid, acceptedActions);
+        Settlement paid = payoutService.settle(hand, withdrawnClaims());
+        MatchStatistics delta = completedStatistics(hand, paid);
         Optional<HandCompletion> completion = accountTable.map(table ->
                 table.completion(paid.getState(), delta.completedSnapshots()));
         Optional<AccountTable> next = accountTable.map(table ->
@@ -596,6 +672,10 @@ public final class SetupSession implements BotSession {
                 settlementWriter(delta, completion), nextRevision);
         pendingSettlement = Optional.of(prepared);
         return prepared;
+    }
+
+    private MatchStatistics completedStatistics(GameState hand, Settlement paid) {
+        return MatchStatistics.start(hand).complete(hand, paid, acceptedActions);
     }
 
     private Runnable settlementWriter(MatchStatistics delta, Optional<HandCompletion> completion) {
@@ -621,6 +701,7 @@ public final class SetupSession implements BotSession {
         settlement = Optional.of(prepared.paid());
         revision = prepared.nextRevision();
         pendingSettlement = Optional.empty();
+        review.ifPresent(hand -> hand.paid(prepared.paid()));
         return prepared.paid();
     }
 
@@ -631,8 +712,8 @@ public final class SetupSession implements BotSession {
             return pendingSettlement.orElseThrow().getHandCompletion().orElseThrow();
         }
         GameState hand = requireMatch();
-        Settlement paid = payoutService.settle(hand);
-        MatchStatistics delta = MatchStatistics.start(hand).complete(hand, paid, acceptedActions);
+        Settlement paid = payoutService.settle(hand, withdrawnClaims());
+        MatchStatistics delta = completedStatistics(hand, paid);
         return table.completion(paid.getState(), delta.completedSnapshots());
     }
 

@@ -1,10 +1,16 @@
 import React, { useState } from 'react';
-import { chipText, wagerPreview } from './table-state.mjs';
+import { chipText, seatLabel } from './table-state.mjs';
 import { metrics } from './table-copy.mjs';
+import { localeCatalog } from './locales.mjs';
 
 const ranks = { TWO: '2', THREE: '3', FOUR: '4', FIVE: '5', SIX: '6', SEVEN: '7', EIGHT: '8',
   NINE: '9', TEN: '10', JACK: 'J', QUEEN: 'Q', KING: 'K', ACE: 'A' };
-const suits = { SPADES: '♠', HEARTS: '♥', DIAMONDS: '♦', CLUBS: '♣' };
+const suits = {
+  SPADES: { symbol: '♠', ink: '#1F2937' },
+  HEARTS: { symbol: '♥', ink: '#DC2626' },
+  DIAMONDS: { symbol: '♦', ink: '#2563EB' },
+  CLUBS: { symbol: '♣', ink: '#15803D' },
+};
 
 const pipRows = {
   TWO: [[1], [], [1]], THREE: [[1], [1], [1]], FOUR: [[0, 2], [], [0, 2]],
@@ -13,24 +19,24 @@ const pipRows = {
   NINE: [[0, 2], [0, 2], [1], [0, 2], [0, 2]], TEN: [[0, 2], [1], [0, 2], [0, 2], [1], [0, 2]],
 };
 
-function CardFace({ card }) {
-  const rows = pipRows[card.rank];
-  if (!rows) return <span aria-hidden="true" className={'rr-pip ' + (card.rank === 'ACE' ? 'ace' : 'court')}>
-    {suits[card.suit]}</span>;
+function CardFace({ rank, symbol }) {
+  const rows = pipRows[rank];
+  if (!rows) return <span aria-hidden="true" className="rr-pip">{symbol}</span>;
   return <span aria-hidden="true" className="rr-pip-field" style={{gridTemplateRows:'repeat(' + rows.length + ', 1fr)'}}>
     {rows.flatMap((columns, row) => columns.map(col => <i key={row + '-' + col}
-      style={{gridColumn: col + 1, gridRow: row + 1}}>{suits[card.suit]}</i>))}
+      style={{gridColumn: col + 1, gridRow: row + 1}}>{symbol}</i>))}
   </span>;
 }
 
-export function PlayingCard({ card, copy }) {
+export function PlayingCard({ card, copy, highlighted = false }) {
   const rank = ranks[card.rank] ?? card.rank;
-  const red = ['HEARTS', 'DIAMONDS'].includes(card.suit);
-  return <span className={'rr-card' + (red ? ' is-red' : '')}
+  const { symbol, ink } = suits[card.suit];
+  const corner = <>{rank}<span>{symbol}</span></>;
+  return <span className="rr-card" data-winning={highlighted || undefined} style={{ color: ink }}
     role="img" aria-label={copy.card(rank, copy[card.suit])}>
-    <span className="rr-corner" aria-hidden="true">{rank}<small>{suits[card.suit]}</small></span>
-    <CardFace card={card} />
-    <span className="rr-corner reverse" aria-hidden="true">{rank}</span>
+    <span className="rr-corner" aria-hidden="true">{corner}</span>
+    <CardFace rank={card.rank} symbol={symbol} />
+    <span className="rr-corner reverse" aria-hidden="true">{corner}</span>
   </span>;
 }
 
@@ -46,25 +52,42 @@ function Chips() {
   </span>;
 }
 
-function Seat({ player, index, position, active, winner, paid, lang, copy }) {
-  if (!player) return <div className={'rr-seat vacant pos-' + position}>{copy.vacant}</div>;
+function marked(card, best) {
+  return best.some(other => other.rank === card.rank && other.suit === card.suit);
+}
+
+function Seat({ player, index, personal, active, winner, paid, streetAction, shown, visibility, best, award, category, lang, copy }) {
+  if (!player) return <div className={'rr-seat vacant pos-' + index}>{copy.vacant}</div>;
   const live = ['ACTIVE', 'ALL_IN'].includes(player.status);
-  const stateLabel = winner ? copy.winner : active ? copy.acting : copy[player.status];
-  return <div className={['rr-seat', 'pos-' + position, active && 'is-active', winner && 'is-winner',
+  const status = live && visibility === 'MUCKED' ? 'MUCKED' : player.status;
+  const label = paid && live && !winner && visibility
+    ? visibility : seatLabel(status, streetAction, active, winner);
+  const note = [category && copy[category], visibility && visibility !== label
+    && visibility !== 'HIDDEN' && copy.shortVisibility[visibility]].filter(Boolean).join(' · ');
+  const stack = chipText(player.stack, lang);
+  const contribution = chipText(player.round, lang);
+  const roundLabel = copy.contributed + ' ' + contribution;
+  return <div className={['rr-seat', 'pos-' + index, personal && 'is-personal', active && 'is-active', winner && 'is-winner',
     !live && 'is-folded'].filter(Boolean).join(' ')} data-seat={index} data-testid={'seat-' + index}>
-    {live && !paid && <CardBacks />}
+    {visibility && !shown && <CardBacks />}
     <div className="rr-seatplate">
+      {shown ? <div className="rr-exposed" role="group" aria-label={copy.seat + ' ' + (index + 1)}>
+        {shown.map((card, i) => <PlayingCard key={i} card={card} copy={copy} highlighted={marked(card, best)}/>)}</div> :
       <span className="rr-seat-number" title={copy.seat + ' ' + (index + 1)}>
         {String(index + 1).padStart(2, '0')}
-      </span>
+      </span>}
       <div className="rr-seat-text"><strong title={player.name}>{player.name}</strong>
-        <span className="rr-stack-value">{chipText(player.stack, lang)}</span></div>
-      {player.role && <span className="rr-role" title={player.role}>{player.role.replaceAll(',', '·')}</span>}
+        <span className="rr-seat-funds"><span className="rr-stack-value" title={stack}>{stack}</span>
+          {player.role && <abbr className="rr-role"
+            title={player.role.split(',').map(role => copy.roles[role]).join(' · ')}>
+            {player.role.replaceAll(',', '·')}</abbr>}
+        </span></div>
     </div>
-    <span className="rr-seat-status"><i />{active || !live || winner || player.status === 'ALL_IN'
-      ? stateLabel : copy[player.type]}{BigInt(player.round) > 0n &&
-      <span className="rr-round-chips" title={copy.contributed}
-        aria-label={copy.contributed + ' ' + chipText(player.round, lang)}>{chipText(player.round, lang)}</span>}</span>
+    <span className="rr-seat-status" data-status={label}>{copy[label]}
+      {award && <b className="rr-award">+{chipText(award, lang)}</b>}{BigInt(player.round) > 0n &&
+      <span className="rr-round-chips" title={roundLabel} aria-label={roundLabel}>
+        {contribution}</span>}</span>
+    {note && <small className="rr-hand-category">{note}</small>}
   </div>;
 }
 
@@ -84,6 +107,13 @@ function sumChips(amounts) {
   return Object.values(amounts).reduce((total, amount) => total + BigInt(amount), 0n);
 }
 
+export function PotBreakdown({ pots, players, copy, lang }) {
+  return <dl className="rr-pot-breakdown">{pots.map((shares, i) =>
+    <div key={i}><dt>{i === 0 ? copy.mainPot : copy.sidePot(i)} · {chipText(sumChips(shares), lang)}</dt>
+      <dd>{players.filter(p => p.id in shares)
+        .map(p => p.name + ' +' + chipText(shares[p.id], lang)).join(' · ')}</dd></div>)}</dl>;
+}
+
 export function SettlementSummary({ game, copy, lang }) {
   const returned = sumChips(game.result.refunds);
   return <section className="rr-settlement-summary" aria-label={copy.paid}>
@@ -97,70 +127,61 @@ export function SettlementSummary({ game, copy, lang }) {
   </section>;
 }
 
-export function TableSurface({ game, lang, copy, privateView }) {
+export function TableFrame({ children }) {
+  return <div className="rr-arena"><div className="rr-table-layout">
+    <div className="rr-rail" aria-hidden="true"><div className="rr-felt"/></div>
+    {children}
+  </div></div>;
+}
+
+export function TableSurface({ game, lang, copy, ownerSeat }) {
+  const winners = game.paid ? game.result.winners : [];
+  const publicWinners = winners.filter(id => game.winningCards[id]);
+  const [preferred, setPreferred] = useState('');
+  const selected = publicWinners.includes(preferred) ? preferred : publicWinners[0];
+  const winning = game.winningCards?.[selected] || [];
+
   const potLabel = game.paid ? copy.awarded : copy.pot;
   const pot = chipText(game.paid ? sumChips(game.result.payouts) : game.pot, lang);
-  return <section className="rr-arena" aria-label={copy.table}>
-    <div className={'rr-table-layout' + (privateView ? ' from-actor' : '')}>
-      <div className="rr-rail" aria-hidden="true"><div className="rr-felt" /></div>
+  return <section aria-label={copy.table}>
+    <TableFrame>
       <div className="rr-center">
         <div className="rr-pot" key={game.pot} aria-label={potLabel + ' ' + pot}>
           <Chips /><div><small>{potLabel}</small><strong>{pot}</strong></div>
         </div>
         <div className="rr-board" aria-label={copy.board} data-testid="community-cards">
           {Array.from({ length: 5 }, (_, index) => game.board[index]
-            ? <PlayingCard key={game.handId + ':' + index} card={game.board[index]} copy={copy} />
-            : <span className="rr-slot" key={index} aria-hidden="true">◇</span>)}
+            ? <PlayingCard key={game.handId + ':' + index} card={game.board[index]} copy={copy}
+                highlighted={marked(game.board[index], winning)} />
+            : <span className="rr-slot" key={index} aria-hidden="true" />)}
         </div>
         <StreetProgress game={game} copy={copy} />
+        {publicWinners.length > 1 && <label className="rr-winning-focus">{copy.highlight}
+          <select value={selected} onChange={e => setPreferred(e.target.value)}>
+            {game.players.filter(p => publicWinners.includes(p.id)).map(p =>
+              <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select></label>}
       </div>
       {Array.from({ length: 6 }, (_, index) => {
         const player = game.players.find(p => p.seat === index);
-        const position = privateView ? (index - game.actor + 6) % 6 : index;
-        return <Seat key={index} index={index} position={position} player={player} active={game.actor === index}
-          paid={game.paid} winner={game.result && game.result.winners.includes(player?.id)} copy={copy} lang={lang} />;
+        const id = player?.id;
+        const folded = game.paid && game.folded.includes(id);
+        return <Seat key={index} index={index} personal={index === ownerSeat}
+          player={folded ? { ...player, status: 'FOLDED' } : player}
+          active={game.actor === index || (id && game.showActor === id)}
+          best={id === selected ? winning : []} category={game.categories?.[id]}
+          award={game.paid && game.result.winners.includes(id) && game.result.payouts[id]}
+          streetAction={game.streetActions?.[id]} shown={game.shown[id]}
+          paid={game.paid} visibility={game.visibility[id]} winner={game.result && game.result.winners.includes(id)}
+          copy={copy} lang={lang} />;
       })}
-    </div>
-  </section>;
-}
-
-export function BettingControls({ game, player, hole, copy, lang, submit, conceal }) {
-  const { legal } = game;
-  const [target, setTarget] = useState(legal.min);
-  const wager = legal.actions.find(action => action === 'BET' || action === 'RAISE');
-  const preview = wager && wagerPreview(target, legal, player.round, player.stack);
-  return <section className="rr-actions rr-private" aria-label={copy.actions}>
-    <div className="rr-pocket" data-testid="private-hand" aria-label={copy.cards}>
-      {hole.map((card, index) => <PlayingCard key={index} card={card} copy={copy} />)}
-    </div>
-    <div className="rr-private-title"><small>{copy.personal}</small><h2>{player.name}</h2>
-      <button type="button" className="rr-link" onClick={conceal}>{copy.hide}</button></div>
-    <div className="rr-bet-panel">
-      {wager && <div className="rr-target">
-        <label>{wager === 'RAISE' ? copy.raiseTo : copy.betTo}
-          <input inputMode="numeric" type="text" maxLength={19} value={target}
-            onChange={e => setTarget(e.target.value)} spellCheck="false"
-            aria-describedby="rr-wager-preview" aria-invalid={!preview} /></label>
-        <button type="button" onClick={() => setTarget(legal.min)}>{copy.min}</button>
-        <button type="button" onClick={() => setTarget(legal.max)}>{copy.max}</button>
-        <span className="rr-wager-preview" id="rr-wager-preview" aria-live="polite">{preview
-          ? <><span>{copy.addNow} <b>{chipText(preview.cost, lang)}</b></span>
-            <span>{copy.leftBehind} <b>{chipText(preview.remaining, lang)}</b></span></>
-          : copy.sizingRange(chipText(legal.min, lang), chipText(legal.max, lang))}</span>
-      </div>}
-      <div className="rr-action-buttons">
-        {legal.actions.filter(action => action !== wager).map(action => <button type="button"
-          key={action} className={action === 'FOLD' ? 'rr-secondary fold' : 'rr-secondary'}
-          onClick={() => submit(action)}>{copy[action]}{action === 'CALL' && ' ' + chipText(legal.call, lang)}</button>)}
-        {wager && <button type="button" className="rr-primary" disabled={!preview}
-          onClick={() => submit(wager, BigInt(target).toString())}>{copy[wager]}</button>}
-      </div>
-    </div>
+    </TableFrame>
   </section>;
 }
 
 export function Results({ game, copy, lang }) {
   const [tab, setTab] = useState('result');
+  const { tag } = localeCatalog.get(lang);
   return <section className="rr-results">
     <div className="rr-tabs">
       {['result', 'stats'].map(item => <button type="button" key={item} aria-pressed={item === tab}
@@ -176,7 +197,8 @@ export function Results({ game, copy, lang }) {
         const result = game.result;
         const delta = BigInt(result.after[id]) - BigInt(result.before[id]);
         const stats = game.metrics[id] || { handsPlayed: 0, rates: {} };
-        return <tr key={id}><th scope="row">{player.name}</th>{tab === 'result' ? <>
+        return <tr key={id}><th scope="row">{player.name}{game.categories?.[id] &&
+          <small className="rr-public-result">{copy[game.categories[id]]}</small>}</th>{tab === 'result' ? <>
           <td><span className={'rr-net-pill ' + (delta > 0n ? 'gain' : delta < 0n ? 'loss' : 'even')}>
             {delta > 0n && '+'}{chipText(delta, lang)}</span></td>
           <td>{chipText(result.before[id], lang)}</td>
@@ -185,10 +207,11 @@ export function Results({ game, copy, lang }) {
           <td>{chipText(result.after[id], lang)}</td>
           </> : <>
           <td>{stats.handsPlayed}</td>{Object.keys(metrics).map(key => <td key={key}>
-            {key in stats.rates ? stats.rates[key].toLocaleString(lang, { maximumFractionDigits: 1 })
+            {key in stats.rates ? stats.rates[key].toLocaleString(tag, { maximumFractionDigits: 1 })
               + (key === 'af' || key === 'gap' ? '' : '%') : '—'}</td>)}</>}</tr>;
       })}</tbody>
     </table></div>
+    {tab === 'result' && <PotBreakdown pots={game.result.pots} players={game.players} copy={copy} lang={lang}/>}
     {tab === 'stats' && <details className="rr-stats-guide"><summary>{copy.statsGuide}</summary>
       <dl>{Object.entries(metrics).map(([key, short]) =>
         <div key={key}><dt>{short}</dt><dd>{copy.metric[key]}</dd></div>)}</dl>

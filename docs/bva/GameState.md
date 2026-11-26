@@ -64,7 +64,7 @@ Grouped assertions exercise the public getters at the stated boundary; no mutabl
 | GS-68 | GameState | setup already contains dealt hole cards | IllegalArgumentException | Yes |
 | GS-69 | GameState | showdown still has actor | IllegalArgumentException | Yes |
 | GS-70 | GameState | completion has unawarded commitments | IllegalArgumentException | Yes |
-| GS-71 | GameState; getPot; getTotalChips | Completed match: one winner, all pots awarded | Pot zero; winner holds all 6000 chips | Yes |
+| GS-71 | GameState; getPot; getPlayers | Paid fixture with one funded seat | Pot zero; seat 4 retains the fixture's 6,000 chips | Yes |
 | GS-72 | GameState; getCommunityCards; getRemainingDeck | Caller mutates supplied board/deck and returned lists | Defensive copy; returned lists unmodifiable | Yes |
 | GS-73 | GameState | Completion snapshot whose unawarded pot overflows long | IllegalArgumentException; no partially constructed state | Yes |
 

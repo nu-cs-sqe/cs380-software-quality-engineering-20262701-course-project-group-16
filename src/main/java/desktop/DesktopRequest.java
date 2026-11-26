@@ -64,6 +64,17 @@ final class DesktopRequest {
         return field.getAsJsonArray();
     }
 
+    boolean flag(String name) {
+        if (!has(name)) {
+            return false;
+        }
+        JsonElement value = field(name);
+        if (!value.isJsonPrimitive() || !value.getAsJsonPrimitive().isBoolean()) {
+            throw invalid(name);
+        }
+        return value.getAsBoolean();
+    }
+
     boolean has(String name) {
         return fields.has(name);
     }

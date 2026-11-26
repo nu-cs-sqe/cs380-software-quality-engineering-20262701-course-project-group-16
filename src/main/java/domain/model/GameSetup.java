@@ -7,6 +7,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /** Creates a new six-seat match. Deal cards before accepting actions in its first hand. */
 public final class GameSetup {
@@ -29,9 +30,23 @@ public final class GameSetup {
      * @throws IllegalArgumentException unless humanCount is between one and six
      */
     public GameState create(int humanCount) {
+        return create(firstSeats(humanCount));
+    }
+
+    public static Set<Integer> firstSeats(int humanCount) {
         requireHumanCount(humanCount);
+        return IntStream.range(0, GameConfig.SEAT_COUNT).limit(humanCount)
+                .boxed().collect(Collectors.toSet());
+    }
+
+    /** Starts with a random button and one bot in each unselected physical seat. */
+    public GameState create(Set<Integer> humanSeats) {
+        requireHumanCount(humanSeats.size());
+        if (humanSeats.stream().anyMatch(seat -> seat < 0 || seat >= GameConfig.SEAT_COUNT)) {
+            throw new IllegalArgumentException("Choose a seat on this table.");
+        }
         String matchId = UUID.randomUUID().toString();
-        List<PlayerState> players = createPlayers(matchId, humanCount);
+        List<PlayerState> players = createPlayers(matchId, humanSeats);
         int dealer = dealerRandom.nextInt(players.size());
         SeatOrder seats = new SeatOrder(players);
         HandPositions positions = seats.positionsFor(dealer);
@@ -44,8 +59,8 @@ public final class GameSetup {
                 List.of(), List.of(), betting);
     }
 
-    private void requireHumanCount(int humanCount) {
-        if (humanCount < 1 || humanCount > config.getSeatCount()) {
+    private static void requireHumanCount(int humanCount) {
+        if (humanCount < 1 || humanCount > GameConfig.SEAT_COUNT) {
             throw new IllegalArgumentException("Human count must be between one and six.");
         }
     }
@@ -56,10 +71,10 @@ public final class GameSetup {
         return new BettingProgress(config.getBigBlind(), config.getBigBlind(), active, active);
     }
 
-    private List<PlayerState> createPlayers(String matchId, int humanCount) {
+    private List<PlayerState> createPlayers(String matchId, Set<Integer> humanSeats) {
         List<PlayerState> players = new ArrayList<>();
         for (int seat = 0; seat < config.getSeatCount(); seat++) {
-            PlayerType type = seat < humanCount ? PlayerType.HUMAN : PlayerType.BOT;
+            PlayerType type = humanSeats.contains(seat) ? PlayerType.HUMAN : PlayerType.BOT;
             Player player = new Player(matchId + ":player:" + seat, seat, type,
                     config.getStartingChips());
             players.add(new PlayerState(player, PlayerStatus.ACTIVE, List.of(), 0, 0));

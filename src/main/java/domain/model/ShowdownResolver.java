@@ -2,6 +2,7 @@ package domain.model;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /** Compares eligible players without mutating state or paying the pot. */
@@ -19,12 +20,17 @@ public final class ShowdownResolver {
     /**
      * Requires a dealt, decision-free state. Contested results require SHOWDOWN;
      * a sole remaining participant can win before the board is complete.
-     * The result ranks contenders only: side-pot eligibility and payouts are later work.
+     * PotSettlement uses the same claimants to award each contribution layer.
      * @throws IllegalStateException for an unready/completed hand or no eligible player
      */
     public ShowdownResult resolve(GameState state) {
+        return resolve(state, Set.of());
+    }
+
+    /** An ordinary showdown muck withdraws the claim, while retaining the betting record. */
+    public ShowdownResult resolve(GameState state, Set<String> withdrawn) {
         requireDecisionFreeHand(state);
-        List<PlayerState> eligible = eligibleContenders(state);
+        List<PlayerState> eligible = eligibleContenders(state, withdrawn);
         if (eligible.size() == 1) {
             return new ShowdownResult(state.getHandId(),
                     List.of(eligible.get(0).getPlayer().getId()), true);
@@ -42,9 +48,20 @@ public final class ShowdownResolver {
         }
     }
 
-    private static List<PlayerState> eligibleContenders(GameState state) {
+    static List<PlayerState> eligibleContenders(GameState state, Set<String> withdrawn) {
         List<PlayerState> eligible = state.getPlayerStates().stream()
                 .filter(PlayerState::isParticipating).collect(Collectors.toList());
+        if (!withdrawn.isEmpty()) {
+            if (state.getPhase() != GamePhase.SHOWDOWN || eligible.stream()
+                    .anyMatch(seat -> seat.getStatus() == PlayerStatus.ALL_IN)) {
+                throw new IllegalStateException("Only a non-all-in showdown permits mucking.");
+            }
+            int original = eligible.size();
+            eligible.removeIf(seat -> withdrawn.contains(seat.getPlayer().getId()));
+            if (original - eligible.size() != withdrawn.size()) {
+                throw new IllegalArgumentException("Only live hands can withdraw a claim.");
+            }
+        }
         if (eligible.isEmpty()) {
             throw new IllegalStateException("At least one eligible player is required.");
         }

@@ -1,17 +1,26 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {AccessForm, PrivateAccount} from './LobbyAccount.jsx';
-import {availableProfiles, emptySeats, minimumPlayerCount, nextUnreadySeat, occupy, readyPlayers, SEAT_COUNT} from './lobby-model.mjs';
-import {lobbyLanguage} from './lobby-language.mjs';
+import {availableProfiles, choosePosition, emptySeats, minimumPlayerCount, nextUnreadySeat, occupy, readyPlayers, SEAT_COUNT} from './lobby-model.mjs';
+import { DEFAULT_LOCALE, localeCatalog } from './locales.mjs';
+import { TableFrame } from './TableSurface.jsx';
 import './lobby.css';
 
-function Hero({t}) {
-  return <section className="rr-hero" aria-labelledby="lobby-title">
-    <div className="rr-hero-copy">
-      <div className="rr-eyebrow"><span className="rr-rule"></span>{t.kicker}</div>
-      <h1 id="lobby-title">{t.title}</h1>
-      <p>{t.hero}</p>
-      <div className="rr-specs"><span>{t.format}</span><span>{t.blinds}</span><span>{t.sixMax}</span></div>
-    </div>
+function SeatSelection({t, seats, positions, slot, choose, busy}) {
+  return <section className="rr-game rr-lobby-table" aria-label={t.pickSeat}>
+    <TableFrame><div className="rr-center"><h1 id="lobby-title">{t.title}</h1>
+      <p>{t.pickSeat}</p></div>
+      {positions.map((position, index) => {
+        const occupant = seats[index];
+        const selected = index === slot;
+        return <button type="button" key={position} data-position={position}
+          className={'rr-seat rr-chair pos-' + position} aria-pressed={selected}
+          disabled={busy || (!selected && Boolean(occupant.id))} onClick={() => choose(position)}>
+          <small>{t.physicalSeat(position + 1)}</small>
+          <strong>{occupant.name || (selected ? t.yourSeat : t.availableSeat)}</strong>
+          {occupant.id && selected && <small>{t.yourSeat}</small>}
+        </button>;
+      })}
+    </TableFrame>
   </section>;
 }
 
@@ -34,9 +43,13 @@ function PlayerSlots({t, seats, count, slot, busy, onSelect}) {
   })}</div>;
 }
 
-export default function Lobby({lang = 'en', request, onStart}) {
-  const t = lobbyLanguage[lang];
+export default function Lobby({lang = DEFAULT_LOCALE, request, onStart}) {
+  const t = localeCatalog.get(lang).lobby;
   const [seats, setSeats] = useState(emptySeats);
+  const [immediateFold, setImmediateFold] = useState(false);
+  const [positions, setPositions] = useState(() => seats.map((_, i) => i));
+  const [manualShowdown, setManualShowdown] = useState(false);
+  const [showBots, setShowBots] = useState(false);
   const [count, setCount] = useState(1);
   const [slot, setSlot] = useState(0);
   const [profiles, setProfiles] = useState([]);
@@ -51,7 +64,7 @@ export default function Lobby({lang = 'en', request, onStart}) {
   const generation = useRef(0);
   const running = useRef(false);
   const mounted = useRef(false);
-  const ready = readyPlayers(seats);
+  const ready = readyPlayers(seats, positions);
   const seat = seats[slot];
 
   const conceal = useCallback(() => {
@@ -144,13 +157,15 @@ export default function Lobby({lang = 'en', request, onStart}) {
 
   function start() {
     return perform('start', async () => {
-      const game = await request('start', {seats:ready});
+      const game = await request('start', {seats:ready, immediateFold, showBots, manualShowdown});
       if (mounted.current) onStart(game);
     });
   }
 
   const available = availableProfiles(profiles, seats);
-  return <main className="rr-lobby"><Hero t={t}/>
+  return <main className="rr-lobby"><SeatSelection t={t} seats={seats} slot={slot}
+    positions={positions} busy={busy} choose={pos =>
+      setPositions(old => choosePosition(old, seats, slot, pos))}/>
     <div className="rr-lobby-grid">
       <section ref={roster} className="rr-panel rr-roster" aria-label={t.roster}>
         <div className="rr-roster-title"><h2>{t.roster}</h2>
@@ -167,9 +182,17 @@ export default function Lobby({lang = 'en', request, onStart}) {
           </div>
         </div>
         <PlayerSlots t={t} seats={seats} count={count} slot={slot} busy={busy} onSelect={select}/>
+        <details className="rr-house-rules"><summary>{t.disclosureRules}</summary>
+          <label><input type="checkbox" checked={immediateFold}
+            onChange={e => setImmediateFold(e.target.checked)}/>{t.earlyCards}</label>
+          <label><input type="checkbox" checked={manualShowdown}
+            onChange={e => setManualShowdown(e.target.checked)}/>{t.manualShowdown}</label>
+          <label><input type="checkbox" checked={showBots}
+            onChange={e => setShowBots(e.target.checked)}/>{t.botCards}</label>
+        </details>
         <div className="rr-start"><div><strong>{t.readyCount(ready.length, SEAT_COUNT - ready.length)}</strong>
           <p>{t.startHelp}</p></div>
-          <button type="button" className="rr-primary" onClick={start} disabled={busy || !ready.length}>
+          <button type="button" className="rr-primary" onClick={start} disabled={busy || ready.length !== count}>
             {t.start}<span aria-hidden="true"> →</span></button>
         </div>
         {error === 'start' && <p className="rr-error" role="alert">{t.errors.start}</p>}

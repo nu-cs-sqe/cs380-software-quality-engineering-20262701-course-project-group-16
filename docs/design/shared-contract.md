@@ -35,10 +35,8 @@ one who leaves, remains `ALL_IN` and eligible until settlement.
 An active human's quit immediately produces a `FOLDED` current-hand state with
 their cards and commitments retained. Another pending actor keeps their turn.
 The departing seat becomes `DEPARTED` when a later hand is initialized.
-After payment, a match winner owns GameConfig.getInitialTotalChips(). Departure
-flags do not erase a full-total victory, including an all-in quitter's final
-payout. When fewer than two funded nondeparted seats remain and chips stay split,
-the match ends without a winner. Fixed chip ownership is retained.
+Settlement awards the current hand and preserves fixed chip ownership. A new
+deal needs at least two funded nondeparted seats.
 
 ## Setup and position selection
 
@@ -335,7 +333,7 @@ profile worker. Initialization and payout publication stay on the Swing thread.
   gains/losses for current and former accounts; funding is excluded.
 - `addTableChips` and `refreshTableBalances` operate between paid hands.
   Top-ups reject unavailable funds and totals that could overflow after bot
-  replacement. `endTable` releases reservations after payment. No match champion.
+  replacement. `endTable` releases reservations after payment.
 - `nextHand` carries stacks and rotates the dealer. Departed humans and busted
   bots become new 1,000-chip bots between hands. This is separate virtual house
   funding, never a human account grant. Surviving bots retain their learning;

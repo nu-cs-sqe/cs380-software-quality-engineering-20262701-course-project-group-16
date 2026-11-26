@@ -43,3 +43,9 @@ Week 8: `orphanedSidePotIsAwardedThroughTheLowerEligiblePot` verifies the
 60-chip tied payout. The two new `QuitIntegrationTest` departure regressions
 verify payment of 110 chips, including a survivor who invested zero, and
 successful continuation. Uncalled refunds retain their original owner.
+
+The tied-pot regression uses 140, 140, 21, 42, 63 and 0 committed chips.
+Only the first two seats are live. Their common pot pays 203 each regardless
+of the folded seats' different commitment levels. `ReviewedHandTest` also
+checks the exact per-seat shares returned by `Settlement.getPots()` for a
+three-way main pot and a two-way side pot.

@@ -5,7 +5,7 @@ with the match settings below. The intended full game is no-limit Hold'em;
 the current engine support and desktop controls are described separately below.
 All chips are virtual and have no cash value.
 
-## Existing desktop match
+## Fixed-stack Swing setup
 
 - Six fixed seats, with 1–6 human players and bots filling the rest. Humans share
   one computer and explicitly reveal their own cards at each handoff.
@@ -27,20 +27,14 @@ All chips are virtual and have no cash value.
   Profiles screen creates local password accounts and signs in 1–6 humans before
   starting. Profile-bound matches retain completed lifetime statistics. Removing
   an account from the next-match roster leaves the ongoing match unchanged.
-- The match carries stacks between settled hands and eliminates zero-chip
-  players from further deals. A match winner must own all 6,000 chips after
-  settlement. An already-all-in quitter who wins the full total still wins the
-  match, and a completed winner keeps that result after leaving. With at least
-  two funded seats that have not left, Next hand rotates the dealer and deals
-  again. With fewer than two such seats and no full-total owner, play ends
-  without a match winner. Departed stacks stay with their owners. Settle hand
-  pays the current hand before the match outcome is determined. Tests using
-  other valid settings require the full configured chip total for victory.
+- Stacks carry between settled hands. Zero-chip and departed seats sit out of
+  future deals, and departed stacks stay with their owners. After settlement,
+  Next hand rotates the dealer and deals when at least two funded seats remain.
 
 ## Account tables: Week 8 desktop rules
 
-The desktop account table replaces match victory with persistent chip changes.
-The rules above still apply to the legacy match entry points.
+River Room uses funded account tables with persistent chip changes from each
+settled hand.
 
 - Each human signs in to a local account. Storage supplies the initial 2,000
   virtual chips. Players choose a buy-in of at least 400, up to their saved
@@ -64,8 +58,8 @@ The rules above still apply to the legacy match entry points.
 - Leaving retains account ownership and the hand's all-in eligibility. Matched
   money from departed contributors remains awardable to surviving eligible hands.
   Only uncalled excess is refunded. Departures cannot block settlement.
-- There is no hand-count limit or overall match winner. End the table between
-  settled hands to release reservations. Closing does not resume unfinished hands.
+- Play continues while the table can fund the next hand. End the table between
+  settled hands to release reservations. Closing discards the unfinished hand.
 
 ## Deal and betting order
 
@@ -138,3 +132,50 @@ saving fails, fix the storage problem and choose **Settle hand** again.
 No unfinished hand is serialized. The existing desktop Statistics tab still
 shows match totals; Profiles displays the selected signed-in account's completed
 lifetime statistics. Accounts reopen on this device after password verification.
+
+## River Room showdown and public hand history
+
+A fold immediately gives up every pot claim. Both cards stay hidden by default.
+A folded owner can privately inspect them and choose to show both or muck. By
+default the table publishes a voluntary show after the hand concludes. The host
+can enable immediate folded-card exposure before starting a home game. An
+uncontested winner may keep both cards hidden, show them, or explicitly muck
+after winning. None of these choices changes that payout.
+
+River Room defaults to tabling all live hands at an ordinary contested river.
+The lobby also offers an ordered show/muck house rule. In either mode the
+last river bettor or raiser shows first.
+After a checked river, start with the first live seat clockwise after the dealer.
+Continue clockwise. Under optional mucking, showing both cards claims the pot, including when playing
+the board. Mucking withdraws the claim. If everyone else mucks before anyone
+tables a hand, the last claimant wins without exposing either card. Once all
+betting decisions are complete in a contested all-in hand, expose both cards of
+every live participant before dealing any remaining streets. This includes a
+short-stack all-in when the deeper stacks have finished their side-pot betting.
+The order and all-in policy follow [Poker TDA rules 16–18](https://www.pokertda.com/view-poker-tda-rules/).
+
+By default bots keep folded and uncontested hands private. Under optional
+river mucking a bot tables against a public hand it can beat or tie and mucks when
+beaten. The lobby's optional show policy tells bots to show whenever permitted.
+Mandatory all-in exposure applies to every live human and bot.
+
+River Room saves the chip settlement before offering the public replay. The
+timeline starts before the blinds and records committed actions, board cards,
+disclosures, the actual shares of each pot and uncalled refunds. The winner's
+category appears when the hand has been shown and at least five cards are
+available. Private inspections add no public cards. The open table retains all
+its completed replays. Closing the table discards them. Completed account
+statistics and chip transactions retain their existing persistence.
+
+River Room binds authenticated accounts to the physical chairs selected before
+the opening deal. Empty lobby chairs become bots when play starts. The first
+dealer is random, with later positions following the occupied seats clockwise.
+The six fixed chairs keep their occupants throughout the table, subject to the
+existing departure and replacement rules. The lobby and history display chairs
+1–6, corresponding to engine indices 0–5.
+
+The completed table shows paid stacks, individual awards and the best public
+five for a selected winner. Results and replay are read-only views of that
+same hand. Opening them cannot pay chips or deal cards. A folded owner may
+change a private muck to a voluntary show until the next deal. A showdown muck
+that withdrew a pot claim stays final. A public disclosure is permanent.

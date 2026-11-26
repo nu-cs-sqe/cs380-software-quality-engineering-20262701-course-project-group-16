@@ -25,7 +25,7 @@ public final class Deck {
         this.cards = standardCards();
     }
 
-    private static List<Card> standardCards() {
+    static List<Card> standardCards() {
         List<Card> cards = new ArrayList<>();
         for (Suit suit : Suit.values()) {
             for (Rank rank : Rank.values()) {

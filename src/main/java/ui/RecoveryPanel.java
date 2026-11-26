@@ -55,32 +55,35 @@ final class RecoveryPanel extends JPanel {
         questions.removeAll();
     }
 
-    void render(Optional<RecoveryChallenge> challenge, boolean ready, Localizations messages,
-            String language) {
+    void render(Optional<RecoveryChallenge> challenge, Localizations messages, String language) {
         begin.setText(messages.text(language, "recovery.begin"));
         submit.setText(messages.text(language, "recovery.submit"));
-        begin.setEnabled(ready);
-        submit.setEnabled(ready && challenge.isPresent());
         notice.setText(messages.text(language, "recovery.instructions",
                 RecoveryChallenge.PASS_SCORE, RecoveryChallenge.QUESTION_COUNT,
                 RecoveryService.REWARD, RecoveryService.DAILY_LIMIT));
         List<Integer> previous = answers();
         clearQuestions();
-        challenge.ifPresent(quiz -> addQuestions(quiz, previous, ready, messages, language));
+        challenge.ifPresent(quiz -> addQuestions(quiz, previous, messages, language));
         revalidate();
         repaint();
     }
 
-    private void addQuestions(RecoveryChallenge challenge, List<Integer> previous, boolean ready,
+    void setReady(boolean ready) {
+        begin.setEnabled(ready);
+        submit.setEnabled(ready && !choices.isEmpty());
+        choices.forEach(choice -> choice.setEnabled(ready));
+    }
+
+    private void addQuestions(RecoveryChallenge challenge, List<Integer> previous,
             Localizations messages, String language) {
         for (RecoveryQuestion question : challenge.getQuestions()) {
             int index = choices.size();
             int selected = index < previous.size() ? previous.get(index) : -1;
-            addQuestion(question, selected, ready, messages, language);
+            addQuestion(question, selected, messages, language);
         }
     }
 
-    private void addQuestion(RecoveryQuestion question, int selected, boolean ready,
+    private void addQuestion(RecoveryQuestion question, int selected,
             Localizations messages, String language) {
         String prefix = "recovery.question." + question.getId();
         JLabel prompt = new JLabel(messages.text(language, prefix));
@@ -90,7 +93,6 @@ final class RecoveryPanel extends JPanel {
             options.addItem(messages.text(language, prefix + "." + index));
         }
         options.setSelectedIndex(selected);
-        options.setEnabled(ready);
         prompt.setLabelFor(options);
         choices.add(options);
         JPanel row = new JPanel(new BorderLayout(0, 2));

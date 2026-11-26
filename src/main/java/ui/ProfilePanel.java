@@ -10,6 +10,7 @@ import application.RecoveryService;
 import application.SetupSession;
 import application.StatisticsView;
 import application.TableAccountStore;
+import application.TableFunds;
 import domain.model.PlayerProfile;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -41,18 +42,24 @@ import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
 import javax.swing.JTextArea;
 import javax.swing.SwingWorker;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import localization.Localizations;
 
 /** Local-account forms and next-match roster. All Swing access stays on the event thread. */
 final class ProfilePanel extends JPanel {
     private static final long serialVersionUID = 1L;
     private final Model model;
+    private final boolean fundedTables;
     private final JTextField name = named(new JTextField(18), "profileName");
     private final JPasswordField createPassword = named(new JPasswordField(18), "createPassword");
     private final JPasswordField loginPassword = named(new JPasswordField(18), "loginPassword");
     private final JComboBox<String> saved = named(new JComboBox<>(), "savedProfiles");
     private final DefaultListModel<String> roster = new DefaultListModel<>();
     private final JList<String> joined = named(new JList<>(roster), "joinedProfiles");
+    private final JTextField buyIn = named(new JTextField(8), "buyInAmount");
+    private final JLabel buyInLabel = new JLabel();
+    private final JLabel buyInHint = new JLabel(" ");
     private final JButton create = named(new JButton(), "createProfile");
     private final JButton login = named(new JButton(), "loginProfile");
     private final JButton reload = named(new JButton(), "reloadProfiles");
@@ -78,10 +85,12 @@ final class ProfilePanel extends JPanel {
     private boolean rendering;
     private boolean savingHand;
 
-    ProfilePanel(ProfileService profiles, Localizations messages, Consumer<Boolean> busy,
-            Runnable changed) {
+    ProfilePanel(ProfileService profiles, Localizations messages, boolean fundedTables,
+            Consumer<Boolean> busy, Runnable changed) {
         model = new Model(profiles, messages, busy, changed);
+        this.fundedTables = fundedTables;
         build();
+        bindBuyInEditor();
         create.addActionListener(event -> createProfile());
         createPassword.addActionListener(event -> createProfile());
         login.addActionListener(event -> loginProfile());
@@ -102,6 +111,21 @@ final class ProfilePanel extends JPanel {
             }
         });
         render();
+    }
+
+    private void bindBuyInEditor() {
+        buyIn.getDocument().addDocumentListener(new DocumentListener() {
+            @Override public void insertUpdate(DocumentEvent event) { rememberBuyIn(); }
+            @Override public void removeUpdate(DocumentEvent event) { rememberBuyIn(); }
+            @Override public void changedUpdate(DocumentEvent event) { rememberBuyIn(); }
+        });
+    }
+
+    private void rememberBuyIn() {
+        if (!rendering) {
+            selectedAccountData().ifPresent(account -> model.buyIns.put(
+                    account.account.getProfile().getProfileId(), buyIn.getText()));
+        }
     }
 
     void enableRecovery(RecoveryService service, Predicate<String> mayClaim,
@@ -245,6 +269,9 @@ final class ProfilePanel extends JPanel {
         JPanel rosterFooter = new JPanel(new BorderLayout(0, 8));
         rosterFooter.add(selectionNote, BorderLayout.NORTH);
         rosterFooter.add(remove, BorderLayout.CENTER);
+        if (fundedTables) {
+            rosterFooter.add(buildBuyInEditor(), BorderLayout.SOUTH);
+        }
         selection.add(rosterFooter, BorderLayout.SOUTH);
         JPanel statistics = new JPanel(new BorderLayout(0, 6));
         accountDetails.addTab("", lifetime);
@@ -255,6 +282,17 @@ final class ProfilePanel extends JPanel {
         bottom.add(selection, BorderLayout.WEST);
         bottom.add(statistics, BorderLayout.CENTER);
         return bottom;
+    }
+
+    private JPanel buildBuyInEditor() {
+        JPanel row = new JPanel(new BorderLayout(8, 0));
+        buyInLabel.setLabelFor(buyIn);
+        row.add(buyInLabel, BorderLayout.WEST);
+        row.add(buyIn, BorderLayout.CENTER);
+        JPanel editor = new JPanel(new BorderLayout(0, 4));
+        editor.add(row, BorderLayout.NORTH);
+        editor.add(buyInHint, BorderLayout.CENTER);
+        return editor;
     }
 
     private JPanel buildNotices() {
@@ -306,8 +344,21 @@ final class ProfilePanel extends JPanel {
     }
 
     void startTable(SetupSession session, TableAccountStore store, Map<String, Long> balances) {
+        Map<String, Long> choices = new LinkedHashMap<>();
+        balances.forEach((id, balance) -> choices.put(id, selectedBuyIn(id, balance)));
         session.startTableWithLoadedBalances(model.profiles, List.copyOf(model.humans),
-                store, balances);
+                store, balances, choices);
+    }
+
+    private long selectedBuyIn(String id, long balance) {
+        String choice = model.buyIns.getOrDefault(id, "").strip();
+        return choice.isEmpty() ? BuyInLimits.defaultAmount(balance) : Long.parseLong(choice);
+    }
+
+    void updateTableFunds(Map<String, TableFunds> funds, Map<String, Long> net) {
+        model.tableFunds = funds;
+        model.sessionNet = net;
+        renderChipSummary(selectedAccountData());
     }
 
     Map<String, String> profileNames() {
@@ -389,7 +440,9 @@ final class ProfilePanel extends JPanel {
         }
         AuthenticatedProfile removed = model.humans.remove(joined.getSelectedIndex());
         clearRecovery();
-        model.accountData.remove(removed.getProfile().getProfileId());
+        String id = removed.getProfile().getProfileId();
+        model.accountData.remove(id);
+        model.buyIns.remove(id);
         model.selectedJoined = Math.min(joined.getSelectedIndex(), model.humans.size() - 1);
         clearPasswords();
         model.message = " ";
@@ -499,6 +552,7 @@ final class ProfilePanel extends JPanel {
             }
             joined.setSelectedIndex(model.selectedJoined);
             renderText();
+            renderBuyIn();
             renderAccountDetails();
             renderButtons();
         } finally {
@@ -540,6 +594,25 @@ final class ProfilePanel extends JPanel {
         joined.getAccessibleContext().setAccessibleName(text("profile.nextMatch"));
     }
 
+    private void renderBuyIn() {
+        Optional<AccountData> selected = selectedAccountData();
+        String choice = selected.map(account -> model.buyIns.getOrDefault(
+                account.account.getProfile().getProfileId(), "")).orElse("");
+        buyIn.setText(choice);
+        buyInLabel.setText(text("table.buyIn"));
+        buyIn.getAccessibleContext().setAccessibleName(text("table.buyIn"));
+        buyInHint.setText(selected.map(account -> buyInHint(account.overview.getBalance()))
+                .orElse(" "));
+    }
+
+    private String buyInHint(long balance) {
+        if (balance < BuyInLimits.MINIMUM) {
+            return text("table.buyIn.recovery");
+        }
+        return model.messages.text(model.language, "table.buyIn.range",
+                BuyInLimits.defaultAmount(balance), balance);
+    }
+
     private void renderAccountDetails() {
         Optional<AccountData> data = selectedAccountData();
         List<PlayerProfile> profiles = data.map(account -> List.of(account.account.getProfile()))
@@ -549,7 +622,16 @@ final class ProfilePanel extends JPanel {
                 .orElseGet(Map::of);
         lifetime.renderProfiles(profiles, stats, model.messages, model.language);
         chipHistory.render(data.map(account -> account.overview), model.messages, model.language);
-        recovery.render(model.challenge, data.isPresent() && !isBusy(),
+        renderChipSummary(data);
+        recovery.render(model.challenge, model.messages, model.language);
+    }
+
+    private void renderChipSummary(Optional<AccountData> data) {
+        Optional<String> id = data.map(account -> account.account.getProfile().getProfileId());
+        Optional<TableFunds> funds = id.filter(model.tableFunds::containsKey)
+                .map(model.tableFunds::get);
+        long net = id.map(account -> model.sessionNet.getOrDefault(account, 0L)).orElse(0L);
+        chipHistory.renderSummary(data.map(account -> account.overview), funds, net,
                 model.messages, model.language);
     }
 
@@ -564,11 +646,15 @@ final class ProfilePanel extends JPanel {
 
     private void renderButtons() {
         boolean ready = !isBusy();
+        Optional<AccountData> selected = selectedAccountData();
+        recovery.setReady(ready && selected.isPresent());
         name.setEnabled(ready);
         createPassword.setEnabled(ready);
         loginPassword.setEnabled(ready);
         saved.setEnabled(ready);
         joined.setEnabled(ready);
+        buyIn.setEnabled(ready && fundedTables && selected.filter(
+                account -> account.overview.getBalance() >= BuyInLimits.MINIMUM).isPresent());
         create.setEnabled(ready);
         reload.setEnabled(ready);
         login.setEnabled(ready && saved.getSelectedIndex() >= 0 && model.humans.size() < 6
@@ -629,6 +715,9 @@ final class ProfilePanel extends JPanel {
         private final List<AuthenticatedProfile> humans = new ArrayList<>();
         private List<PlayerProfile> saved = List.of();
         private final Map<String, AccountData> accountData = new LinkedHashMap<>();
+        private final Map<String, String> buyIns = new LinkedHashMap<>();
+        private Map<String, TableFunds> tableFunds = Map.of();
+        private Map<String, Long> sessionNet = Map.of();
         private Optional<RecoveryService> recovery = Optional.empty();
         private Optional<RecoveryChallenge> challenge = Optional.empty();
         private Predicate<String> mayClaim = id -> false;
